@@ -25,12 +25,130 @@
 
 ### v4l2
 
-Video4Linux(v4l)의 2번째 버전으로, 리눅스 시스템에서 실시간 비디오 촬영을 위한 드라이버와 API을 모아둔 것이다.
+이 예제에서는 사용하지 않지만, 다른 예제에서는 v4l2를 사용하길래 조사해보았다. Video4Linux(v4l)의 2번째 버전으로, 리눅스 시스템에서 실시간 비디오 촬영을 위한 드라이버와 API을 모아둔 것이다.
 
 * https://en.wikipedia.org/wiki/Video4Linux
 * USB 웹캠, TV 튜너 등등 카메라와 관련된 장비들을 지원하고 표준화된 출력을 제공해서 프로그래머가 리눅스 시스템에 비디오 촬영 기능을 간단히 구현할 수 있다.
 * OpenCV, Skype, PyGame, VLC Media Player 등등이 v4l2를 지원한다.
   * 그래서 OpenCV를 하기 전에 v4l2를 이용해서 카메라 데이터를 불러온 것이다.
+
+
+
+## 메시지 큐(Message Queue) 개념 및 관련 함수
+
+이 예제에서 사용하는 `msgget`, `msgsnd`, `msgrcv` 함수는 모두 메시지 큐와 관련된 함수이다. 메시지 큐는 Linux에서 사용되는 IPC(InterProcess Communication) 방법 중 하나이다.
+
+* 아래의 내용은 https://blog.naver.com/57gate/60150005931 블로그에서 발췌한 내용이다.
+
+### 주고 받을 데이터 정하기
+
+* 프로그램 간에 어떤 데이터를 주고 받을 것인지 구조체 형태로 정해주어야 한다. 아래는 우리 예제에서 사용하는 구조체이다.
+
+  ```c
+  typedef struct _DumpMsg{
+      long type;
+      int  state_msg;
+  } DumpMsg;
+  ```
+
+* 주의할 점은, 첫 번째 필드는 반드시 `long` 타입의 변수여아 한다. 일종의 식별자 역할을 한다.
+
+* 그 아래에 있는 필드들은 실제로 사용하려고 하는 데이터 구조를 나타낸다.
+
+### 메시지 큐 ID 얻기
+
+```c
+int msgget(key_t key, int msgflg);
+```
+
+* `msgget` 함수를 이용해서 메시지 큐 ID를 얻을 수 있다. 이 메시지 큐 ID는 **메시지 큐를 통해 메시지를 주고 받을 때 식별자로 사용**한다. 아래는 예제에서 발췌한 내용이다.
+
+  ```c
+  if(-1 == (tdata.msgq_id = msgget((key_t)DUMP_MSGQ_KEY, IPC_CREAT | 0666))) {
+      fprintf(stderr, "%s msg create fail!!!\n", __func__);
+      return -1;
+  }
+  ```
+
+* 첫 번째 인자로는 key 값을 넣는다. 큐 자체의 식별 번호라고 한다.
+
+* 두 번째 인자로는 `IPC_CREATE`나 `IPC_EXCL`를 넣을 수 있다.
+
+  * `IPC_CREATE`: 새롭게 생성된 메시지 큐의 메시지 큐 확인자를 반환하거나, 같은 key 값을 가진 이미 존재하는 큐의 확인자를 반환한다.
+  * `IPC_EXCL`: 해당 key에 대한 메시지 큐가 이미 존재하면 실패 처리한다.
+  * `IPC_CREATE`와 `IPC_EXCL`을 OR 연산하여 사용하면 새로운 큐가 만들어지거나 큐가 존재하면 -1을 반환시키며 호출에 실패한다. `IPC_EXCL`은 그 자체로는 쓸모가 없지만, `IPC_CREATE`와 함께 사용한다.
+  * IPC 객체는 UNIX 파일 시스템 상의 파일 permission 속성을 가진다. 따라서 부가적으로 permission을 추가할 수도 있다(위의 예제에서 `0666`을 OR 연산한 것을 주목).
+  * 두 번째 인자에 대한 내용은 http://jullio.pe.kr/cs/lpg/lpg_6_4_2_3.html 사이트를 참고함.
+
+* 반환값: 성공 시 메시지 큐 ID 반환, 실패 시 -1 반환
+
+  * 우리 예제는 `thr_data` 구조체 안에 `msgq_id` 라는 변수에다가 생성된 메시지 큐 ID를 넣어서 Thread끼리 공유하고 있음.
+
+### 메시지 보내기
+
+```c
+int msgsnd(int msqid, struct msgbuf *msgp, int msgsz, int msgflg);
+```
+
+* `msgsnd` 함수를 이용해서 메시지 큐에 메시지를 넣을 수 있다. 아래는 예제에서 발췌한 내용이다.
+
+  ```c
+  DumpMsg dumpmsg;
+  dumpmsg.type = DUMP_MSGQ_MSG_TYPE;
+  dumpmsg.state_msg = DUMP_CMD;
+  if (-1 == msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0)) {
+      printf("dump cmd msg send fail\n");
+  }
+  ```
+
+* 첫 번째 인자로는 메지시 큐 ID를 전달한다.
+
+* 두 번째 인자로는 보내려고 하는 메시지(구조체 변수)의 주소를 전달한다.
+
+* 세 번째 인자로는 메시지의 크기를 전달한다.
+
+  * 이때 중요한 점은 **구조체의 첫 번째 필드의 크기는 빼야한다**.
+
+* 네 번째 인자로는 `0` 또는 `IPC_NOWAIT`를 넣을 수 있다.
+
+  * `0`: 무시
+  * `IPC_NOWAIT`: 원래는 메시지 큐가 가득 찼을 때 메시지 큐가 비워질 때까지(메시지 큐에 메시지를 쓸 수 있을 때까지)기다리는데(Block 상태, 다음 줄의 명령이 실행되지 않음), 이 인자를 전달하면 기다리지 않고 계속 실행된다(즉, 통제권이 호출한 프로세스에게 돌아간다).
+  
+* 반환값: 성공했으면 0, 실패했으면 -1
+
+### 메시지 꺼내기
+
+```c
+ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
+```
+
+* `msgrcv` 함수를 이용해서 메시지 큐에 있는 메시지를 받을 수 있다. 아래는 예제에서 발췌한 내용이다.
+
+  ```c
+  if(msgrcv(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), DUMP_MSGQ_MSG_TYPE, 0) >= 0) {
+  ```
+
+* 첫 번째 인자로는 메시지 큐 ID를 전달한다.
+
+* 두 번째 인자로는 전달 받을 메시지(메시지 구조체 변수, 위의 예제에서는 `DumpMsg` 변수)의 주소를 전달한다.
+
+* 세 번째 인자로는 전달 받을 메시지의 크기를 전달한다.
+
+  * 마찬가지로 이때 중요한 점은 **구조체의 첫 번째 필드의 크기는 뺴야한다**.
+
+* 네 번째 인자로는 메시지 큐에 있는 자료 중에 어떤 자료를 읽어 들일지에 대한 옵션이다(**이는 메시지 구조체의 첫 번째 필드로 식별한다**).
+
+  * 0: 큐에 자료가 있다면 첫 번째의 자료를 읽어 들인다.
+  * 양수: 메시지 구조체의 첫 번째 필드와 양수로 지정한 값과 같은 자료 중 첫 번째를 읽어들인다.
+  * 음수: 메시지 구조체의 첫 번째 필드(`long type`)을 `data_type`이라고 하자. 음수 값을 절댓값으로 변경하고, 이 절댓값과 같거나 보다 제일 작은 `data_type`의 자료를 구한다.
+
+* 다섯 번째 인자로는 `0`, `IPC_NOWAIT`, `MSG_NOERROR`를 넣을 수 있다.
+  * `0`: 무시
+  * `IPC_NOWAIT`: 이름에서도 알 수 있듯이 메시지를 받을 때까지 기다리지 않는다. 즉 메시지를 받을 때까지 Block 상태가 되는 것을 막으려고 주는 옵션이다.
+    * 메시지 큐에 메시지가 없다면 기다리지 않고 -1을 반환한다.
+  * `MSG_NOERROR`: 메시지 큐에 있는 자료가 준비된 데이터 크기보다 크다면 초과 부분을 잘라 내고 읽어 있는 부분만 담아 옮긴다. 이 옵션이 없다면 메시지 큐에 자료가 있다고 하더라도 -1로 실패를 의미하는 값이 반환된다.
+
+* 네 번째와 다섯 번째 인자에 대한 정보는 http://forum.falinux.com/zbxe/index.php?document_srl=420636&mid=C_LIB를 참고했다.
 
 
 
@@ -105,8 +223,6 @@ int pthread_detach(pthread_t th)
 * `void* capture_dump_thread(void*)`
 * `int main(int, char**)`
 
-
-
 ### main 함수 분석
 
 main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이때 해당 statement에 대한 상세한 탐구는 하위 항목으로 기술했다. 이 함수의 정의와 함께 볼 때는 하단의 항목을 순서대로 보면된다.
@@ -147,4 +263,46 @@ main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이�
   * `display-kms.c` 파일에 있다.
     
     * `display-kms.c`는 `util.c`를 필요로 한다.
+
+### DumpMsg 구조체 분석
+
+### input_thread 함수 분석
+
+```c
+void * input_thread(void *arg) // thread용 함수라서 arg에는 pthread_create로부터 전달받은 인자가 들어있다.
+```
+
+* 메뉴 출력
+
+  * 이미지 불러오기, 얼굴 인식, 이미지 바인딩(인식된 얼굴에), 가장자리 검출, 저장 기능
+
+  * `MSG` 매크로를 이용해서 메뉴를 출력하는데, `fprintf` 함수로 `stderr`에다 출력한다.
+    * `stderr`은 `stdin`, `stdout`과 같이 표준 스트림이라고 불리우는 것인데, `stderr`은 표준 오류로 프로그램이 오류 메시지나 진단을 출력하기 위해 일반적으로 쓰이는 또다른 출력 스트림이다. 표준 출력 `stdout`과는 독립적인 스트림이며 별도로 리다이렉트될 수 있다.
+
+* 메뉴 입력 받고, 처리
+
+  * `input_cmd.cpp` 파일에 있는 `StandbyInput` 함수를 통해 입력을 받는다.
+
+  * 입력을 받고 나서 `strncmp` 함수를 통해 명령어를 해독한다.
+
+    * save가 입력됐을 때: `DumpMsg` 구조체를 통해 dump 메시지를 `msgsnd` 함수로 보낸다. dump 메시지를 받은 `capture_dump_thread` 함수는 현재 화면을 jpeg 파일로 저장한다.
+
+    * 1이 입력됐을 때(load image): `cv_exam` 함수를 실행하는데, `OPENCV_MODE_1`의 인자를 넘겨준다. 그리고 `cv_exam` 함수에서 전달 받은 인자를 이용해 명령을 수행한다. 이 상황에서는`cv_exam` 함수에서 `OpenCV_laod_file` 함수를 실행한다.
+    * 2가 입력됐을 때(face detection): 입력 1과 비슷하다.
+    * 3이 입력됐을 때(binding image): 입력 1과 비슷하다.
+    * 4가 입력됐을 때(edge detection): 입력 1과 비슷하다.
+
+### cv_exam 함수 분석
+
+```c
+static void cv_exam(struct thr_data* data, char* filename1, char* filename2, OpenCVMode mode)
+```
+
+
+
+### capture_dump_thread 함수 분석
+
+
+
+## exam_cv.cpp
 
