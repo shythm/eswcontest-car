@@ -55,19 +55,14 @@ https://en.wikipedia.org/wiki/Direct_Rendering_Manager
 ### KMS
 
 * Mode Setting(Kernel Mode Setting): 디스플레이 컨트롤러의 디스플레이 모드(화면 해상도, 색심도, 주사율)를 활성화하는 소프트웨어 작업을 말한다.
-
   * 그래픽 카드가 정상적으로 작동하려면 mode setting을 꼭 해주어야 한다. 물론, 해당 디스플레이가 지원되는 범위에서 mode setting을 해야 한다.
   * framebuffer를 사용하기 전에 꼭 mode setting을 해야 한다. framebuffer은 디스플레이에 표시될 내용을 담는 메모리이자 버퍼이다.
-
 * KMS Device Model
-
   * 위키백과(https://en.wikipedia.org/wiki/Direct_Rendering_Manager)와 https://prographics.tistory.com/1 블로그 참조
-
   * CRTC(CTR Controller): 스캔 아웃 버퍼(framebuffer)에 있는 픽셀 데이터를 읽고 비디오 모드 타이밍 신호를 생성한다. 사용 가능한 CTRC의 수는 하드웨어가 동시에 처리할 수 있는 독립 출력 장치의 수를 결정하고 디스플레이 당 하나 이상의 CRTC가 필요하다.
   * Encoders: CTRC로부터 생성된 비디오 신호를 Connector에 적합한 포맷으로 Encoding 하는 역할을 한다.
   * Connectors: CTRC에 의해 스캔 아웃된 비디오 신호를 표시할 위치를 나타낸다. 일반적으로 출력장치(모니터, 패널)가 있는 하드웨어의 물리적 커넥터(VGA, DVI, HDMI)를 나타낸다.
   * Planes: 하드웨어 블록이 아니라 스캔아웃엔진(CTRC)이 공급되는 버퍼를 포함하는 메모리 개체이다. framebuffer는 primary plane이라고도 불린다. CTRC가 display mode를 결정하는 소스이기 때문에 각 CRTC에는 연결된 하나의 plane이 꼭 있어야 한다.
-
 * KMS외에 User-space Mode Setting(UMS)도 있음.
 
 
@@ -242,75 +237,56 @@ int pthread_detach(pthread_t th)
 ### Outline
 
 * enum `OpenCVMode`
-
   * `cv_exam`의 인자로 넘길 열거형으로 어떤 기능을 실행할 지 나타낸다. `cv_exam`에서 이 열거형을 받아 적절한 기능을 수행한다.
-
 * enum `DumpState`
   * Thread간에 Dump 상태를 나타내는 열거형이다.
   * Thread간에 이 Dump 상태를 공유하고 이를 통해 각 Thread에서 Dump 상태를 이용해서 적절히 Dump 파일을 처리한다.
-  
 * struct `DumpMsg`
-
   * 메시지 큐에서 메시지를 주고 받을 때 사용하는 구조체이다.
   * 첫 번째 필드는 자료형이 꼭 `long`이어야 한다. 이는 메시지를 자체를 구별하는데 사용한다.
   * 두 번째 필드 이후로는 전달하거나 받을 내용을 담을 때 사용한다.
-
 * struct `thr_data`
   * Thread간 데이터 공유용으로 사용하는 구조체이다.
   * 보니까 예제 파일마다 다 다른 구조를 가지고 있다.
-  
 * `static uint32_t getfourccformat(char*)`
-
   * 전달 받은 인자(문자열)과 상응하는 format(FOURCC)을 반환하는 함수이다.
-
   * FOURCC가 뭐지?
-
 * `static int allocate_output_buffers(struct thr_data*)`
-
   * output 버퍼를 할당해주는 함수
   * `thr_data` 구조체에 있는 `thr_data` 구조체에 있는 `disp` 필드
   * 그래서 정확히 왜 이걸 해야하는거지?
-
 * `static void free_output_buffers(struct buffer**, uint32_t, bool)`
-
   * output 버퍼를 해제하는 함수이다.
-
 * `void signal_handler(int)`
-
   * CTRL + C 단축키를 인식하게 하는 함수이다. `main` 함수 마지막에서 이 handler를 등록함.
-
 * `static void draw_operatingtime(struct display*, uint32_t)`
-
-  * 
-
 * `static void cv_disp_update(struct thr_data*)`
-
 * `static void cv_savetojpeg(unsigned char*, int, int)`
-
 * `static void cv_exam(struct thr_data*, char*, char*, OpenCVMode)`
-
 * `void* input_thread(void*)`: 자세한 내용은 아래에 있음
-
 * `void* capture_dump_thread(void*)`: 자세한 내용은 아래에 있음
-
 * `int main(int, char**)`: 자세한 내용은 아래에 있음
+
+
 
 ### main 함수 분석
 
-main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이때 해당 statement에 대한 상세한 탐구는 하위 항목으로 기술했다. 이 함수의 정의와 함께 볼 때는 하단의 항목을 순서대로 보면된다.
+main 함수에 있는 코드를 display 출력을 중심으로 statement 단위로 분석했다. 이때 해당 statement에 대한 상세한 탐구는 하위 항목으로 기술했다. 이 함수의 정의와 함께 볼 때는 하단의 항목을 순서대로 보면된다.
 
 * `display` 구조체
   
   * `display-kms.h` 파일에 선언되어 있다.
   * `disp_open(int, char**)` 함수의 반환값으로 얻을 수 있다.
   
-* `disp_open(int, char**)` 함수 ()`display-kms.c`에 있음)
+* `disp_open(int, char**)` 함수 (`display-kms.c`에 있음)
   
-  * 예제 코드에서는 첫 번째 인자로 `disp_argc`, 두 번째 인자로 `disp_argv`를 인자로 받고 있다.
+  ```c
+  struct display* disp_open(int argc, char **argv)
+  ```
+  
+  * 예제 코드에서는 첫 번째 인자로 `disp_argc`, 두 번째 인자로 `disp_argv`를 인자를 전달한다.
     * `disp_argc`는 매개 변수의 개수를 나타낸다.
-    
     * `disp_argv`는 매개 변수(문자열) 배열으로 이 함수에 전달할 내용을 담고 있다.
-    
     * `disp_argv`의 첫 번째 문자열은 dummy 문자열이다. 실제로 이를 처리하는 함수에서 첫 번째 문자열은 아무런 영향을 끼치지 않는다. 왜냐하면 아래와 같이 매개 변수 문자열을 처리하기 때문이다.
     
       ```c
@@ -318,21 +294,162 @@ main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이�
       ```
     
   * 내부적으로 `disp_kms_open(int, char**)`을 호출하여 초기화된 `display` 구조체를 반환받는다.
-  
+    
     * 이때 `disp_open` 함수에 전달 받은 인자들을 그대로 `disp_kms_open`함수에 전달한다. 즉, `disp_open` 함수가 처리하지 않는 매개변수들은 `disp_kms_open` 함수에서 처리된다.
-  
-  * 인자로 `-s` `4:480x272`를 주었는데 아래와 같이 이를 처리한다.
+* 인자로 `-s` `4:480x272`를 주었는데 아래와 같이 이를 처리한다.
   
     ```c
     if (sscanf(argv[i], "%d:%64s", &connector->id, connector->mode_str) != 2
         && sscanf(argv[i], "%d@%d:%64s", &connector->id, &connector->crtc, connector->mode_str) != 3) 
-    ```
+  ```
   
-    즉, `connector` 구조체 변수 `connector`의 `id`를 4로, `mode_str`을 480x272로 설정한 것이다.
-  
-    * 여기서 알 수 있는 점이 `connector` 구조체에는 LCD 커넥터의 번호와 해상도가 담겨져 있다는 사실이다.
-    * `connector` 구조체의 변수의 개수는 총 10개이다(`display_kms` 구조체 참고).
+    즉, `-s` 옵션을 이용하면`connector` 구조체 변수 `connector`의 `id`와 `mode_str`를 설정할 수 있다(예제에서는 `id`를 4로, `mode_str`을 480x272로 설정)
     
+    * 여기서 알 수 있는 점이 `connector` 구조체에는 LCD 커넥터의 번호와 해상도가 담겨져 있다는 사실이다.
+    * 이해가 안 되는 점은 480x272를 960x272로 바꾸어도 LCD 화면도 정상적으로 출력되고 바꾸기 전과 후의 콘솔 출력도 변하지 않았다는 점이다(콘솔에 현재 해상도가 뜨는데).
+  
+* `disp->multiplanar = false` 구문이 없어도 잘 동작했다. 왜 넣은건지 의문.
+
+* `set_z_order`, `set_global_alpha`, `set_pre_multiplied_alpha` 함수가 없어도 잘 동작했다. 왜 넣은건지 의문.
+
+* `alloc_overlay_plane` 함수는 빼니까 Segmentation fault가 발생했다.
+
+  * `display` 구조체 변수를 전달하면 overlay plane 버퍼와 새 버퍼 객체를 할당해준다.
+    * `display` 구조체 안에 있는 `buffer` 구조체 필드 `overlay_p_bo`를 조작한다.
+  * `display` 구조체 안에 있는 `plane` 구조체 필드 `overlay_p`를 조작한다.
+    * DRM의 KMS Device Model에서 Plane은 꼭 필요하다 했는데 이거랑 관련있는 듯하다.
+
+* `allocate_output_buffer` 함수 안의 `disp_get_vid_buffers` 함수는 `display` 구조체 변수를 전달하면 video/overlay 버퍼를 반환한다.
+
+  * 여러 개의 버퍼(`buffer` 구조체)를 만들 수 있나보다. 따라서 배열 형태(`buffer*`)를 띈다.
+
+  * 이렇게 만들어진 버퍼의 buffer object(`omap_bo` 구조체 필드 `bo`)로부터 DMA buffer를 만들어 `fd` 필드에 넣는다.
+    * 그래서 이게 뭘 의미할까?
+
+* `get_framebuf` 함수: Direct Access(DMA를 말하는건가?)를 위한 frame buffer를 얻는 함수(얻은 frame buffer는 두 번째 인자로 전달함)
+
+  ```c
+  int get_framebuf(struct buffer *buf, unsigned char** ppfbuf)
+  ```
+
+  * 첫 번째 인자로는 frame buffer를 구할 `buffer` 구조체의 주소, 두 번째 인자는 frame buffer의 파라미터들(배열)을 가리키는 포인터(pointer to parameter of framebuffer)
+  * ppfbuf는 4칸짜리 char*를 담는 배열이다. (왜 4칸인지는 잘 모르겠는데 확실한건 `buffer` 구조체에의 `fd`나 `bo` 필드는 배열인데, 이 배열들의 크기는 모두 4더라. 고정되어 있음.)
+
+* `fbuf = ppfbuf[0]`: frame buffer를 추출한다.
+
+  * index 1이나 2, 3은 사용하면 안되나? 애초에 `get_framebuf` 함수를 보니까 index 2, 3은 아예 건드리지도 않더라)
+
+* `memset` 함수로 frame buffer를 초기화 해준다. 또는 원하는 값으로.
+
+* `disp_post_vid_buffer` 함수를 통해 `display` 구조체에 있는 `post_vid_buffer` 함수 포인터로 `buffer` 구조체 변수(이 구조체 안에 frame buffer가 존재하며 자세한 내용은 `get_framebuf` 함수를 참고할 것)를 전달한다.
+
+* `update_overlay_disp` 함수를 통해 `display` 구조체를 업데이트한다. 버퍼 내용이 적용되는 듯.
+
+#### display-kms만을 이용한 main 함수 예제
+
+* `main.c`에 있는 custom 함수가 아닌 `display-kms.c`에 있는 함수들로만 구성한 display 출력 예제
+* 빨간색과 파란색 화면을 번갈아가며 출력한다.
+
+```c
+int main(int argc, char** argv) {
+    // display 구조체 포인터. 나중에 disp_open 함수로 초기화 된 display 구조체 포인터를 얻을 수 있다.
+    struct display* disp;
+    // display 구조체를 기반으로 해서 disp_get_vid_buffers 함수로 출력 버퍼 배열을 얻을 수 있다.
+    // buffer 구조체 변수의 주소를 담는 배열이라 이중 포인터를 사용한다.
+    struct buffer** output_bufs;
+    // pointer to parameter of framebuffe
+    unsigned char* ppfbuf[4];
+    // frame buffer:
+    unsigned char* fbuf;
+
+    int i;
+    int disp_open_argc = 3;
+    // 인자들이 정확히 뭘 의미하는지 잘 모르겠다..
+    char* disp_open_argv[] = { "dummy", "-s", "4:480x272", "\0" };
+
+    printf("open display ... \n");
+    // disp_open 함수를 호출하여 적절히 초기화된 display 구조체 포인터를 얻는다.
+    disp = disp_open(disp_open_argc, disp_open_argv);
+    if (!disp) { // NULL 이라면 실패!
+        ERROR("display open error ! \n");
+        return 1;
+    }
+
+    // ** 아래 주석들은 원래 main 함수에 있던 코드들인데 없어도 잘 동작했음. **
+    // disp->multiplanar = false;
+    // set_z_order(disp, disp->overlay_p.id);
+    // set_global_alpha(disp, disp->overlay_p.id);
+    // set_pre_multiplied_alpha(disp, disp->overlay_p.id);
+    // ** **
+
+    // DRM의 KMS Device Model에서 Plane은 꼭 있어야 한다고 한다.
+    // display 구조체 안에 있는 plane 구조체 필드 overlay_p를 조작해서 필요한 plane을 초기화해주고,
+    // display 구조체 안에 있는 buffer 구조체 필드 overlay_p_bo를 조작해서 버퍼를 할당해준다.
+    alloc_overlay_plane(disp, OVERLAY_DISP_FORCC, 0, 0, OVERLAY_DISP_W, OVERLAY_DISP_H);
+    
+    // ** 원래 allocate_output_buffer 함수에 있던 내용 **
+    output_bufs = disp_get_vid_buffers(
+        disp, 
+        DISP_OUTPUT_BUF_NUM, // 버퍼 수: 1개
+        getfourccformat(DISP_OUTPUT_IMG_FORMAT), // 비트 깊이 관련 속성
+        DISP_OUTPUT_IMG_W, // 가로
+        DISP_OUTPUT_IMG_H // 세로
+    );
+    if (!output_bufs) // NULL 이라면 실패!
+        ERROR("allocating buffer failed \n");
+    // buffer object(omap_bo 구조체)로부터 dma buffer를 만든다. (정확한 의미는 잘 모름)
+    output_bufs[0]->fd[0] = omap_bo_dmabuf(output_bufs[0]->bo[0]);
+    // ** allocate_output_buffer 함수의 끝 **
+
+    // 버퍼로부터 관련 정보를 출력하고 버퍼가 제대로 설정되었는지 검사한다.
+    MSG ("nOUTPUT(LCD) = %d x %d (%.4s) \n", 
+        output_bufs[0]->width, output_bufs[0]->height, (char*)&output_bufs[0]->fourcc);
+    if (output_bufs[0]->width < 0 || output_bufs[0]->height < 0 || output_bufs[0]->fourcc < 0)
+        ERROR("Invalid parameters \n");
+
+    // output_buffs[0]로부터 pointer to parameter of framebuffer를 구한다.
+    get_framebuf(output_bufs[0], ppfbuf);
+    // ppfbuf의 첫 번째 원소를 통해 frame buffer를 사용할 수 있다.
+    fbuf = ppfbuf[0];
+
+    // 이제 fbuf에 화면에 표시할 내용을 쓰고 함수 몇 개 사용하면 디스플레이가 출력된다!
+    while (1) { 
+        sleep(1); // 1초 대기
+        printf("RED! \n");
+        for (i = 0; i < DISP_OUTPUT_IMG_SIZE; i++) {
+            // ccformat에 맞게 fbuf에 적절히 내용을 채워준다(현재는 RGB24)
+            if (i % 3 == 2) { // RED
+                fbuf[i] = 255; // RED에 해당하는 부분만 255(최대 밝기)로 설정한다.
+            } else {
+                fbuf[i] = 0; // 나머지는 0으로 설정해서 빨간색만 보이게 한다.
+            }
+        }
+        // display 구조체에 있는 post_vid_buffer 함수 포인터로 buffer 구조체 변수(output_bufs[0], 이 구조체 안에 frame buffer가 있음)를 전달한다.
+        if (disp_post_vid_buffer(disp, output_bufs[0], 0, 0, DISP_OUTPUT_IMG_W, DISP_OUTPUT_IMG_H))
+            ERROR("Post Buffer failed! \n");
+        // display 구조체를 업데이트 한다. 버퍼 내용이 적용되는 듯.
+        update_overlay_disp(disp);
+
+        // 아래는 파란색 화면을 출력하는 과정으로 위와 동일하다.
+        sleep(1);
+        printf("BLUE! \n");
+        for (i = 0; i < DISP_OUTPUT_IMG_SIZE; i++) {
+            if (i % 3 == 0) {
+                fbuf[i] = 255;
+            } else {
+                fbuf[i] = 0;
+            }
+        }
+        if (disp_post_vid_buffer(disp, output_bufs[0], 0, 0, DISP_OUTPUT_IMG_W, DISP_OUTPUT_IMG_H))
+            ERROR("Post Buffer failed! \n");
+        update_overlay_disp(disp);
+    }
+    
+    return 0;
+}
+```
+
+
 
 ### input_thread 함수 분석
 
@@ -360,6 +477,8 @@ void * input_thread(void *arg) // thread용 함수라서 arg에는 pthread_creat
     * 3이 입력됐을 때(binding image): 입력 1과 비슷하다.
     * 4가 입력됐을 때(edge detection): 입력 1과 비슷하다.
 
+
+
 ### capture_dump_thread 함수 분석
 
 ```c
@@ -369,6 +488,8 @@ void * capture_dump_thread(void *arg)
 * 계속해서 `DUMP_CMD` 메시지가 있나 `msgrcv` 함수를 통해 확인한다.
   * `DUMP_CMD` 메시지를 받으면 `cv_exam` 함수(OpenCV 예제 프로그램)를 실행하고 dump_state를 `DUMP_READY`로 바꾼다. 이 `DUMP_READY`는 `cv_exam` 함수에서 인식되어 `DUMP_WRITE_TO_FILE` 메시지를 보낸다.
 * `DUMP_WRITE_TO_FILE` 메시지를 받으면, 스크린샷을 찍을 준비가 되었다는 말이므로 `cv_savetojpeg` 함수를 호출한다. 그 후 dump_state를 `DUMP_DONE`으로 바꾸어 dump 과정이 끝났음을 알린다.
+
+
 
 ### cv_exam 함수 분석
 
@@ -386,6 +507,8 @@ static void cv_exam(struct thr_data* data, char* filename1, char* filename2, Ope
   2. 버퍼에 `img`의 내용을 `memcpy` 함수를 통해 복사한다.
   3. `main.c`에 있는 `cv_disp_update`를 호출한다.
      * 왜 호출하는거지? 버퍼의 내용을 읽어서 디스플레이에 띄우라는 이야긴가?
+
+
 
 ## exam_cv.cpp
 
