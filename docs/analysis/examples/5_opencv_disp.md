@@ -32,6 +32,44 @@
 * OpenCV, Skype, PyGame, VLC Media Player 등등이 v4l2를 지원한다.
   * 그래서 OpenCV를 하기 전에 v4l2를 이용해서 카메라 데이터를 불러온 것이다.
 
+### DRM
+
+https://en.wikipedia.org/wiki/Direct_Rendering_Manager
+
+예제의 `display-kms.h`나 `display-kms.c` 파일을 보면 DRM 관련 헤더 파일(`drm.h`, `omap_drm.h`, `omap_drmif.h`)을 include 하는 것을 볼 수 있다. DRM은 Direct Rendering Manager의 약자로 DRM(Digital right management)와는 전혀 다른 개념이다. 처음에 후자의 뜻인 줄 알고 많이 난감했었다. DRM은 최신 비디오 카드의 GPU와의 인터페이스를 담당하는 리눅스 커널의 서브 시스템이다.
+
+* DRM을 이용하면 커널 단계에서가 아닌 유저 모드의 프로그램이 GPU에 데이터와 명령을 전달할 수 있으며, 디스플레이의 모드를 설정하는 것 등의 작업을 수행할 수 있다.
+  * 따로 시스템 콜을 필요로 하지 않고, DRM에 의해 감지된 GPU를 `/dev` 디렉터리 안의 파일로 관리한다(Unix의 원칙인 everything is a file을 지켰다고 함).
+    * `/dev/dri/cardX` (where X is a sequential number) 파일이라고 함.
+  * 유저 모드에서 GPU에게 명령을 내리려면 이 해당 DRM device(`/dev/dri/cardX`) 파일을 열어야 한다.
+* 이전에는 유저 모드의 프로그램이 직접 비디오 카드에 접근해서 두 개 이상의 프로그램이 이 비디오 카드 자원을 점유할 때 문제가 많이 발생했다.
+* 하지만 DRM의 등장으로 인해 여러 프로그램이 비디오 카드의 자원을 서로 협력하여 사용할 수 있게 되었다.
+  * DRM을 통해 배타적인 GPU 접근이 가능하다.
+  * DRM은 명령 큐, 메모리, 다른 하드웨어 자원을 초기화하고 관리한다.
+  * DRM이 프로그램들 간에 중재자 역할을 해준다.
+* `libdrm`에 DRM 관련된 헤더 파일이 있음(우리 모형 자동차에는 `/usr/include/libdrm`, WSL에서는 `/usr/include/drm`)
+* DRM은 DRM core, DRM driver의 두 부분으로 나뉜다.
+  * DRM core: 서로 다른 GPU를 지원하는 DRM driver의 기본적인 프레임워크이다. hardware-independent하다.
+  * DRM driver: hardware-dependent하며 특정 GPU를 지원하는 구현체이다. DRM core의 기능 이외에 특정 그래픽 카드에서만 사용할 수 있는 기능을 지원한다.
+
+### KMS
+
+* Mode Setting(Kernel Mode Setting): 디스플레이 컨트롤러의 디스플레이 모드(화면 해상도, 색심도, 주사율)를 활성화하는 소프트웨어 작업을 말한다.
+
+  * 그래픽 카드가 정상적으로 작동하려면 mode setting을 꼭 해주어야 한다. 물론, 해당 디스플레이가 지원되는 범위에서 mode setting을 해야 한다.
+  * framebuffer를 사용하기 전에 꼭 mode setting을 해야 한다. framebuffer은 디스플레이에 표시될 내용을 담는 메모리이자 버퍼이다.
+
+* KMS Device Model
+
+  * 위키백과(https://en.wikipedia.org/wiki/Direct_Rendering_Manager)와 https://prographics.tistory.com/1 블로그 참조
+
+  * CRTC(CTR Controller): 스캔 아웃 버퍼(framebuffer)에 있는 픽셀 데이터를 읽고 비디오 모드 타이밍 신호를 생성한다. 사용 가능한 CTRC의 수는 하드웨어가 동시에 처리할 수 있는 독립 출력 장치의 수를 결정하고 디스플레이 당 하나 이상의 CRTC가 필요하다.
+  * Encoders: CTRC로부터 생성된 비디오 신호를 Connector에 적합한 포맷으로 Encoding 하는 역할을 한다.
+  * Connectors: CTRC에 의해 스캔 아웃된 비디오 신호를 표시할 위치를 나타낸다. 일반적으로 출력장치(모니터, 패널)가 있는 하드웨어의 물리적 커넥터(VGA, DVI, HDMI)를 나타낸다.
+  * Planes: 하드웨어 블록이 아니라 스캔아웃엔진(CTRC)이 공급되는 버퍼를 포함하는 메모리 개체이다. framebuffer는 primary plane이라고도 불린다. CTRC가 display mode를 결정하는 소스이기 때문에 각 CRTC에는 연결된 하나의 plane이 꼭 있어야 한다.
+
+* KMS외에 User-space Mode Setting(UMS)도 있음.
+
 
 
 ## 메시지 큐(Message Queue) 개념 및 관련 함수
@@ -203,25 +241,59 @@ int pthread_detach(pthread_t th)
 
 ### Outline
 
-* struct `OpenCVMode`
+* enum `OpenCVMode`
+
+  * `cv_exam`의 인자로 넘길 열거형으로 어떤 기능을 실행할 지 나타낸다. `cv_exam`에서 이 열거형을 받아 적절한 기능을 수행한다.
+
 * enum `DumpState`
   * Thread간에 Dump 상태를 나타내는 열거형이다.
   * Thread간에 이 Dump 상태를 공유하고 이를 통해 각 Thread에서 Dump 상태를 이용해서 적절히 Dump 파일을 처리한다.
+  
 * struct `DumpMsg`
+
+  * 메시지 큐에서 메시지를 주고 받을 때 사용하는 구조체이다.
+  * 첫 번째 필드는 자료형이 꼭 `long`이어야 한다. 이는 메시지를 자체를 구별하는데 사용한다.
+  * 두 번째 필드 이후로는 전달하거나 받을 내용을 담을 때 사용한다.
+
 * struct `thr_data`
   * Thread간 데이터 공유용으로 사용하는 구조체이다.
   * 보니까 예제 파일마다 다 다른 구조를 가지고 있다.
+  
 * `static uint32_t getfourccformat(char*)`
+
+  * 전달 받은 인자(문자열)과 상응하는 format(FOURCC)을 반환하는 함수이다.
+
+  * FOURCC가 뭐지?
+
 * `static int allocate_output_buffers(struct thr_data*)`
+
+  * output 버퍼를 할당해주는 함수
+  * `thr_data` 구조체에 있는 `thr_data` 구조체에 있는 `disp` 필드
+  * 그래서 정확히 왜 이걸 해야하는거지?
+
 * `static void free_output_buffers(struct buffer**, uint32_t, bool)`
+
+  * output 버퍼를 해제하는 함수이다.
+
 * `void signal_handler(int)`
+
+  * CTRL + C 단축키를 인식하게 하는 함수이다. `main` 함수 마지막에서 이 handler를 등록함.
+
 * `static void draw_operatingtime(struct display*, uint32_t)`
+
+  * 
+
 * `static void cv_disp_update(struct thr_data*)`
+
 * `static void cv_savetojpeg(unsigned char*, int, int)`
+
 * `static void cv_exam(struct thr_data*, char*, char*, OpenCVMode)`
-* `void* input_thread(void*)`
-* `void* capture_dump_thread(void*)`
-* `int main(int, char**)`
+
+* `void* input_thread(void*)`: 자세한 내용은 아래에 있음
+
+* `void* capture_dump_thread(void*)`: 자세한 내용은 아래에 있음
+
+* `int main(int, char**)`: 자세한 내용은 아래에 있음
 
 ### main 함수 분석
 
@@ -231,7 +303,9 @@ main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이�
   
   * `display-kms.h` 파일에 선언되어 있다.
   * `disp_open(int, char**)` 함수의 반환값으로 얻을 수 있다.
-* `disp_open(int, char**)` 함수
+  
+* `disp_open(int, char**)` 함수 ()`display-kms.c`에 있음)
+  
   * 예제 코드에서는 첫 번째 인자로 `disp_argc`, 두 번째 인자로 `disp_argv`를 인자로 받고 있다.
     * `disp_argc`는 매개 변수의 개수를 나타낸다.
     
@@ -256,15 +330,9 @@ main 함수에 있는 코드를 중요한 statement 단위로 분석했다. 이�
   
     즉, `connector` 구조체 변수 `connector`의 `id`를 4로, `mode_str`을 480x272로 설정한 것이다.
   
-    * 여기서 알 수 있는 점이 `connector` 구조체에는 LCD 커넥터의 번호와 해상도(아닐 수도 있음)같은 것이 담겨져 있다는 사실이다.
+    * 여기서 알 수 있는 점이 `connector` 구조체에는 LCD 커넥터의 번호와 해상도가 담겨져 있다는 사실이다.
     * `connector` 구조체의 변수의 개수는 총 10개이다(`display_kms` 구조체 참고).
-    * 
-  
-  * `display-kms.c` 파일에 있다.
     
-    * `display-kms.c`는 `util.c`를 필요로 한다.
-
-### DumpMsg 구조체 분석
 
 ### input_thread 함수 분석
 
@@ -292,17 +360,32 @@ void * input_thread(void *arg) // thread용 함수라서 arg에는 pthread_creat
     * 3이 입력됐을 때(binding image): 입력 1과 비슷하다.
     * 4가 입력됐을 때(edge detection): 입력 1과 비슷하다.
 
+### capture_dump_thread 함수 분석
+
+```c
+void * capture_dump_thread(void *arg)
+```
+
+* 계속해서 `DUMP_CMD` 메시지가 있나 `msgrcv` 함수를 통해 확인한다.
+  * `DUMP_CMD` 메시지를 받으면 `cv_exam` 함수(OpenCV 예제 프로그램)를 실행하고 dump_state를 `DUMP_READY`로 바꾼다. 이 `DUMP_READY`는 `cv_exam` 함수에서 인식되어 `DUMP_WRITE_TO_FILE` 메시지를 보낸다.
+* `DUMP_WRITE_TO_FILE` 메시지를 받으면, 스크린샷을 찍을 준비가 되었다는 말이므로 `cv_savetojpeg` 함수를 호출한다. 그 후 dump_state를 `DUMP_DONE`으로 바꾸어 dump 과정이 끝났음을 알린다.
+
 ### cv_exam 함수 분석
 
 ```c
 static void cv_exam(struct thr_data* data, char* filename1, char* filename2, OpenCVMode mode)
 ```
 
-
-
-### capture_dump_thread 함수 분석
-
-
+* 디스플레이 크기 만큼 `unsigned char`형 `img` 배열을 만들어 `memset`으로 초기화함.
+* `exam_cv.cpp` 파일에 있는 `OpenCV_face_detection`, `OpenCV_binding_image`, `OpenCV_canny_edge_image`, `OpenCV_load_file` 함수를 전달 받은 `mode` 인자를 통해 적절히 수행함.
+  * 이때 `gettimeofday` 함수(`main.c`에 없음)를 통해 OpenCV 함수를 실행하기 전과 후의 시간을 측정한 다음에(각각 `st`(start time), `et`(end time)에 저장됨) 두 시간의 차이를 구해 OpenCV 처리 시간을 구하고 출력한다.
+  * 출력할 때에는 `main.c`에 있는 `draw_operaitingtime` 함수를 호출함.
+* dump_state가 `DUMP_READY`일 때 영상처리를 통해 얻은 이미지(`img`)를 thr_data 구조체 변수인 `data`의 `dump_img_data`에 복사하고 `capture_dump_thread` 쓰레드를 위해 `DUMP_WRITE_TO_FILE` 메시지를 보낸다.
+* dump_state가 `DUMP_READY`가 아닐 때에는 디스플레이에 `img` 정보를 출력한다.
+  1. `display-kms.c` 파일에 있는 `get_framebuf` 함수를 실행해서 현재 디스플레이의 버퍼를 가져온다.
+  2. 버퍼에 `img`의 내용을 `memcpy` 함수를 통해 복사한다.
+  3. `main.c`에 있는 `cv_disp_update`를 호출한다.
+     * 왜 호출하는거지? 버퍼의 내용을 읽어서 디스플레이에 띄우라는 이야긴가?
 
 ## exam_cv.cpp
 
