@@ -304,7 +304,7 @@ main 함수에 있는 코드를 display 출력을 중심으로 statement 단위�
   ```
   
     즉, `-s` 옵션을 이용하면`connector` 구조체 변수 `connector`의 `id`와 `mode_str`를 설정할 수 있다(예제에서는 `id`를 4로, `mode_str`을 480x272로 설정)
-    
+  
     * 여기서 알 수 있는 점이 `connector` 구조체에는 LCD 커넥터의 번호와 해상도가 담겨져 있다는 사실이다.
     * 이해가 안 되는 점은 480x272를 960x272로 바꾸어도 LCD 화면도 정상적으로 출력되고 바꾸기 전과 후의 콘솔 출력도 변하지 않았다는 점이다(콘솔에 현재 해상도가 뜨는데).
   
@@ -511,4 +511,155 @@ static void cv_exam(struct thr_data* data, char* filename1, char* filename2, Ope
 
 
 ## exam_cv.cpp
+
+이 예제의 핵심인 `exam_cv.cpp` 파일을 분석했다.
+
+
+
+### Mat 구조체 분석
+
+* OpenCV에서 가장 기본이 되는 데이터 타입으로 행렬(Matrix) 구조체이다.
+
+* `Mat` 생성 방법
+
+  ```c++
+  Mat::Mat()
+  Mat::Mat(int rows, int cols, int type)
+  Mat::Mat(Size size, int type)
+  Mat::Mat(int rows, int cols, int type, const Scalar& s)
+  Mat::Mat(Size size, int type, const Scalar& s)
+  Mat::Mat(const Mat& m)
+  Mat::Mat(int rows, int cols, int type, void* data, size_t step = AUTO_STEP)
+  Mat::Mat(Size size, int type, void* data, size_t step = AUTO_STEP)
+  Mat::Mat(const Mat& m, const Range& rowRange, const Range& colRange = Range::all())
+  Mat::Mat(const Mat& m, const Rect& roi)
+  Mat::Mat(const CvMat* m, bool copyData = false)
+  Mat::Mat(const IplImage* img, bool copyData = false)
+  ```
+
+* Fixed Pixel Type: `Mat`의 Element가 어떤 타입의 데이터인지를 나타낸다.
+
+  * 예로 `CV_8UC1`, `CV_8UC3`, `CV_16SC1`, `CV_32FC1` 등이 있다.
+  * `CV_NTCM`에서 N은 색 깊이를 나타내고, T는 `U`, `S`, `F` 중 하나를 선택할 수 있는데 Unsigned, Signed, Folating을 의미한다. 마지막으로 M은 채널의 수를 의미한다(그 앞에 `C`는 Channel의 약자이다.)
+  * `CV_8UC3`에서는 8비트 색깊이를 가지고, unsigned 데이터형을 가지며, 채널이 3개라는 의미이다.
+
+* OpenCV에서는 채널 순서를 거꾸로? 읽는다. 무슨 소리냐 하면 RGB 순서대로 값이 저장되지 않고 BGR 순서대로 값이 저장된다.
+
+* 픽셀 데이터 접근하기
+
+  * `At` 메서드 이용
+
+    ```c++
+    Mat image;
+    image.at<DATA_TYPE>(row, col);   // return type : DATA_TYPE
+    ```
+
+    * 3가지 접근법 중 가장 느리지만, 유효성 검사를 수행하기 때문에 안정적임.
+    * DATA_TYPE에는 영상의 차원에 따라 적절한 타입을 넣어주면 된다. (3개의 채널인 경우는 `Vec3b` 타입을 쓰더라.)
+
+  * `ptr` 메서드 이용
+
+    ```c++
+    Mat image;
+    image.ptr<DATA_TYPE>(row, col);   // return type : DATA_TYPE*
+    ```
+
+    * `At` 보다 속도가 빠르며 반환 타입이 `DATA_TYPE`의 포인터이다.
+
+  * `data` 메서드 이용
+
+    ```c++
+    Mat image;
+    DATA_TYPE data = (DATA_TYPE*)image.data;
+    // row, col 위치 일 경우
+    data[row*image.cols + col]
+    ```
+
+    * 속도가 가장 빠르며 유효성 검사를 수행하지 않아 부적절한 위치시 알기 힘들다.
+
+* `Mat` 구조체에 대한 내용은 https://nextus.tistory.com/14 블로그를 참조했다.
+
+
+
+### OpenCV_load_file 함수 분석
+
+* `Mat` 클래스로 `srcRGB`, `dstRGB` 변수를 만든다. `srcRGB`에는 이미지를 불러오고, `dstRGB`는 디스플레이에 맞게 크기가 변경된 이미지를 담는데 사용한다.
+
+  * `Mat dstRGB(nh, nw, CV_8UC3, outBuf);` 에서 `outBuf`는 사용자가 직접 할당한 공간을 지정해주는 역할을 한다.
+  * constructor for matrix headers pointing to user-allocated data: `Mat(int rows, int cols, int type, void* data, size_t step=AUTO_STEP);`
+
+* 이미지 불러오기
+
+  ```c++
+  srcRGB = imread(file, CV_LOAD_IMAGE_COLOR); // rgb
+  ```
+
+  * `CV_LOAD_IMAGE_COLOR` 대신에 `CV_LOAD_IMAGE_GRAYSCALE`를 넣으면 그레이스케일로 이미지를 불러온다.
+
+* 이미지 resize
+
+  ```c++
+  cv::resize(srcRGB, dstRGB, cv::Size(nw, nh), 0, 0, CV_INTER_LINEAR);
+  ```
+
+  * `nw`는 디스플레이의 가로 크기 `nh`는 디스플레이의 세로 크기가 들어간다.
+  * 굳이 이 함수를 쓰지 않아도 우리 하드웨어의 VPE를 이용해서 이미지의 크기나 색공간을 조정할 수 있다.
+
+
+
+### OpenCV_Bgr2RgbConvert 함수 분석
+
+```c++
+void OpenCV_Bgr2RgbConvert(unsigned char* inBuf, int w, int h, unsigned char* outBuf)
+```
+
+* 입력 버퍼의 BGR Color Space를 RGB Color Space로 변환한다.
+* 내부적으로 `cvtColor` 함수를 사용함. `CV_BGR2RGB` 인자를 넘겨주고 있음
+
+
+
+### OpenCV_face_detection 함수 분석
+
+* OpenCV 내장 클래스 `CascadeClassifier`를 사용하여 미리 정의된 Classifier를 불러와 얼굴 인식을 진행함.
+
+  ```c++
+  // Load Face cascade (.xml file)
+  CascadeClassifier face_cascade;
+  face_cascade.load("haarcascade_frontalface_alt.xml");
+  
+  // Detect faces
+  std::vector<Rect> faces;
+  face_cascade.detectMultiScale(srcRGB, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
+  ```
+
+* Haar Cascade Classifier란 Haar feature 기반 다단계 분류자(Cascade Classifier)를 이용해 객체를 검출 (Object Detection)하는 방법이다(2001년 Paul Viola, Michael Jones의 논문 Rapid Object Detection using a Boosted Cascade of Simple Features).
+
+* 다수의 객체 이미지(positive 이미지)와 객체가 아닌 이미지(negative 이미지)를 cascade 함수로 트레이닝 시켜 객체 검출을 달성하는 머신러닝 기반의 접근 방법이다.
+
+  * 많은 수의 얼굴 이미지(positive)와 얼굴이 없는 이미지(negative)를 classifier에 트레이닝시켜 얼굴에 대한 특징들을 추출하고 따로 데이터로 저장한다.
+  * 이 특징은 `haarcascade_frontalface_alt.xml`파일에 저장되어 있다.
+
+* OpenCV에서는 Haar-like feature를 사용하는데 아래의 이미지와 같이 Edge, Line, Center-surround feature를 사용한다.
+
+  * ![haar_features](https://www.bogotobogo.com/python/OpenCV_Python/images/FaceDetection/HaarFeatures.png)
+
+* Image Subregion에 대해 각 stage에서 얼굴인지를 검사하여 얼굴이 아니면 빠져나오고, 얼굴이면 계속해서 다음 stage로 넘어가 마지막 stage까지 가서도 통과되면 얼굴으로 판정한다.
+  * ![stage](https://www.bogotobogo.com/python/OpenCV_Python/images/FaceDetection/stages.png)
+* Cascade Classify에 관한 내용은 https://blog.naver.com/samsjang/220699662173 과 https://www.bogotobogo.com/python/OpenCV_Python/python_opencv3_Image_Object_Detection_Face_Detection_Haar_Cascade_Classifiers.php 를 참조했다.
+
+* `face_cascade.detectMultiScale` 함수의 반환값으로 `std::vector<Rect>`가 나오는데, 여기에 있는 사각형 (테두리) 정보를 이용해서 원을 그린다.
+
+  ```c++
+  void ellipse(Mat& img, Point center, Size axes, double angle, double startAngle, double endAngle, const Scalar& color, int thickness = 1, int lineType = 8, int shift = 0)
+  ```
+
+  위의 `cv::ellipse` 함수를 적절히 이용하여 얼굴 검출을 완료한다.
+
+
+
+### OpenCV_binding_image 함수 분석
+
+
+
+### OpenCV_canny_edge_image 함수 분석
 
