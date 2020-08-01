@@ -249,20 +249,22 @@ int pthread_detach(pthread_t th)
   * Thread간 데이터 공유용으로 사용하는 구조체이다.
   * 보니까 예제 파일마다 다 다른 구조를 가지고 있다.
 * `static uint32_t getfourccformat(char*)`
-  * 전달 받은 인자(문자열)과 상응하는 format(FOURCC)을 반환하는 함수이다.
-  * FOURCC가 뭐지?
+  * 전달 받은 인자(문자열)과 상응하는 컬러 포멧을 반환하는 함수이다.
 * `static int allocate_output_buffers(struct thr_data*)`
   * output 버퍼를 할당해주는 함수
-  * `thr_data` 구조체에 있는 `thr_data` 구조체에 있는 `disp` 필드
-  * 그래서 정확히 왜 이걸 해야하는거지?
+  * 내부적으로 `display-kms.c` 파일에 있는 `disp_get_vid_buffers` 함수를 호출하여 해당 `display` 구조체 맞는 output 버퍼를 할당해준다.
 * `static void free_output_buffers(struct buffer**, uint32_t, bool)`
   * output 버퍼를 해제하는 함수이다.
 * `void signal_handler(int)`
   * CTRL + C 단축키를 인식하게 하는 함수이다. `main` 함수 마지막에서 이 handler를 등록함.
 * `static void draw_operatingtime(struct display*, uint32_t)`
+  * 시간을 인자로 전달하면 화면에 글씨를 출력해준다.
 * `static void cv_disp_update(struct thr_data*)`
+  * 내부적으로 `display-kms.c` 파일에 있는 `disp_post_vid_buffer` 함수를 호출하여 output buffer를 올린다. (이 표현이 정확한지는 모르겠음)
+  * 그리고 난 뒤에 `display-kms.c` 파일에 있는 `update_overlay_disp` 함수를 호출하여 올린 버퍼의 내용을 적용시킨다.
 * `static void cv_savetojpeg(unsigned char*, int, int)`
-* `static void cv_exam(struct thr_data*, char*, char*, OpenCVMode)`
+  * output buffer를 전달하면 jpeg 파일로 저장시켜준다.
+* `static void cv_exam(struct thr_data*, char*, char*, OpenCVMode)`: 자세한 내용은 아래에 있음
 * `void* input_thread(void*)`: 자세한 내용은 아래에 있음
 * `void* capture_dump_thread(void*)`: 자세한 내용은 아래에 있음
 * `int main(int, char**)`: 자세한 내용은 아래에 있음
@@ -324,7 +326,7 @@ main 함수에 있는 코드를 display 출력을 중심으로 statement 단위�
   * 여러 개의 버퍼(`buffer` 구조체)를 만들 수 있나보다. 따라서 배열 형태(`buffer*`)를 띈다.
 
   * 이렇게 만들어진 버퍼의 buffer object(`omap_bo` 구조체 필드 `bo`)로부터 DMA buffer를 만들어 `fd` 필드에 넣는다.
-    * 그래서 이게 뭘 의미할까?
+    * 그래서 이게 뭔지는 잘 모르겠다.
 
 * `get_framebuf` 함수: Direct Access(DMA를 말하는건가?)를 위한 frame buffer를 얻는 함수(얻은 frame buffer는 두 번째 인자로 전달함)
 
@@ -506,7 +508,6 @@ static void cv_exam(struct thr_data* data, char* filename1, char* filename2, Ope
   1. `display-kms.c` 파일에 있는 `get_framebuf` 함수를 실행해서 현재 디스플레이의 버퍼를 가져온다.
   2. 버퍼에 `img`의 내용을 `memcpy` 함수를 통해 복사한다.
   3. `main.c`에 있는 `cv_disp_update`를 호출한다.
-     * 왜 호출하는거지? 버퍼의 내용을 읽어서 디스플레이에 띄우라는 이야긴가?
 
 
 
