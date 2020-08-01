@@ -566,7 +566,7 @@ static void cv_exam(struct thr_data* data, char* filename1, char* filename2, Ope
 
     * `At` 보다 속도가 빠르며 반환 타입이 `DATA_TYPE`의 포인터이다.
 
-  * `data` 메서드 이용
+  * `data` 필드 이용
 
     ```c++
     Mat image;
@@ -644,6 +644,7 @@ void OpenCV_Bgr2RgbConvert(unsigned char* inBuf, int w, int h, unsigned char* ou
   * ![haar_features](https://www.bogotobogo.com/python/OpenCV_Python/images/FaceDetection/HaarFeatures.png)
 
 * Image Subregion에 대해 각 stage에서 얼굴인지를 검사하여 얼굴이 아니면 빠져나오고, 얼굴이면 계속해서 다음 stage로 넘어가 마지막 stage까지 가서도 통과되면 얼굴으로 판정한다.
+  
   * ![stage](https://www.bogotobogo.com/python/OpenCV_Python/images/FaceDetection/stages.png)
 * Cascade Classify에 관한 내용은 https://blog.naver.com/samsjang/220699662173 과 https://www.bogotobogo.com/python/OpenCV_Python/python_opencv3_Image_Object_Detection_Face_Detection_Haar_Cascade_Classifiers.php 를 참조했다.
 
@@ -659,7 +660,47 @@ void OpenCV_Bgr2RgbConvert(unsigned char* inBuf, int w, int h, unsigned char* ou
 
 ### OpenCV_binding_image 함수 분석
 
+그냥 단순히 binding할 이미지를 불러와서 원본 이미지(srcRGB)에 overlay 시킨다. 아래는 예제의 일부를 발췌한 것이다.
+
+```c++
+double opacity = ((double)srcRGB2.data[fY * srcRGB2.step + fX * srcRGB2.channels() + 3]) / 255.;
+for (int c = 0; opacity > 0 && c < srcRGB.channels(); ++c) {
+	unsigned char overlayPx = srcRGB2.data[fY * srcRGB2.step + fX * srcRGB2.channels() + c];
+	unsigned char srcPx = srcRGB.data[y * srcRGB.step + x * srcRGB.channels() + c];
+	srcRGB.data[y * srcRGB.step + srcRGB.channels() * x + c] = srcPx * (1. - opacity) + overlayPx * opacity;
+}
+```
+
+* 4번째 채널은 투명도를 나타내는 채널인가보다. 그래서 `opacity`라는 변수를 만들어 0에서 1사이의 투명도를 저장하고 있다.
+  * 나중에 원본 이미지에 overlay 할 때 투명도를 이용해서 두 이미지를 섞는다.
+* 4번째 채널을 제외한 3개의 채널(B, G, R)에 대해 연산을 수행한다.
+  * 이때 이 반복문 밖에도 각 점을 순회하는 반복문이 존재한다. 그래서 `x`나 `fX` 또는 `y`나 `fY`가 존재한다. `x`와 `y`가 반복문으로 계속 바뀐다.
+* `overlayPx`에서는 overlay 할 이미지의 값을 가져온다.
+* `srcPx`에는 원본 이미지의 값을 가져온다.
+* 마지막 줄에는 이 두개를 `opacity`를 이용해 적절히 섞는다.
+  * overlay 할 사진을 보니 검은 부분이 존재했다. 실제로 이 검은 부분은 overlay 될 때 값이 0이므로 투명한 값으로 취급이 된다.
+
 
 
 ### OpenCV_canny_edge_image 함수 분석
 
+* `cvtColor`을 통해 원본 이미지를 gray scale로 바꾼다.
+
+* `cv.Canny` 함수를 통해 외곽선을 검출한다.
+
+  ```c++
+  cv::Canny(srcGRAY, // 그레이레벨 영상
+          contours, // 결과 외곽선(Mat 인스턴스)
+          125,  // 낮은 경계값
+          350);  // 높은 경계값
+  ```
+
+  * Gradient 값이 높은 부분 찾기
+
+    $G=\sqrt{G^2_x+G^2_y}$
+
+    $G_x$는 수평 방향의 gradient, $G_y$는 수직 방향의 gradient이다.
+
+    * Sobel 커널을 수평 방향, 수직 방향으로 적용하면 각 방향에 대해 gradient를 구할 수 있다고 한다.
+
+  * 세번째, 네번째 인자는 Gradient 값의 경계를 나타내는 듯.
