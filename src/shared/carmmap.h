@@ -27,10 +27,17 @@ enum lane_t {
  *
  */
 enum stop_obstacle_t {
-    SO_NOME,
+    SO_NONE,
     SO_EXIST_FAR,
     SO_EXIST_NEAR
 };
+
+#define PSD_FRONT       0
+#define PSD_RIGHT_1     1
+#define PSD_RIGHT_2     2
+#define PSD_BACK        3
+#define PSD_LEFT_2      4
+#define PSD_LEFT_1      5
 
 /* 
  * This is the memory map structure for results of recognition processing.
@@ -39,22 +46,19 @@ enum stop_obstacle_t {
  */
 struct recognition_result {
     bool is_on_stop_line;
-    bool is_on_end_drive;
-    double psd_value[6];                        // unit: cm
+    bool is_on_end_point;
+    float psd_value[6];                        // unit: cm
     enum traffic_light_t traffic_light_value;
-    double left_lane_pos;                       // unit: none
-    double left_lane_curv;                      // unit: none
-    double right_lane_pos;                      // unit: none
-    double right_lane_curv;                     // unit: none
+    float left_lane_pos;                       // unit: none
+    float left_lane_curv;                      // unit: none
+    float right_lane_pos;                      // unit: none
+    float right_lane_curv;                     // unit: none
     enum lane_t is_on_lane;
     bool is_on_overpass;
     bool is_on_slope;
-    double delta_slope;                         // unit: degree
-    double curr_velocity;                       // unit: cm/s
-    bool is_in_parking_mission;
+    float curr_velocity;                       // unit: cm/s
     enum stop_obstacle_t is_there_stop_obstacle;
     bool is_in_tunnel;
-    int relative_road_brightness;               // unit: none
     bool is_there_car;
 };
 
