@@ -2,24 +2,6 @@
 #define _CARMMAP_H
 
 #include <stdbool.h>
-#include "carprop.h"
-
-/*
- * This is memory map structure for the output of the camera.
- * Camera manager should fill this structure.
- */
-struct camera_mmap
-{
-    unsigned char data[3 * CAMERA_OUTPUT_H * CAMERA_OUTPUT_W];
-};
-
-/*
- * memory map structure for display data
- */
-struct display_mmap {
-    unsigned char* buf;
-    // unsigned char input[3 * DISPLAY_W * DISPLAY_H];
-};
 
 /*
  * 
@@ -55,8 +37,7 @@ enum stop_obstacle_t {
  * You can add some fields to share the output of the function which you have been made.
  * Also, you are only allowed to read this structure, NOT TO WRITE.
  */
-struct recognition_result
-{
+struct recognition_result {
     bool is_on_stop_line;
     bool is_on_end_drive;
     double psd_value[6];                        // unit: cm
