@@ -178,7 +178,7 @@ void signal_handler(int sig) {
      * MUST include '-2'.
      */
     if (sig == SIGINT) {
-        msgctl(shm_id, IPC_RMID, NULL); // Delete Shared Memory
+        shmctl(shm_id, IPC_RMID, NULL); // Delete Shared Memory
         MSG("Shared memory had been deleted(key: %d, id: %d).", shm_key, shm_id);
     }
 }
