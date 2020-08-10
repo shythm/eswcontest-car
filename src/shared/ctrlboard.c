@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
         ERROR("Cannot create thread to recieve messages");
         return -1;
     }
-    pthread_detach(&threads[0]);
+    pthread_detach(threads[0]);
     
     /* Register interrupt(CRTL+C) handler */
     if (signal(SIGINT, signal_handler) == SIG_ERR) {
