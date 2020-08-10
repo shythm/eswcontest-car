@@ -1,5 +1,5 @@
-#ifndef _CARMMAP_H
-#define _CARMMAP_H
+#ifndef _CARSHM_H
+#define _CARSHM_H
 
 #include <stdbool.h>
 
@@ -62,4 +62,4 @@ struct recognition_result {
     bool is_there_car;
 };
 
-#endif /* _CARMMAP_H */
+#endif /* _CARSHM_H */
