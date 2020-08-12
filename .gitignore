@@ -1,3 +1,6 @@
+#file
+*.o
+
 #folder
 CrossCompiler/
 cc/
