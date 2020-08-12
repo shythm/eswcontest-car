@@ -182,8 +182,8 @@ int get_psd_processed_value(uint16_t* const raw, float* processed) {
     processed[PSD_LEFT_1] = 638.6f * expf(-0.004488f*x) + 26.45f * expf(-0.000508f*x);
 
     for(int i=0; i<PSD_COUNT; i++){
-        if(processed[i]<=4.1f) processed[i]=4.000f
-        else if (processed[i]>= 29.9f) processed[i] = 30.0f;
+        if(processed[i]<=4.0f) processed[i]=4.000f
+        else if (processed[i]>= 30.0f) processed[i] = 30.0f;
     }
     return 0;
 }
