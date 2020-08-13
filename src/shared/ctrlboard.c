@@ -8,75 +8,69 @@
 #include <signal.h>
 #include <pthread.h>
 
-#include "ctrlboard.h"
+#include "ctrlboard-lib.h"
 #include "util.h"
 
 #define UART_BUF_SIZE   8
 #define BAUDRATE        B19200
 #define SERIAL_DEVICE   "/dev/ttyS2"  // ttyHS0, ttyHS1, ttyHS3 are available
 
-int ctrlboard_init(void);
-ctrlboard_msg_state_t command_ctrlboard(ctrlboard_cmd_t* cmd, char* bytes);
-void* thread_msg_processing(void* args);
+int ctrlboard_init(int* fd);
+ctrlboard_msg_state_t command_ctrlboard(int uart, ctrlboard_cmd_t* cmd, char* bytes);
 void signal_handler(int sig);
 
-static int uart_fd;
-static int msgq_key;
-static int msgq_id;
-
 int main(int argc, char** argv) {
+    key_t msgq_key;
+    int msgq_id;
+    int uard_fd;
+
     /* Get the arguments from the command line. */
     if (argc != 2) {
-        printf("usage %s [message queue key] \n", argv[0]);
+        printf("usage %s [message queue key of this] \n", argv[0]);
         return 1;
     }
     msgq_key = atoi(argv[1]);   // 1st argv: get message queue key
 
     /* Initialize to communicate with control board */
-    if (ctrlboard_init() != 0) {
+    if (ctrlboard_init(&uard_fd) != 0) {
         ERROR("Cannot iniailize control borad.");
         return -1;
     }
 
     /* Initialize to communicate other processes by message queue */
     // WARNING: there is the IPC_EXCL option.
-    msgq_id = msgget((key_t)msgq_key, IPC_CREAT | IPC_EXCL | 0666);
-    if (msgq_id == -1) {
+    if ((msgq_id = msgget(msgq_key, IPC_CREAT | IPC_EXCL | 0666)) == -1) {
         ERROR("Cannot get message queue id with the key(%d). "
               "Please check ipcs commnand and remove the message queue.",
               msgq_key);
         return -1;
     }
+    MSG("Message queue(key: %d, id: %d) has been initialized.", msgq_key, msgq_id);
 
-    /* Initialize thread to recieve messages */
-    pthread_t threads[1];
-    if (pthread_create(&threads[0], NULL, thread_msg_processing, NULL)) {
-        ERROR("Cannot create thread to recieve messages");
-        return -1;
-    }
-    pthread_detach(threads[0]);
-    
-    /* Register interrupt(CRTL+C) handler */
-    if (signal(SIGINT, signal_handler) == SIG_ERR) {
-        ERROR("Cannot register signal handler");
-        return -1;
+    /* Message processing part */
+    ctrlboard_msg msg;
+    size_t msg_size = sizeof(ctrlboard_msg) - sizeof(long);
+
+    for (;;) {
+        // Wait until receive a message. (block state)
+        if (msgrcv(msgq_id, (void*)&msg, msg_size, 0, 0) != -1) {
+            // Command to the control board and get the return value.
+            msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.bytes);
+            // Send the message if the message queue is availiable. (block state)
+            msgsnd(msgq_id, (void*)&msg, msg_size, 0); // wait(block)
+        }
     }
 
     pause();
-
     return 0;
 }
 
-int ctrlboard_init(void) {
+int ctrlboard_init(int* fd) {
     struct termios newtio;
-    char *fd_serial = SERIAL_DEVICE;
-    int addr = 0x4b;
-    int ret;
 
     /* UART configuration */
-    uart_fd = open(fd_serial, O_RDWR | O_NOCTTY);
-    if (uart_fd < 0) {
-        ERROR("Serial %s Device Error", fd_serial);
+    if ((*fd = open(SERIAL_DEVICE, O_RDWR | O_NOCTTY)) < 0) {
+        ERROR("Serial %s Device Error", SERIAL_DEVICE);
         return 1;
     }
 
@@ -88,29 +82,14 @@ int ctrlboard_init(void) {
     newtio.c_cc[VTIME] = 0;     // inter-character timer unused
     newtio.c_cc[VMIN] = 1;      // blocking read until 8 chars received
 
-    tcflush(uart_fd, TCIFLUSH);
-    tcsetattr(uart_fd, TCSANOW, &newtio);
+    tcflush(*fd, TCIFLUSH);
+    tcsetattr(*fd, TCSANOW, &newtio);
     
     MSG("UART Device %s has been initialized.", SERIAL_DEVICE);
     return 0;
 }
 
-void* thread_msg_processing(void* args) {
-    ctrlboard_msg msg;
-    size_t msg_size = sizeof(ctrlboard_msg) - sizeof(long);
-
-    for (;;) {
-        // Wait until receive a message. (block state)
-        if (msgrcv(msgq_id, (void*)&msg, msg_size, 0, 0) != -1) {
-            // Command to the control board and get the return value.
-            msg.state = command_ctrlboard(&msg.cmd, msg.bytes);
-            // Send the message if the message queue is availiable. (block state)
-            msgsnd(msgq_id, (void*)&msg, msg_size, 0); // wait(block)
-        }
-    }
-}
-
-ctrlboard_msg_state_t command_ctrlboard(ctrlboard_cmd_t* cmd, char* bytes) {
+ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t* cmd, char* bytes) {
     unsigned char buf[UART_BUF_SIZE];
     unsigned char read_buf[UART_BUF_SIZE];
     int i, cur_buf_i, temp;
@@ -178,40 +157,4 @@ ctrlboard_msg_state_t command_ctrlboard(ctrlboard_cmd_t* cmd, char* bytes) {
     }
     
     return MSG_STATE_SUCCESS;
-}
-
-ctrlboard_msg_state_t message_ctrlboard
-(int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, char* bytes) {
-    static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
-    ctrlboard_msg msg;
-
-    // set message information
-    msg.msgid = msgid;
-    msg.cmd.code = code;
-    msg.cmd.rw = rw;
-    msg.cmd.bytec = bytec;
-    if (msg.cmd.rw == CMD_TYPE_WRITE) {
-        memcpy(msg.bytes, bytes, msg.cmd.bytec);
-    }
-
-    if (msgsnd(msgqid, &msg, size, 0) == 0) {
-        if (msgrcv(msgqid, &msg, size, msg.msgid, 0) >= 0) {
-            if (msg.cmd.rw == CMD_TYPE_READ) {
-                memcpy(bytes, msg.bytes, msg.cmd.bytec);
-            }
-            return msg.state;
-        }
-    }
-}
-
-void signal_handler(int sig) {
-    /*
-     * NOTICE
-     * Because this catches SIGINT(2), parameters of kill commnad in shell script
-     * MUST include '-2'.
-     */
-    if (sig == SIGINT) {
-        msgctl(msgq_id, IPC_RMID, NULL); // Delete Message Queue
-        MSG("Message queue had been deleted(key: %d, id: %d).", msgq_key, msgq_id);
-    }
 }

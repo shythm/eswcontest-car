@@ -1,5 +1,5 @@
-#ifndef _CTRLBOARD_H
-#define _CTRLBOARD_H
+#ifndef _CTRLBOARD_LIB_H
+#define _CTRLBOARD_LIB_H
 
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -80,4 +80,4 @@ typedef struct _ctrlboard_msg {
 ctrlboard_msg_state_t message_ctrlboard
 (int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, char* bytes);
 
-#endif
+#endif /* _CTRLBOARD_LIB_H */
