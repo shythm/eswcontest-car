@@ -25,13 +25,13 @@ int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
         // arguments for the recognize process
         getflags = IPC_CREAT | IPC_EXCL | 0666;
         size = sizeof(recog_result);
-        atflags = 0;
+        atflags = SHM_RND;
     } else {
         // arguments for the other processes
         getflags = 0;
         size = 0;
         // atflags = SHM_RDONLY; // the kernal can restrict to access of shared memory by using SHM_RDONLY.
-        atflags = 0;
+        atflags = SHM_RND;
     }
 
     /* Get shared memory id with the key */
@@ -50,11 +50,11 @@ int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
     // When the shared memory segment is created, it shall be initialized with all zero values.
     // Reference: https://pubs.opengroup.org/onlinepubs/009695399/functions/shmget.html
 
-    MSG("Shared memory(key: %s) has been initialized.", key);
+    MSG("Shared memory(key: %d, id: %d) has been initialized.", key, *id);
     return 0;
 }
 
-void update_recog_result(recog_result* result, recog_arg* arg) {
+void update_recog_result(recog_arg* arg, recog_result* result) {
     // update sample
     if (result->sample.enable) {
         memcpy(&(result->sample.value), get_sample(arg), SAMPLE_COUNT);
@@ -112,11 +112,6 @@ void update_recog_result(recog_result* result, recog_arg* arg) {
 
     // update is_there_car
     if (result->is_there_car.enable) {
-        // TODO: write your update function
-    }
-
-    // update psd
-    if (result->psd.enable) {
         // TODO: write your update function
     }
 }
@@ -235,7 +230,7 @@ int capture_recognize(recog_result* result, recog_arg* arg) {
             // set display input
             arg->display_input = cam_pbuf[0];
             // udpate recognize result
-            update_recog_result(result, arg);
+            update_recog_result(arg, result);
         }
 
         if (disp_post_vid_buffer(vpe->disp, buf_capt, 0, 0, vpe->dst.width, vpe->dst.height)) {
@@ -259,7 +254,6 @@ int main(int argc, char** argv) {
     recog_result* shm_rr;
 
     /* Get the arguments from user(shell) */
-    printf("1");
     if (argc != 3) {
         printf("usage %s [shared memory key of this] [message queue key of ctrlboard] \n", argv[0]);
         return 1;
@@ -267,7 +261,6 @@ int main(int argc, char** argv) {
     shm_key = (key_t)atoi(argv[1]);             // 1st argv: shared memory key of this process
     msgq_key_ctrlboard = (key_t)atoi(argv[2]);  // 2nd argv: message queue key of the ctrlboard process
 
-    printf("2");
     /* Initialize a shared memory of recognition results */
     if (get_shm_recog_result(shm_key, &shm_id, &shm_rr, 1) != 0) {
         ERROR("An error occurred while getting shared memory.");
@@ -275,8 +268,11 @@ int main(int argc, char** argv) {
     }
     
     /* Get message queue id of ctrlboard process */
+    if ((msgq_id_ctrlboard = msgget(msgq_key_ctrlboard, 0)) == -1) {
+        ERROR("An error occurred while getting the message queue id with the key %d"
+              "Please check the ctrlboard process is running.", msgq_key_ctrlboard);
+    }
 
-    printf("3");
     /* Do capture and recognize */
     recog_arg arg;
     arg.msgq_id_ctrlboard = msgq_id_ctrlboard;

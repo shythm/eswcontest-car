@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
+#include <sys/msg.h>
 #include "util.h"
 
 #define CAPTURE_IMG_W       1280

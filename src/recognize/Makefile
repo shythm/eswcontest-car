@@ -6,6 +6,8 @@ ARCH=arm
 CC=$(CROSS_COMPILE)gcc
 CXX=$(CROSS_COMPILE)g++
 
+CC = ../../CrossCompiler/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc
+
 SHAREDINC += -I$(abspath ..)/shared
 INC += -I protocol
 INC += -I$(ROOTFS)/include
