@@ -25,7 +25,7 @@ static key_t shm_key;
 static int shm_id;
 
 int init_psd_i2c(int* fd);
-int init_psd_shm(psd_data** pd);
+int init_shm_psd(psd_data** pd);
 int get_psd_raw_value(int fd, uint16_t* value);
 int get_psd_processed_value(uint16_t* const raw, float* processed);
 void signal_handler(int sig);
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize shared memory */
-    if (init_psd_shm(&shm_pd) != 0) {
+    if (init_shm_psd(&shm_pd) != 0) {
         ERROR("Cannot initialize shared memory.");
         return -1;
     }
@@ -89,7 +89,7 @@ int init_psd_i2c(int* fd) {
 }
 
 /* Initialize shared memory of psd data for carpsd process */
-int init_psd_shm(psd_data** pd) {
+int init_shm_psd(psd_data** pd) {
     if ((shm_id = shmget(shm_key, sizeof(psd_data), IPC_CREAT | IPC_EXCL | 0666)) == -1) {
         ERROR("Cannot get shared memory id with the key(%d). "
               "Please check ipcs commnand and remove the shared memory.",
@@ -102,7 +102,7 @@ int init_psd_shm(psd_data** pd) {
         return -1;
     }
 
-    MSG("Shared memory(key: %s) has been initialized.", shm_key);
+    MSG("Shared memory(key: %d, id: %d) has been initialized.", shm_key, shm_id);
     return 0;
 }
 
