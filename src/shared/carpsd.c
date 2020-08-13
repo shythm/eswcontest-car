@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <unistd.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
@@ -161,13 +162,29 @@ int get_psd_raw_value(int fd, uint16_t* value) {
 
 int get_psd_processed_value(uint16_t* const raw, float* processed) {
     // TODO: write curve fitting code
-    processed[PSD_FRONT] = raw[PSD_FRONT];
-    processed[PSD_RIGHT_1] = raw[PSD_RIGHT_1];
-    processed[PSD_RIGHT_2] = raw[PSD_RIGHT_2];
-    processed[PSD_BACK] = raw[PSD_BACK];
-    processed[PSD_LEFT_2] = raw[PSD_LEFT_2];
-    processed[PSD_LEFT_1] = raw[PSD_LEFT_1];
 
+    float x=raw[PSD_FRONT];
+    processed[PSD_FRONT] = 51.83f * expf(-0.001981f*x) + 17.8f * expf(-0.0004166f*x);
+
+    x= raw[PSD_RIGHT_1];
+    processed[PSD_RIGHT_1] =  52.04f * expf(-0.001964f*x) + 18.16f * expf(-0.0003931f*x);
+
+    x = raw[PSD_RIGHT_2];
+    processed[PSD_RIGHT_2] = 51.58f * expf(-0.001936f*x) + 17.79f * expf(-0.0003686f*x);
+
+    x=raw[PSD_BACK];
+    processed[PSD_BACK] = 57.7f  *expf(-0.002206f *x) + 19.1f * expf(-0.0004304f*x);
+
+    x=raw[PSD_LEFT_2];
+    processed[PSD_LEFT_2] = 490.1f * expf(-0.004111f*x) + 24.61f * expf(-0.0004845f*x);
+
+    x=raw[PSD_LEFT_1];
+    processed[PSD_LEFT_1] = 638.6f * expf(-0.004488f*x) + 26.45f * expf(-0.000508f*x);
+
+    for(int i=0; i<PSD_COUNT; i++){
+        if(processed[i]<=4.0f) processed[i]=4.000f
+        else if (processed[i]>= 30.0f) processed[i] = 30.0f;
+    }
     return 0;
 }
 
