@@ -1,8 +1,12 @@
 #file
 *.o
+CMakeCache.txt
+cmake_install.cmake
+Makefile
 
 #folder
 CrossCompiler/
 cc/
 Flashing/
 bin/
+CMakeFiles/
