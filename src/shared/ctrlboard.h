@@ -1,35 +1,45 @@
 #ifndef _CTRLBOARD_H
 #define _CTRLBOARD_H
 
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/types.h>
+
 #define MAX_CMD_BYTE_CNT  4
 
 /* Command codes */
-#define CMD_SPEED_CONTROL_ON_OFF            0x90
-#define CMD_DESIRE_SPEED                    0x91
-#define CMD_SPEED_PID_PROPORTIONAL          0x92
-#define CMD_SPEED_PID_INTEGRAL              0x93
-#define CMD_SPEED_PID_DIFFERENTAL           0x94
-#define CMD_POSITION_CONTROL_ON_OFF         0x96
-#define CMD_DESIRE_ENCODER_COUNT            0x97
-#define CMD_POSITION_PROPORTION_POINT       0x98
-#define CMD_FRONT_A_REAL_LIGHT_CONTROL      0xA0
-#define CMD_RIGHT_A_LEFT_FLICKER_CONTROL    0xA1
-#define CMD_SOUND                           0xA2
-#define CMD_STEERING_SERVO_CONTROL          0xA3
-#define CMD_CAMERA_X_SERVO_CONTROL          0xA5
-#define CMD_CAMERA_Y_SERVO_CONTROL          0xA7
-#define CMD_ENCODER_COUNTER                 0xB0
-#define CMD_LINE_SENSOR                     0xB1
+typedef enum _ctrlboard_cmd_code {
+    CMD_SPEED_CONTROL_ON_OFF            = 0x90,
+    CMD_DESIRE_SPEED                    = 0x91,
+    CMD_SPEED_PID_PROPORTIONAL          = 0x92,
+    CMD_SPEED_PID_INTEGRAL              = 0x93,
+    CMD_SPEED_PID_DIFFERENTAL           = 0x94,
+    CMD_POSITION_CONTROL_ON_OFF         = 0x96,
+    CMD_DESIRE_ENCODER_COUNT            = 0x97,
+    CMD_POSITION_PROPORTION_POINT       = 0x98,
+    CMD_FRONT_A_REAL_LIGHT_CONTROL      = 0xA0,
+    CMD_RIGHT_A_LEFT_FLICKER_CONTROL    = 0xA1,
+    CMD_SOUND                           = 0xA2,
+    CMD_STEERING_SERVO_CONTROL          = 0xA3,
+    CMD_CAMERA_X_SERVO_CONTROL          = 0xA5,
+    CMD_CAMERA_Y_SERVO_CONTROL          = 0xA7,
+    CMD_ENCODER_COUNTER                 = 0xB0,
+    CMD_LINE_SENSOR                     = 0xB1,
+} ctrlboard_cmd_code;
+
 
 /* Command types */
-#define CMD_TYPE_WRITE     1
-#define CMD_TYPE_READ      2
+typedef enum _ctrlboard_cmd_rw {
+    CMD_TYPE_WRITE  = 1,
+    CMD_TYPE_READ   = 2,
+} ctrlboard_cmd_rw;
 
 /* Message states */
-typedef char ctrlboard_msg_state_t;
-#define MSG_STATE_SUCCESS       0
-#define MSG_STATE_TYPE_ERR      -1
-#define MSG_STATE_CHKSUM_ERR    -2
+typedef enum _ctrlboard_msg_state_t {
+    MSG_STATE_SUCCESS       = 0,
+    MSG_STATE_TYPE_ERR      = -1,
+    MSG_STATE_CHKSUM_ERR    = -2,
+} ctrlboard_msg_state_t;
 
 /*
  * Command structure for control board.
@@ -37,9 +47,9 @@ typedef char ctrlboard_msg_state_t;
  */
 typedef struct _ctrlboard_cmd_t {
     // the command code
-    unsigned char code;
+    ctrlboard_cmd_code code;
     // the command type (CTRLBOARD_CMD_WRITE or CTRLBOARD_CMD_READ)
-    unsigned char rw;
+    ctrlboard_cmd_rw rw;
     // the count of bytes
     unsigned char bytec;
 } ctrlboard_cmd_t;
@@ -61,5 +71,13 @@ typedef struct _ctrlboard_msg {
     // the required arguments in write command or the output value in read command
     unsigned char bytes[MAX_CMD_BYTE_CNT];
 } ctrlboard_msg;
+
+/*
+ * Send a message to the control board.
+ * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, bytes is used for the arguments.
+ * When ctrlboard_cmd_rw is CMD_TYPE_READ,  bytes is used for storing the ouptut of the control board.
+ */
+ctrlboard_msg_state_t message_ctrlboard
+(int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, char* bytes);
 
 #endif
