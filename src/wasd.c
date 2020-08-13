@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
-#include "ctrlboard.h"
+#include "ctrlboard-lib.h"
 
 key_t msgq_key;
 int msgq_id;
@@ -56,7 +56,6 @@ void position_control(unsigned char speed, unsigned char gain) {
                 printf("Speed Control ON! \n");
             } else {
                 printf("Failed to speed control \n");
-                return -1;
             }
         }
     }
@@ -73,7 +72,6 @@ void position_control(unsigned char speed, unsigned char gain) {
                 printf("Set speed to %d \n", speed);
             } else {
                 printf("Failed to set speed \n");
-                return -1;
             }
         }
     }
@@ -89,7 +87,6 @@ void position_control(unsigned char speed, unsigned char gain) {
                 printf("Set position control to ON \n");
             } else {
                 printf("Failed to set position control \n");
-                return -1;
             }
         }
     }
@@ -105,7 +102,6 @@ void position_control(unsigned char speed, unsigned char gain) {
                 printf("Set position proportion to %d \n", gain);
             } else {
                 printf("Failed to set position proportion \n");
-                return -1;
             }
         }
     }
@@ -125,8 +121,9 @@ void position_control(unsigned char speed, unsigned char gain) {
         printf("Set steering servo control to %d \n", steering);
     } else {
         printf("Fail to set steering servo control \n");
-        return -1;
     };
+
+    fflush(stdout);
 
     distance = 200;
     while (1) {
@@ -173,11 +170,47 @@ void position_control(unsigned char speed, unsigned char gain) {
                             CMD_TYPE_WRITE,
                             2,
                             bytes) == MSG_STATE_SUCCESS) {
-            printf("Set steering servo control to %d \n", steering);
+            // printf("Set steering servo control to %d \n", steering);
         } else {
-            printf("Fail to set steering servo control \n");
-            return -1;
+            printf("Fail to set steering servo control");
         };
+    }
+}
+
+void* shake_head(void* argv) {
+    int msgid = 200;
+    char bytes[4];
+    int camera_x_servo;
+    int i = 100;
+
+    for (;;) {
+        camera_x_servo = 1000;
+        bytes[0] = camera_x_servo & 0xff;
+        bytes[1] = (camera_x_servo >> 8) & 0xff;
+        message_ctrlboard(msgq_id, msgid,
+                          CMD_CAMERA_X_SERVO_CONTROL,
+                          CMD_TYPE_WRITE,
+                          2,
+                          bytes);
+
+        usleep(500000);
+        camera_x_servo = 2000;
+        bytes[0] = camera_x_servo & 0xff;
+        bytes[1] = (camera_x_servo >> 8) & 0xff;
+        message_ctrlboard(msgq_id, msgid,
+                          CMD_CAMERA_X_SERVO_CONTROL,
+                          CMD_TYPE_WRITE,
+                          2,
+                          bytes);
+
+        usleep(500000);
+        // for (i = 0; i < 100; i++) {
+        //     message_ctrlboard(msgq_id, msgid,
+        //                       CMD_CAMERA_X_SERVO_CONTROL,
+        //                       CMD_TYPE_READ,
+        //                       2,
+        //                       bytes);
+        // }
     }
 }
 
@@ -194,6 +227,18 @@ int main(int argc, char** argv) {
     }
     msgq_key = (key_t)atoi(argv[1]);
 
+    if ((msgq_id = msgget(msgq_key, 0)) == -1) {
+        printf("Failed get message queue id!");
+        return 1;
+    }
+
+    ret = pthread_create(&thr_data[1], NULL, shake_head, NULL);
+    if (ret) {
+        printf("Failed creating shake head thread");
+        return 1;
+    }
+    pthread_detach(thr_data[1]);
+
     ret = pthread_create(&thr_data[0], NULL, control_thread, NULL);
     if (ret) {
         printf("Failed creating control thread");
@@ -201,6 +246,8 @@ int main(int argc, char** argv) {
     }
 
     pthread_join(thr_data[0], NULL);
+
+    pause();
 
     return 0;
 }
