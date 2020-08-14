@@ -22,15 +22,14 @@ CXXFLAGS = -Wall -ansi -g -fPIC -mfloat-abi=hard -mfpu=neon $(INC) -I$(ROOTFS)/i
 
 LDFLAGS = -lm -lpthread -L$(LIBDIR) -lrt -ldrm -lmtdev -ldrm_omap -lstdc++ -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_objdetect
 TARGET = recognize
-METHODS	= update_sample.o update_is_on_stop_line.o
 
 all: $(TARGET)
 
 clean:
 	rm -f *.a *.o $(TARGET) *.lo
 
-$(TARGET): recognize.c v4l2.o display-kms.o util.o vpe-common.o $(METHODS)
-	$(CC) $(CFLAGS) -o $@ recognize.c v4l2.o display-kms.o util.o vpe-common.o $(METHODS) $(LDFLAGS) $(SHAREDINC)
+$(TARGET): recognize.c recognize-lib.o recognize-update.o v4l2.o display-kms.o util.o vpe-common.o $(abspath ..)/shared/ctrlboard-lib.o
+	$(CC) $(CFLAGS) -o $@ recognize.c recognize-lib.o recognize-update.o v4l2.o display-kms.o util.o vpe-common.o $(abspath ..)/shared/ctrlboard-lib.o $(LDFLAGS) $(SHAREDINC)
 
 v4l2.o: v4l2.c v4l2.h
 	$(CC) -c $(CFLAGS) -o $@ v4l2.c $(SHAREDINC)
@@ -44,11 +43,14 @@ util.o: $(abspath ..)/shared/util.c $(abspath ..)/shared/util.h
 vpe-common.o: vpe-common.c vpe-common.h
 	$(CC) -c $(CFLAGS) -o $@ vpe-common.c $(SHAREDINC)
 
-update_sample.o: update_sample.c update_sample.h
-	$(CC) -c $(CFLAGS) -o $@ update_sample.c $(SHAREDINC)
+recognize-lib.o: recognize-lib.c recognize-lib.h
+	$(CC) -c $(CFLAGS) -o $@ recognize-lib.c $(SHAREDINC)
 
-update_is_on_stop_line.o: update_is_on_stop_line.c update_is_on_stop_line.h
-	$(CC) -c $(CFLAGS) -o $@ update_is_on_stop_line.c $(SHAREDINC)
+recognize-update.o: recognize-update.c recognize-update.h $(abspath ..)/shared/ctrlboard-lib.o
+	$(CC) -c $(CFLAGS) -o $@ recognize-update.c $(abspath ..)/shared/ctrlboard-lib.o $(SHAREDINC)
+
+$(abspath ..)/shared/ctrlboard-lib.o: $(abspath ..)/shared/ctrlboard-lib.c $(abspath ..)/shared/ctrlboard-lib.h
+	$(CC) -c $(CFLAGS) -o $@ $(abspath ..)/shared/ctrlboard-lib.c $(SHAREDINC)
 
 # drawing.o: drawing.c drawing.h font_8x8.h
 # 	$(CC) -c $(CFLAGS) -o $@ drawing.c $(SHAREDINC)
