@@ -1,9 +1,7 @@
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include "recognize-lib.h"
 
-/* 
- * Initialize a shared memory of the recogition results.
- * In the other processes except for the recognize process, set init to zero(0).
- */
 int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
     // Reference: https://unabated.tistory.com/entry/%EA%B3%B5%EC%9C%A0-%EB%A9%94%EB%AA%A8%EB%A6%AC-shared-memory
     int getflags, atflags, size;

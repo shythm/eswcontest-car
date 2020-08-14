@@ -1,8 +1,8 @@
 #ifndef _RECOGNIZE_LIB_H
 #define _RECOGNIZE_LIB_H
 
-#include <sys/shm.h>
 #include <sys/ipc.h>
+#include "util.h"
 
 /******************************************************/
 /* <START SECTION OF SHARED MEMORY>                   */

@@ -17,7 +17,6 @@
 
 int ctrlboard_init(int* fd);
 ctrlboard_msg_state_t command_ctrlboard(int uart, ctrlboard_cmd_t* cmd, char* bytes);
-void signal_handler(int sig);
 
 int main(int argc, char** argv) {
     key_t msgq_key;
