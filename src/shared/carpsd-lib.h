@@ -1,8 +1,9 @@
-#ifndef _CARPSD_H
-#define _CARPSD_H
+#ifndef _CARPSD_LIB_H
+#define _CARPSD_LIB_H
 
 #include <stdint.h>
 #include <sys/ipc.h>
+#include "util.h"
 
 /* PSD Sensor Types */
 #define PSD_COUNT       6
@@ -22,12 +23,11 @@ typedef struct _psd_data {
     float processed_value[PSD_COUNT];   // processed value of psd sensor (unit: cm)
 } psd_data;
 
-/*
- * Get shared memory of psd data structure by key.
- * The carpsd process should be turned on. Because the carpsd process allocates shared memory.
- * You can access the shared memory by the pd argument.
- * On success, 0 is returned. On error, -1 is returned.
+/* 
+ * Initialize a shared memory of the psd data.
+ * In the other processes except for the carpsd process, set init to zero(0).
+ * Return value 0 represents succeed to initialize.
  */
-int get_shm_psd_data(key_t key, psd_data** pd);
+int get_shm_psd_data(key_t key, int* id, psd_data** pd, int init);
 
-#endif
+#endif /* _CARPSD_LIB_H */

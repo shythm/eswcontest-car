@@ -2,14 +2,19 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <dlfcn.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
-#include <fcntl.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <signal.h>
+#include <time.h>
 
-#include "carpsd.h"
 #include "util.h"
+#include "carpsd-lib.h"
 
 #define I2C_DEVICE      "/dev/i2c-2"
 #define I2C_BUF_SIZE    8
@@ -22,22 +27,20 @@
 #define PSD_LEFT_2_CMD      0xAC
 #define PSD_LEFT_1_CMD      0xEC
 
-static key_t shm_key;
-static int shm_id;
-
 int init_psd_i2c(int* fd);
 int init_shm_psd(psd_data** pd);
 int get_psd_raw_value(int fd, uint16_t* value);
 int get_psd_processed_value(uint16_t* const raw, float* processed);
-void signal_handler(int sig);
 
 int main(int argc, char** argv) {
+    key_t shm_key;
+    int shm_id;
     int i2c_fd;
     psd_data* shm_pd;
 
     /* Get the arguments from the command line. */
     if (argc != 2) {
-        printf("usage %s [shared memory key] [delay]\n", argv[0]);
+        printf("usage %s [shared memory key] \n", argv[0]);
         return 1;
     }
     shm_key = atoi(argv[1]);    // 1st argv: get shared memory key
@@ -49,14 +52,8 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize shared memory */
-    if (init_shm_psd(&shm_pd) != 0) {
+    if (get_shm_psd_data(shm_key, &shm_id, &shm_pd, 1) != 0) {
         ERROR("Cannot initialize shared memory.");
-        return -1;
-    }
-
-    /* Register interrupt(CRTL+C) handler */
-    if (signal(SIGINT, signal_handler) == SIG_ERR) {
-        ERROR("Cannot register signal handler");
         return -1;
     }
 
@@ -86,44 +83,6 @@ int init_psd_i2c(int* fd) {
     }
 
     MSG("I2C Device %s has been initialized.", I2C_DEVICE);
-    return 0;
-}
-
-/* Initialize shared memory of psd data for carpsd process */
-int init_shm_psd(psd_data** pd) {
-    if ((shm_id = shmget(shm_key, sizeof(psd_data), IPC_CREAT | IPC_EXCL | 0666)) == -1) {
-        ERROR("Cannot get shared memory id with the key(%d). "
-              "Please check ipcs commnand and remove the shared memory.",
-              shm_key);
-        return -1;
-    }
-
-    if ((*pd = (psd_data*)shmat(shm_id, NULL, 0)) == (psd_data*)-1) {
-        ERROR("Cannot allocate shared memory");
-        return -1;
-    }
-
-    MSG("Shared memory(key: %d, id: %d) has been initialized.", shm_key, shm_id);
-    return 0;
-}
-
-/* Initialize shared memory of psd data for other process */
-int get_shm_psd_data(key_t key, psd_data** pd) {
-    int _shm_id;
-
-    // shm flag tips: https://stackoverflow.com/questions/49712049/what-does-0-flag-mean-in-shmflg-for-shared-v-memory-system-calls
-    if ((_shm_id = shmget(key, sizeof(psd_data), 0)) == -1) {
-        ERROR("Cannot get shared memory id with the key(%d). "
-              "Please check carpsd process is running.",
-              key);
-        return -1;
-    }
-
-    if ((*pd = (psd_data*)shmat(_shm_id, NULL, 0)) == (psd_data*)-1) {
-        ERROR("Cannot allocate shared memory");
-        return -1;
-    }
-
     return 0;
 }
 
@@ -161,8 +120,9 @@ int get_psd_raw_value(int fd, uint16_t* value) {
 }
 
 int get_psd_processed_value(uint16_t* const raw, float* processed) {
+    int i;
     float x;
-    
+
     x = raw[PSD_FRONT];
     processed[PSD_FRONT] = 51.83f * expf(-0.001981f * x) + 17.8f * expf(-0.0004166f * x);
 
@@ -181,7 +141,7 @@ int get_psd_processed_value(uint16_t* const raw, float* processed) {
     x = raw[PSD_LEFT_1];
     processed[PSD_LEFT_1] = 638.6f * expf(-0.004488f * x) + 26.45f * expf(-0.000508f * x);
 
-    for (int i = 0; i < PSD_COUNT; i++) {
+    for (i = 0; i < PSD_COUNT; i++) {
         if (processed[i] <= 4.0f)
             processed[i]=4.000f;
         else if (processed[i] >= 30.0f)
@@ -189,16 +149,4 @@ int get_psd_processed_value(uint16_t* const raw, float* processed) {
     }
     
     return 0;
-}
-
-void signal_handler(int sig) {
-    /*
-     * NOTICE
-     * Because this catches SIGINT(2), parameters of kill commnad in shell script
-     * MUST include '-2'.
-     */
-    if (sig == SIGINT) {
-        shmctl(shm_id, IPC_RMID, NULL); // Delete Shared Memory
-        MSG("Shared memory had been deleted(key: %d, id: %d).", shm_key, shm_id);
-    }
 }
