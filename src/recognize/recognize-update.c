@@ -112,8 +112,9 @@ float get_curr_velocity(recog_arg* arg) {
 #define RECOG_GET_STOP_OBSTACLE 111L
 
 recog_stop_obstacle_t get_stop_obstacle(recog_arg* arg) {
+    static recog_stop_obstacle_t result;
 
-    return SO_NONE;
+    return result;
 }
 /* END OF stop_obstacle SECTION */
 
