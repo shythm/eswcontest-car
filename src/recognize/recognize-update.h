@@ -27,6 +27,11 @@ typedef struct _recog_arg {
     unsigned char* display_input;
 } recog_arg;
 
+typedef struct _point {
+    int x;
+    int y;
+} point;
+
 /******************************************************/
 /* <START SECTION OF RECOGNITION RESULTS>             */
 /* THESE STRUCTURE MUST BE CONTAIN EANBLE FIELD AND   */
@@ -123,10 +128,10 @@ typedef struct _recog_curr_velocity_data {
 float get_curr_velocity(recog_arg* arg);
 
 // for stop_obstacle data
-typedef enum _recog_stop_obstacle_t {
-    SO_NONE,
-    SO_EXIST_FAR,
-    SO_EXIST_NEAR,
+typedef struct _recog_stop_obstacle_t {
+    // clockwise, from topleft
+    point points[4];
+    float area;
 } recog_stop_obstacle_t;
 typedef struct _recog_stop_obstacle_data {
     bool enabled;
