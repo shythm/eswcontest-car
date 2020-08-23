@@ -27,7 +27,6 @@ typedef enum _ctrlboard_cmd_code {
     CMD_LINE_SENSOR                     = 0xB1,
 } ctrlboard_cmd_code;
 
-
 /* Command types */
 typedef enum _ctrlboard_cmd_rw {
     CMD_TYPE_WRITE  = 1,
@@ -54,6 +53,14 @@ typedef struct _ctrlboard_cmd_t {
     unsigned char bytec;
 } ctrlboard_cmd_t;
 
+/* Byte Container */
+typedef union _ctrlboard_byte_container {
+    char            bytes[MAX_CMD_BYTE_CNT];
+    unsigned char   container_uint8;            // unsigned 8bit integer
+    short           container_int16;            // signed   16bit integer
+    int             container_int32;            // signed   32bit integer
+} ctrlboard_byte_container;
+
 /*
  * Message structure for ctrlboard process.
  * It contains the message id(for return the message), command, state, and bytes.
@@ -69,7 +76,7 @@ typedef struct _ctrlboard_msg {
     // whether the processing of the message had been succeed
     ctrlboard_msg_state_t state;
     // the required arguments in write command or the output value in read command
-    unsigned char bytes[MAX_CMD_BYTE_CNT];
+    ctrlboard_byte_container data;
 } ctrlboard_msg;
 
 /*
@@ -78,6 +85,6 @@ typedef struct _ctrlboard_msg {
  * When ctrlboard_cmd_rw is CMD_TYPE_READ,  bytes is used for storing the ouptut of the control board.
  */
 ctrlboard_msg_state_t message_ctrlboard
-(int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, char* bytes);
+(int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, ctrlboard_byte_container* data);
 
 #endif /* _CTRLBOARD_LIB_H */

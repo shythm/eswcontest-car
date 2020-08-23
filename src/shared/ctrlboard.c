@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
         // Wait until receive a message. (block state)
         if (msgrcv(msgq_id, (void*)&msg, msg_size, 0, 0) != -1) {
             // Command to the control board and get the return value.
-            msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.bytes);
+            msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.data.bytes);
             // Send the message if the message queue is availiable. (block state)
             msgsnd(msgq_id, (void*)&msg, msg_size, 0); // wait(block)
         }
