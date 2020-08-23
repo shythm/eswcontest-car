@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <termios.h>
 #include <pthread.h>
-#include <unistd.h>
-#include <math.h>
 #include <string.h>
 #include "ctrlboard-lib.h"
 
-key_t msgq_key;
-int msgq_id;
+typedef struct _thread_data {
+    int msgq_id;
+} thread_data;
 
 int getkey(int is_echo) { 
     int ch; 
@@ -37,111 +36,83 @@ int getkey(int is_echo) {
     return ch; 
 }
 
-void position_control(unsigned char speed, unsigned char gain) {
-    int keyCode, position, steering, distance;
-    ctrlboard_msg msg;
-    size_t size = sizeof(ctrlboard_msg) - sizeof(long);
-
-    // Initialization to control position
-    msg.msgid = 100;
+void* control_thread(void* argv) {
+    int msg_id = 'w' + 'a' + 's' + 'd';
+    thread_data* thr_data = (thread_data*)argv;
+    ctrlboard_byte_container container;
+    short speed, steering;
+    unsigned char gain;
+    int desire_encoder, key_code;
 
     // SpeedControlOnOff_Write(CONTROL);
-    msg.cmd.code = CMD_SPEED_CONTROL_ON_OFF;
-    msg.cmd.rw = CMD_TYPE_WRITE;
-    msg.cmd.bytec = 1;
-    msg.bytes[0] = 1;
-    if (msgsnd(msgq_id, &msg, size, 0) == 0) {
-        if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) >= 0) {
-            if (msg.state == MSG_STATE_SUCCESS) {
-                printf("Speed Control ON! \n");
-            } else {
-                printf("Failed to speed control \n");
-            }
-        }
+    container.container_uint8 = 1;
+    if (message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE,
+                          1, &container) == MSG_STATE_SUCCESS) {
+        printf("Speed Control ON \n");
+    } else {
+        printf("Failed to set speed control to ON \n");
+        return NULL;
     }
 
     // DesireSpeed_Write(speed);
-    msg.cmd.code = CMD_DESIRE_SPEED;
-    msg.cmd.rw = CMD_TYPE_WRITE;
-    msg.cmd.bytec = 2;
-    msg.bytes[0] = speed & 0xff;
-    msg.bytes[1] = (speed >> 8) & 0xff;
-    if (msgsnd(msgq_id, &msg, size, 0) == 0) {
-        if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) >= 0) {
-            if (msg.state == MSG_STATE_SUCCESS) {
-                printf("Set speed to %d \n", speed);
-            } else {
-                printf("Failed to set speed \n");
-            }
-        }
+    speed = 300;
+    container.container_int16 = speed;
+    if (message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_DESIRE_SPEED, CMD_TYPE_WRITE,
+                          2, &container) == MSG_STATE_SUCCESS) {
+        printf("Desire Speed: %d \n", speed);
+    } else {
+        printf("Failed to set desire speed \n");
     }
 
     // PositionControlOnOff_Write(CONTROL);
-    msg.cmd.code = CMD_POSITION_CONTROL_ON_OFF;
-    msg.cmd.rw = CMD_TYPE_WRITE;
-    msg.cmd.bytec = 1;
-    msg.bytes[0] = 1;
-    if (msgsnd(msgq_id, &msg, size, 0) == 0) {
-        if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) >= 0) {
-            if (msg.state == MSG_STATE_SUCCESS) {
-                printf("Set position control to ON \n");
-            } else {
-                printf("Failed to set position control \n");
-            }
-        }
+    container.container_uint8 = 1;
+    if (message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_POSITION_CONTROL_ON_OFF, CMD_TYPE_WRITE,
+                          1, &container) == MSG_STATE_SUCCESS) {
+        printf("Position Control ON \n");
+    } else {
+        printf("Failed to set position control to ON \n");
     }
 
     // PositionProportionPoint_Write(gain);
-    msg.cmd.code = CMD_POSITION_PROPORTION_POINT;
-    msg.cmd.rw = CMD_TYPE_WRITE;
-    msg.cmd.bytec = 1;
-    msg.bytes[0] = gain;
-    if (msgsnd(msgq_id, &msg, size, 0) == 0) {
-        if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) >= 0) {
-            if (msg.state == MSG_STATE_SUCCESS) {
-                printf("Set position proportion to %d \n", gain);
-            } else {
-                printf("Failed to set position proportion \n");
-            }
-        }
+    gain = 10;
+    container.container_uint8 = gain;
+    if (message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_POSITION_PROPORTION_POINT, CMD_TYPE_WRITE,
+                          1, &container) == MSG_STATE_SUCCESS) {
+        printf("Position Proportion Point: %d \n", gain);
+    } else {
+        printf("Failed to set position proportion point \n");
     }
-
-    char bytes[4];
 
     // Initialization to servo motor
     steering = 1500;
-    bytes[0] = steering & 0xff;
-    bytes[1] = (steering >> 8) & 0xff;
-    // SteeringServoControl_Write(steering);
-    if (message_ctrlboard(msgq_id, 100,
-                          CMD_STEERING_SERVO_CONTROL,
-                          CMD_TYPE_WRITE,
-                          2,
-                          bytes) == MSG_STATE_SUCCESS) {
-        printf("Set steering servo control to %d \n", steering);
+    container.container_int16 = steering;
+    if (message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_STEERING_SERVO_CONTROL, CMD_TYPE_WRITE,
+                          2, &container) == MSG_STATE_SUCCESS) {
+        printf("Steering Servo Control: %d \n", steering);
     } else {
-        printf("Fail to set steering servo control \n");
-    };
+        printf("Failed to set steering servo control \n");
+    }
 
-    fflush(stdout);
-
-    distance = 200;
-    while (1) {
-        position = 0;
-        // EncoderCounter_Write(position);
-        bytes[0] = position & 0xff;
-        bytes[1] = (position >> 8) & 0xff;
-        bytes[2] = (position >> 16) & 0xff;
-        bytes[3] = (position >> 24) & 0xff;
-        message_ctrlboard(msgq_id, 100, CMD_ENCODER_COUNTER, CMD_TYPE_WRITE, 4, bytes);
-        keyCode = getkey(0);
+    for (;;) {
+        desire_encoder = 0;
+        /* Set the encoder count to zero(0) */
+        container.container_int32 = 0;
+        message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_ENCODER_COUNTER, CMD_TYPE_WRITE,
+                          4, &container);
+        key_code = getkey(0);
         
-        switch (keyCode) {
+        switch (key_code) {
         case 'w': // w (go forward)
-            position += distance;
+            desire_encoder += 200;
             break;
         case 's': // s (go back)
-            position -= distance;
+            desire_encoder -= 200;
             break;
         case 'a': // a (left handling)
             steering += 100;
@@ -155,99 +126,42 @@ void position_control(unsigned char speed, unsigned char gain) {
             break;
         }
 
-        // DesireEncoderCount_Write(position);
-        bytes[0] = position & 0xff;
-        bytes[1] = (position >> 8) & 0xff;
-        bytes[2] = (position >> 16) & 0xff;
-        bytes[3] = (position >> 24) & 0xff;
-        message_ctrlboard(msgq_id, 100, CMD_DESIRE_ENCODER_COUNT, CMD_TYPE_WRITE, 4, bytes);
+        // Desire Encoder Count
+        container.container_int32 = desire_encoder;
+        message_ctrlboard(thr_data->msgq_id, msg_id, 
+                          CMD_DESIRE_ENCODER_COUNT, CMD_TYPE_WRITE,
+                          4, &container);
 
-        bytes[0] = steering & 0xff;
-        bytes[1] = (steering >> 8) & 0xff;
-        // SteeringServoControl_Write(steering);
-        if (message_ctrlboard(msgq_id, 100,
-                            CMD_STEERING_SERVO_CONTROL,
-                            CMD_TYPE_WRITE,
-                            2,
-                            bytes) == MSG_STATE_SUCCESS) {
-            // printf("Set steering servo control to %d \n", steering);
-        } else {
-            printf("Fail to set steering servo control");
-        };
+        // Steering Servo
+        container.container_int16 = steering;
+        message_ctrlboard(thr_data->msgq_id, msg_id,
+                          CMD_STEERING_SERVO_CONTROL, CMD_TYPE_WRITE,
+                          2, &container);
     }
-}
-
-void* shake_head(void* argv) {
-    int msgid = 200;
-    char bytes[4];
-    int camera_x_servo;
-    int i = 100;
-
-    for (;;) {
-        camera_x_servo = 1000;
-        bytes[0] = camera_x_servo & 0xff;
-        bytes[1] = (camera_x_servo >> 8) & 0xff;
-        message_ctrlboard(msgq_id, msgid,
-                          CMD_CAMERA_X_SERVO_CONTROL,
-                          CMD_TYPE_WRITE,
-                          2,
-                          bytes);
-
-        usleep(500000);
-        camera_x_servo = 2000;
-        bytes[0] = camera_x_servo & 0xff;
-        bytes[1] = (camera_x_servo >> 8) & 0xff;
-        message_ctrlboard(msgq_id, msgid,
-                          CMD_CAMERA_X_SERVO_CONTROL,
-                          CMD_TYPE_WRITE,
-                          2,
-                          bytes);
-
-        usleep(500000);
-        // for (i = 0; i < 100; i++) {
-        //     message_ctrlboard(msgq_id, msgid,
-        //                       CMD_CAMERA_X_SERVO_CONTROL,
-        //                       CMD_TYPE_READ,
-        //                       2,
-        //                       bytes);
-        // }
-    }
-}
-
-void* control_thread(void* argv) {
-    position_control(255, 10);
 }
 
 int main(int argc, char** argv) {
     int ret;
-    pthread_t thr_data[2];
+    pthread_t thr_id[1];
+    thread_data thr_data;
+    key_t msgq_key;
 
     if (argc != 2) {
         printf("Usage %s: [Message queue key of ctrlboard process] \n", argv[0]);
     }
     msgq_key = (key_t)atoi(argv[1]);
 
-    if ((msgq_id = msgget(msgq_key, 0)) == -1) {
+    if ((thr_data.msgq_id = msgget(msgq_key, 0)) == -1) {
         printf("Failed get message queue id!");
         return 1;
     }
 
-    ret = pthread_create(&thr_data[1], NULL, shake_head, NULL);
-    if (ret) {
-        printf("Failed creating shake head thread");
-        return 1;
-    }
-    pthread_detach(thr_data[1]);
-
-    ret = pthread_create(&thr_data[0], NULL, control_thread, NULL);
+    ret = pthread_create(&thr_id[0], NULL, control_thread, (void*)&thr_data);
     if (ret) {
         printf("Failed creating control thread");
         return 1;
     }
-
-    pthread_join(thr_data[0], NULL);
-
-    pause();
+    pthread_join(thr_id[0], NULL);
 
     return 0;
 }
