@@ -96,9 +96,9 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t* cmd, char*
     /* 
      * NOTICE
      * If this is write command, there is the required arguments.
-     * -> In this case use ctrlboard_cmd_t.bytes for the requried arguments.
+     * -> In this case use bytes for the requried arguments.
      * Else if this is read command, there is no required arguments.
-     * -> In this case use ctrlboard_cmt_t.bytes for storing the outputs.
+     * -> In this case use bytes for storing the outputs.
      *    Because there is no required arguments in read command.
      */
 
