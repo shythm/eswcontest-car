@@ -52,7 +52,7 @@ int msg_id = 't' + 'e' + 's' + 't';
 ctrlboard_byte_container container;
 
 // SPEED_CONTROL 제어
-container.container_uint8 = 1; // SPEED_CONTROL 명령에 사용되는 인자의 byte 수는 1개 -> container_uint8에 데이터 삽입.
+container.container_uint8 = 1; // SPEED_CONTROL 명령에 사용되는 인자의 타입은 '부호없는 8bit Byte' -> container_uint8에 데이터 삽입.
 if (message_ctrlboard(msgq_id, msg_id, CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE, 1, &container) == MSG_STATE_SUCCESS) { // ctrlboard_byte_container 공용체의 주소값을 전달해야 한다.
     printf("SPEED_CONTROL를 ON으로 제어 성공! \n");
 } else {
@@ -60,7 +60,7 @@ if (message_ctrlboard(msgq_id, msg_id, CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE,
 }
 
 // DESIRE_SPEED 제어
-container.container_int16 = 300; // DESIRE_SPEED 명령에 사용되는 인자의 byte 수는 2개 -> container_int16에 데이터 삽입.
+container.container_int16 = 300; // DESIRE_SPEED 명령에 사용되는 인자의 타입은 '부호있는 16bit Short' -> container_int16에 데이터 삽입.
 if (message_ctrlboard(msgq_id, msg_id, CMD_DESIRE_SPEED, CMD_TYPE_WRITE, 2, &container) == MSG_STATE_SUCCESS) {
     printf("DESIRE_SPEED 제어 성공! \n");
 } else {
