@@ -2,7 +2,6 @@
 *.o
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 
 #folder
 CrossCompiler/
