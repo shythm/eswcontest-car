@@ -6,7 +6,7 @@
 
 unsigned char* get_sample(recog_arg* arg) {
     static unsigned char result[SAMPLE_COUNT];  // for storing result
-    static char bytes[4];
+    static ctrlboard_byte_container container;
 
     // checking for first function call
     static bool init = false;
@@ -19,8 +19,8 @@ unsigned char* get_sample(recog_arg* arg) {
     result[0] += arg->camera_output[0]; // example of using camera output data
     // example of using ctrlboard
     message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_GET_SAMPLE,
-                        CMD_SPEED_PID_PROPORTIONAL, CMD_TYPE_READ, 1, bytes);
-    result[1] = bytes[1];
+                        CMD_SPEED_PID_PROPORTIONAL, CMD_TYPE_READ, 1, &container);
+    result[1] = container.c_uint8;
 
     return result;
 }
