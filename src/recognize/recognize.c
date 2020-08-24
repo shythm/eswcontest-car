@@ -1,10 +1,19 @@
 /* include standard libraries */
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <math.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
-#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
 
 /* include custom libraries */
 #include "util.h"
@@ -211,10 +220,97 @@ int capture_recognize(recog_result* result, recog_arg* arg) {
     return 0;
 }
 
+/* define I2C & PSD constants */
+#define PSD_I2C_DEVICE      "/dev/i2c-2"
+#define PSD_I2C_BUF_SIZE    8
+#define PSD_I2C_DELAY_US    2000
+
+#define PSD_CMD_FRONT       0x8C
+#define PSD_CMD_RIGHT_1     0xCC
+#define PSD_CMD_RIGHT_2     0x9C
+#define PSD_CMD_BACK        0xDC
+#define PSD_CMD_LEFT_2      0xAC
+#define PSD_CMD_LEFT_1      0xEC
+
+#define PSD_DISTANCE_MIN    4.0f
+#define PSD_DISTANCE_MAX    30.0f
+
+void* update_psd_value(void* argv) {
+    /* get the shared memory from the pthread argument */
+    recog_result* result = (recog_result*)argv;
+
+    /* these are for I2C communication */
+    int i, i2c_fd = -1;
+    const unsigned char psd_channel[PSD_COUNT] = {
+        PSD_CMD_FRONT,
+        PSD_CMD_RIGHT_1,
+        PSD_CMD_RIGHT_2,
+        PSD_CMD_BACK,
+        PSD_CMD_LEFT_2, 
+        PSD_CMD_LEFT_1
+    };
+    const size_t buf_read_size = 2;
+    unsigned char buf_read[PSD_I2C_BUF_SIZE];
+
+    /* these are the data containers of the PSD value */
+    uint16_t psd_raw[PSD_COUNT];
+    psd_data_t psd_dist[PSD_COUNT];
+    
+    /* I2C Initialization Part */
+    if ((i2c_fd = open(PSD_I2C_DEVICE, O_RDWR)) < 0) {
+        ERROR("Failed to open I2C for PSD.");
+        return NULL;
+    }
+    if (ioctl(i2c_fd, I2C_SLAVE, 0x4b) < 0) {
+        ERROR("Failed to ioctl I2C for PSD.");
+        return NULL;
+    }
+    MSG("I2C Device for PSD(%s) has been initialized.", PSD_I2C_DEVICE);
+
+    /* Update PSD Value Part */
+    for (;;) {
+        // First, Communicate with the I2C Device
+        for (i = 0; i < PSD_COUNT; i++) {
+            // command to i2c
+            write(i2c_fd, psd_channel + i, 1);
+            usleep(PSD_I2C_DELAY_US);
+
+            // get the psd raw value from i2c
+            if (read(i2c_fd, buf_read, buf_read_size) != buf_read_size) {
+                ERROR("Failed to read PSD data from I2C.");
+                return NULL;
+            }
+            usleep(PSD_I2C_DELAY_US);
+
+            // save psd raw value
+            psd_raw[i] = ((buf_read[0] & 0b00001111) << 8) + buf_read[1];
+        }
+
+        // Second, apply the function of PSD raw data to distance data(cm)
+        psd_dist[PSD_FRONT]   = 51.83f * expf(-0.001981f * psd_raw[PSD_FRONT]) + 17.8f * expf(-0.0004166f * psd_raw[PSD_FRONT]);
+        psd_dist[PSD_RIGHT_1] = 52.04f * expf(-0.001964f * psd_raw[PSD_RIGHT_1]) + 18.16f * expf(-0.0003931f * psd_raw[PSD_RIGHT_1]);
+        psd_dist[PSD_RIGHT_2] = 51.58f * expf(-0.001936f * psd_raw[PSD_RIGHT_2]) + 17.79f * expf(-0.0003686f * psd_raw[PSD_RIGHT_2]);
+        psd_dist[PSD_BACK]    = 57.7f * expf(-0.002206f * psd_raw[PSD_BACK]) + 19.1f * expf(-0.0004304f * psd_raw[PSD_BACK]);
+        psd_dist[PSD_LEFT_2]  = 490.1f * expf(-0.004111f * psd_raw[PSD_LEFT_2]) + 24.61f * expf(-0.0004845f * psd_raw[PSD_LEFT_2]);
+        psd_dist[PSD_LEFT_1]  = 638.6f * expf(-0.004488f * psd_raw[PSD_LEFT_1]) + 26.45f * expf(-0.000508f * psd_raw[PSD_LEFT_1]);
+
+        for (i = 0; i < PSD_COUNT; i++) { // limit the psd value (PSD_DISTANCE_MIN <= psd_dist <= PSD_DISTANCE_MAX)
+            if (psd_dist[i] <= PSD_DISTANCE_MIN)
+                psd_dist[i] = PSD_DISTANCE_MIN;
+            else if (psd_dist[i] >= PSD_DISTANCE_MAX)
+                psd_dist[i] = PSD_DISTANCE_MAX;
+        }
+
+        // Third, update the psd value of the shared memory
+        memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+    }
+}
+
 int main(int argc, char** argv) {
     key_t shm_key, msgq_key_ctrlboard;
     int shm_id, msgq_id_ctrlboard;
     recog_result* shm_rr;
+    pthread_t thread_update_psd_value;
 
     /* Get the arguments from user(shell) */
     if (argc != 3) {
@@ -235,6 +331,13 @@ int main(int argc, char** argv) {
         ERROR("An error occurred while getting the message queue id with the key %d"
               "Please check the ctrlboard process is running.", msgq_key_ctrlboard);
     }
+
+    /* Get PSD data from I2C by thread */
+    if (pthread_create(&thread_update_psd_value, NULL, update_psd_value, shm_rr)) {
+        ERROR("An error occurred while creating thread for update_psd_value.");
+        return -1;
+    }
+    pthread_detach(thread_update_psd_value);
 
     /* Do capture and recognize */
     recog_arg arg;

@@ -8,6 +8,20 @@
 /* <START SECTION OF SHARED MEMORY>                   */
 /******************************************************/
 #include "recognize-update.h"
+
+// these are for psd data
+#define PSD_COUNT       6
+#define PSD_FRONT       0
+#define PSD_RIGHT_1     1
+#define PSD_RIGHT_2     2
+#define PSD_BACK        3
+#define PSD_LEFT_2      4
+#define PSD_LEFT_1      5
+typedef float psd_data_t;
+typedef struct _recog_psd_data {
+    psd_data_t value[PSD_COUNT];
+} recog_psd_data;
+
 /* 
  * This is shared memory structure for the results of recognition processing.
  * You can add some fields to share the output of the method which you have been made.
@@ -25,6 +39,7 @@ typedef struct _recog_result {
     recog_curr_velocity_data        curr_velocity;
     recog_stop_obstacle_data        stop_obstacle;
     recog_is_there_car_data         is_there_car;
+    recog_psd_data                  psd;
 } recog_result;
 
 /******************************************************/
