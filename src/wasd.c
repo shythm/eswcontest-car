@@ -45,7 +45,7 @@ void* control_thread(void* argv) {
     int desire_encoder, key_code;
 
     // SpeedControlOnOff_Write(CONTROL);
-    container.container_uint8 = 1;
+    container.c_uint8 = 1;
     if (message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE,
                           1, &container) == MSG_STATE_SUCCESS) {
@@ -57,7 +57,7 @@ void* control_thread(void* argv) {
 
     // DesireSpeed_Write(speed);
     speed = 300;
-    container.container_int16 = speed;
+    container.c_int16 = speed;
     if (message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_DESIRE_SPEED, CMD_TYPE_WRITE,
                           2, &container) == MSG_STATE_SUCCESS) {
@@ -67,7 +67,7 @@ void* control_thread(void* argv) {
     }
 
     // PositionControlOnOff_Write(CONTROL);
-    container.container_uint8 = 1;
+    container.c_uint8 = 1;
     if (message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_POSITION_CONTROL_ON_OFF, CMD_TYPE_WRITE,
                           1, &container) == MSG_STATE_SUCCESS) {
@@ -78,7 +78,7 @@ void* control_thread(void* argv) {
 
     // PositionProportionPoint_Write(gain);
     gain = 10;
-    container.container_uint8 = gain;
+    container.c_uint8 = gain;
     if (message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_POSITION_PROPORTION_POINT, CMD_TYPE_WRITE,
                           1, &container) == MSG_STATE_SUCCESS) {
@@ -89,7 +89,7 @@ void* control_thread(void* argv) {
 
     // Initialization to servo motor
     steering = 1500;
-    container.container_int16 = steering;
+    container.c_int16 = steering;
     if (message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_STEERING_SERVO_CONTROL, CMD_TYPE_WRITE,
                           2, &container) == MSG_STATE_SUCCESS) {
@@ -101,7 +101,7 @@ void* control_thread(void* argv) {
     for (;;) {
         desire_encoder = 0;
         /* Set the encoder count to zero(0) */
-        container.container_int32 = 0;
+        container.c_int32 = 0;
         message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_ENCODER_COUNTER, CMD_TYPE_WRITE,
                           4, &container);
@@ -127,13 +127,13 @@ void* control_thread(void* argv) {
         }
 
         // Desire Encoder Count
-        container.container_int32 = desire_encoder;
+        container.c_int32 = desire_encoder;
         message_ctrlboard(thr_data->msgq_id, msg_id, 
                           CMD_DESIRE_ENCODER_COUNT, CMD_TYPE_WRITE,
                           4, &container);
 
         // Steering Servo
-        container.container_int16 = steering;
+        container.c_int16 = steering;
         message_ctrlboard(thr_data->msgq_id, msg_id,
                           CMD_STEERING_SERVO_CONTROL, CMD_TYPE_WRITE,
                           2, &container);

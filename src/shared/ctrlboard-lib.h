@@ -56,9 +56,9 @@ typedef struct _ctrlboard_cmd_t {
 /* Byte Container */
 typedef union _ctrlboard_byte_container {
     char            bytes[MAX_CMD_BYTE_CNT];
-    unsigned char   container_uint8;            // unsigned 8bit integer
-    short           container_int16;            // signed   16bit integer
-    int             container_int32;            // signed   32bit integer
+    unsigned char   c_uint8;            // container unsigned 8bit integer
+    short           c_int16;            // container signed   16bit integer
+    int             c_int32;            // container signed   32bit integer
 } ctrlboard_byte_container;
 
 /*
