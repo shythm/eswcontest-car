@@ -235,12 +235,24 @@ int capture_recognize(recog_result* result, recog_arg* arg) {
 #define PSD_DISTANCE_MIN    4.0f
 #define PSD_DISTANCE_MAX    30.0f
 
-void* update_psd_value(void* argv) {
-    /* get the shared memory from the pthread argument */
-    recog_result* result = (recog_result*)argv;
+void bubble_sort(uint16_t *arr, int length){
+    int i,j;
+    uint16_t temp;
+    for(i=0; i<length-1; i++){
+        for(j=0; j<length-i-1;j++){
+            if(arr[j]>arr[j+1]) {
+                temp=arr[j];
+                arr[j]=arr[j+1];
+                arr[j+1]=temp;
+            }
+        }
+    }
+}
 
-    /* these are for I2C communication */
-    int i, i2c_fd = -1;
+void median_psd_raw(int sample_size, uint16_t *psd_raw, int i2c_fd, size_t buf_read_size ){    
+    uint16_t samples[PSD_COUNT][11]; // max sample size of median filter is 11
+    unsigned char buf_read[PSD_I2C_BUF_SIZE];
+    int i,j;
     const unsigned char psd_channel[PSD_COUNT] = {
         PSD_CMD_FRONT,
         PSD_CMD_RIGHT_1,
@@ -249,8 +261,47 @@ void* update_psd_value(void* argv) {
         PSD_CMD_LEFT_2, 
         PSD_CMD_LEFT_1
     };
+    if(sample_size >11||sample_size<0){
+        ERROR("[median_psd_raw err]: enter correct sample_size (1 <= sample_size <= 11)\n");
+        return;
+    }
+    // take raw datas to sampes[PSD_COUNT][];
+    for (i = 0; i < PSD_COUNT; i++) {
+        for(j=0;j<sample_size; j++){
+              // command to i2c
+            write(i2c_fd, psd_channel + i, 1);
+            usleep(PSD_I2C_DELAY_US);
+
+            // get the psd raw value from i2c
+            if (read(i2c_fd, buf_read, buf_read_size) != buf_read_size) {
+                ERROR("Failed to read PSD data from I2C.");
+                return ;
+            }
+            usleep(PSD_I2C_DELAY_US);
+
+            // save psd raw value
+            samples[i][j] = ((buf_read[0] & 0b00001111) << 8) + buf_read[1];
+        }
+    }
+
+    // sort sampe[PSD_COUNT][]
+    for(i=0;i<PSD_COUNT; i++)
+        bubble_sort(samples[i], sample_size);
+
+    // get median and put it on psd_raw[PSD_COUNT];
+    for(i=0;i<PSD_COUNT; i++){
+        psd_raw[i]=samples[i][sample_size/2]; 
+    }
+}
+
+void* update_psd_value(void* argv) {
+    /* get the shared memory from the pthread argument */
+    recog_result* result = (recog_result*)argv;
+
+    /* these are for I2C communication */
+    int i, i2c_fd = -1;
     const size_t buf_read_size = 2;
-    unsigned char buf_read[PSD_I2C_BUF_SIZE];
+    //unsigned char buf_read[PSD_I2C_BUF_SIZE];
 
     /* these are the data containers of the PSD value */
     uint16_t psd_raw[PSD_COUNT];
@@ -267,24 +318,11 @@ void* update_psd_value(void* argv) {
     }
     MSG("I2C Device for PSD(%s) has been initialized.", PSD_I2C_DEVICE);
 
+
     /* Update PSD Value Part */
     for (;;) {
-        // First, Communicate with the I2C Device
-        for (i = 0; i < PSD_COUNT; i++) {
-            // command to i2c
-            write(i2c_fd, psd_channel + i, 1);
-            usleep(PSD_I2C_DELAY_US);
 
-            // get the psd raw value from i2c
-            if (read(i2c_fd, buf_read, buf_read_size) != buf_read_size) {
-                ERROR("Failed to read PSD data from I2C.");
-                return NULL;
-            }
-            usleep(PSD_I2C_DELAY_US);
-
-            // save psd raw value
-            psd_raw[i] = ((buf_read[0] & 0b00001111) << 8) + buf_read[1];
-        }
+       median_psd_raw(5, psd_raw, i2c_fd, buf_read_size);
 
         // Second, apply the function of PSD raw data to distance data(cm)
         psd_dist[PSD_FRONT]   = 51.83f * expf(-0.001981f * psd_raw[PSD_FRONT]) + 17.8f * expf(-0.0004166f * psd_raw[PSD_FRONT]);
