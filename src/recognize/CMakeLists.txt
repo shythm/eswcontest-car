@@ -29,6 +29,7 @@ LINK_DIRECTORIES(${ROOTFS}/lib)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/../shared)
 
 # Build executable file
-ADD_EXECUTABLE(recognize recognize.c recognize-lib.c display-kms.c lane-detection.cpp recognize-update.c v4l2.c vpe-common.c ../shared/ctrlboard-lib.c ../shared/util.c)
-TARGET_LINK_LIBRARIES(recognize pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
-SET_PROPERTY(TARGET recognize PROPERTY C_STANDARD 99)
+SET(object recognize)
+ADD_EXECUTABLE(${object} recognize.c recognize-lib.c display-kms.c lane-detection.cpp recognize-update.c v4l2.c vpe-common.c ../shared/ctrlboard-lib.c ../shared/util.c)
+TARGET_LINK_LIBRARIES(${object} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
+SET_PROPERTY(TARGET ${object} PROPERTY C_STANDARD 99)
