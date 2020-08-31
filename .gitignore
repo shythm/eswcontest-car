@@ -1,0 +1,12 @@
+#file
+*.o
+CMakeCache.txt
+cmake_install.cmake
+
+#folder
+Application/
+CrossCompiler/
+cc/
+Flashing/
+bin/
+CMakeFiles/
