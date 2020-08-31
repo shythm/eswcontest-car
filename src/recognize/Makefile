@@ -30,6 +30,8 @@ clean:
 
 $(TARGET): recognize.c recognize-lib.o recognize-update.o v4l2.o display-kms.o util.o vpe-common.o $(abspath ..)/shared/ctrlboard-lib.o
 	$(CC) $(CFLAGS) -o $@ recognize.c recognize-lib.o recognize-update.o v4l2.o display-kms.o util.o vpe-common.o $(abspath ..)/shared/ctrlboard-lib.o $(LDFLAGS) $(SHAREDINC)
+	rm -f *.a *.o *.lo
+
 
 v4l2.o: v4l2.c v4l2.h
 	$(CC) -c $(CFLAGS) -o $@ v4l2.c $(SHAREDINC)
