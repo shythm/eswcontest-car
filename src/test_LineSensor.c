@@ -26,12 +26,12 @@ int main(int argc, char** argv) {
 
     //현재의 라인 센서 값들을 보여주는 부분
     ctrlboard_byte_container container;
-    uint8_t bitmask = 0x80; //이진수로 1000 0000임
+    uint8_t bitmask = 0x80; //이진수 1000 0000으로 초기화함.
     for(;;) {
         if( message_ctrlboard(msgq_id, 0103, CMD_LINE_SENSOR, CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS ) {
             bitmask = 0x80;
             printf("라인센서값: ");
-            for(int i=0; i,8; i++) {
+            for(int i=0; i<8; i++) {
                 if( container.c_uint8 & bitmask ) { // 맨 왼쪽부터 마스킹 해서 검사. 마스킹 결과가 1일 때(흰색)
                     printf("1 ");
                 }
@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
                 }
                 bitmask >> 1;
             }
+            printf("\n");
         }
         else {
             printf("라인센서값 얻어오기 실패!\n");
