@@ -1,12 +1,12 @@
 echo "Build source"
 
 cd shared
-make clean
+# make clean
 make
 cd ../
 
 cd recognize
-make clean
+# make clean
 make
 cd ../
 
