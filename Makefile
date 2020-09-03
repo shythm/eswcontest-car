@@ -163,6 +163,33 @@ src/recognize/display-kms.c.s:
 	$(MAKE) -f CMakeFiles/recognize.dir/build.make CMakeFiles/recognize.dir/src/recognize/display-kms.c.s
 .PHONY : src/recognize/display-kms.c.s
 
+src/recognize/lane-detection.o: src/recognize/lane-detection.cpp.o
+
+.PHONY : src/recognize/lane-detection.o
+
+# target to build an object file
+src/recognize/lane-detection.cpp.o:
+	$(MAKE) -f CMakeFiles/recognize.dir/build.make CMakeFiles/recognize.dir/src/recognize/lane-detection.cpp.o
+.PHONY : src/recognize/lane-detection.cpp.o
+
+src/recognize/lane-detection.i: src/recognize/lane-detection.cpp.i
+
+.PHONY : src/recognize/lane-detection.i
+
+# target to preprocess a source file
+src/recognize/lane-detection.cpp.i:
+	$(MAKE) -f CMakeFiles/recognize.dir/build.make CMakeFiles/recognize.dir/src/recognize/lane-detection.cpp.i
+.PHONY : src/recognize/lane-detection.cpp.i
+
+src/recognize/lane-detection.s: src/recognize/lane-detection.cpp.s
+
+.PHONY : src/recognize/lane-detection.s
+
+# target to generate assembly for a file
+src/recognize/lane-detection.cpp.s:
+	$(MAKE) -f CMakeFiles/recognize.dir/build.make CMakeFiles/recognize.dir/src/recognize/lane-detection.cpp.s
+.PHONY : src/recognize/lane-detection.cpp.s
+
 src/recognize/recognize-lib.o: src/recognize/recognize-lib.c.o
 
 .PHONY : src/recognize/recognize-lib.o
@@ -398,6 +425,9 @@ help:
 	@echo "... src/recognize/display-kms.o"
 	@echo "... src/recognize/display-kms.i"
 	@echo "... src/recognize/display-kms.s"
+	@echo "... src/recognize/lane-detection.o"
+	@echo "... src/recognize/lane-detection.i"
+	@echo "... src/recognize/lane-detection.s"
 	@echo "... src/recognize/recognize-lib.o"
 	@echo "... src/recognize/recognize-lib.i"
 	@echo "... src/recognize/recognize-lib.s"

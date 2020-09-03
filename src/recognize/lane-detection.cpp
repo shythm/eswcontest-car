@@ -70,8 +70,8 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     //          cv::Point(W + range, H),
     //          cv::Scalar(0, 0, 255));
 
-    cv::
+    // cv::
 
-        // Copy processed image to display
-        std::copy(src.data, src.data + W * H * 3, arg->display_input);
+    // Copy processed image to display
+    std::copy(src.data, src.data + W * H * 3, arg->display_input);
 }

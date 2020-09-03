@@ -40,6 +40,7 @@ ADD_EXECUTABLE(${recog}
     src/recognize/recognize-lib.c
     src/recognize/display-kms.c
     src/recognize/recognize-update.c
+    src/recognize/lane-detection.cpp
     src/recognize/v4l2.c
     src/recognize/vpe-common.c
     src/shared/ctrlboard-lib.c
