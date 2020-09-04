@@ -53,7 +53,7 @@ void detect_lane(recog_arg *arg, vector_lane *result)
 {
     static bool init = true;
     static Mat M;
-    static vector<vector<Point> /**/> roi;
+    static vector<vector<Point>> roi;
     static int npt[] = {4};
     if (init)
     {
