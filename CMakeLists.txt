@@ -7,6 +7,9 @@ SET(ROOTFS ${CP_PATH}/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
 # Build executable file
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 
+# Set C++ version 11
+SET(CMAKE_CXX_STANDARD 11)
+
 # Set cross compilor path
 SET(CROSS_COMPILE ${CP_PATH}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-)
 
@@ -56,4 +59,3 @@ TARGET_LINK_LIBRARIES(${share} m)
 
 SET_PROPERTY(TARGET ${recog} PROPERTY C_STANDARD 99)
 SET_PROPERTY(TARGET ${share} PROPERTY C_STANDARD 99)
-SET(CMAKE_CXX_STANDARD 11)
