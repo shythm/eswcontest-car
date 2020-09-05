@@ -17,7 +17,7 @@ Size size_small = Size(VPE_OUTPUT_W / 2, VPE_OUTPUT_H / 2);
 
 double vanish = 0;      // Y position of vanish point
 double range = 300;     //
-double viewRange = 0.5; // Region of interest
+double viewRange = 0.4; // Region of interest
 
 Scalar blue(255, 0, 0);
 Scalar red(0, 0, 255);
@@ -154,17 +154,20 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     int i, size;
     Point top, bottom;
     Point2f a;
+    static float centerLine = W / 2;
     float xExt = 1.2f;
-    float leftMost = -9999;
-    float rightMost = 9999;
-    bool leftSet = false, rightSet = false;
-    float aSum = 0;
-    float bSum = 0;
-    int aNum = 0, bNum = 0;
+    float leftMost = -9999,
+          rightMost = 9999;
+    bool leftSet = false,
+         rightSet = false;
+    float aSum = 0,
+          bSum = 0;
+    int aNum = 0,
+        bNum = 0;
     for (i = 0; i < contours.size(); i++)
     {
         extremum(&contours[i], &size, &top, &bottom);
-        if (size < 400)
+        if (size < 250)
             continue;
         lineY(top, bottom, &a);
         aSum += a.x;
@@ -173,7 +176,7 @@ void detect_lane(recog_arg *arg, vector_lane *result)
         bNum++;
         bottom = dotY(H * xExt, a);
         Scalar color;
-        if (bottom.x > W / 2)
+        if (bottom.x > centerLine)
         {
             if (bottom.x < rightMost)
             {
@@ -223,8 +226,10 @@ void detect_lane(recog_arg *arg, vector_lane *result)
         line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
     }
 
+    centerLine = 0.95 * centerLine + 0.05 * (center + W / 2);
+
     // Draw center line
-    line(org, Point(W / 2, 0), Point(W / 2, H), blue);
+    line(org, Point(centerLine, 0), Point(centerLine, H), blue);
     line(org, Point(W / 2 + center, 0), Point(W / 2 + center, H), yellow);
 
     // Copy processed image to display

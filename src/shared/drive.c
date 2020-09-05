@@ -58,7 +58,7 @@ void init()
         printf("fail 6");
     }
 
-    container.c_int16 = 0;
+    container.c_int16 = 150;
     if (message_ctrlboard(msgq_id, MSGQ_ID, CMD_DESIRE_SPEED, CMD_TYPE_WRITE, 2, &container) != MSG_STATE_SUCCESS)
     {
         printf("fail 7");
