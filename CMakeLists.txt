@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 
 # Set compilor path and root filesystem path
 SET(CP_PATH ${CMAKE_SOURCE_DIR}/CrossCompiler)
@@ -33,6 +33,7 @@ INCLUDE_DIRECTORIES(src/shared)
 # Define variable
 SET(recog recognize)
 SET(share ctrlboard)
+SET(clean clean-car)
 
 # Build recog
 ADD_EXECUTABLE(${recog}
@@ -55,3 +56,12 @@ ADD_EXECUTABLE(${share}
 )
 TARGET_LINK_LIBRARIES(${share} m)
 SET_PROPERTY(TARGET ${share} PROPERTY C_STANDARD 99)
+
+# Build clean-car
+ADD_EXECUTABLE(${clean}
+    src/shared/clean-car.c
+    src/shared/ctrlboard-lib.c
+    src/shared/util.c
+)
+TARGET_LINK_LIBRARIES(${clean})
+SET_PROPERTY(TARGET ${clean} PROPERTY C_STANDARD 99)
