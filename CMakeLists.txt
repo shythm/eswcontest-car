@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 
 # Set compilor path and root filesystem path
 SET(CP_PATH ${CMAKE_SOURCE_DIR}/CrossCompiler)
@@ -32,31 +32,40 @@ LINK_DIRECTORIES(${ROOTFS}/lib)
 
 # Include custom libraries
 INCLUDE_DIRECTORIES(src/shared)
+INCLUDE_DIRECTORIES(src/recognize)
 
 # Define variable
 SET(recog recognize)
 SET(share ctrlboard)
+SET(drive drive)
 
 # Build recog
 ADD_EXECUTABLE(${recog}
     src/recognize/recognize.c
     src/recognize/recognize-lib.c
+    src/shared/ctrlboard-lib.c
     src/recognize/display-kms.c
     src/recognize/recognize-update.c
     src/recognize/lane-detection.cpp
     src/recognize/v4l2.c
     src/recognize/vpe-common.c
-    src/shared/ctrlboard-lib.c
     src/shared/util.c)
 TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
 
 # Build share
 ADD_EXECUTABLE(${share}
     src/shared/ctrlboard.c
-    src/shared/ctrlboard-lib.c
+    # src/shared/ctrlboard-lib.c
     src/shared/util.c
 )
 TARGET_LINK_LIBRARIES(${share} m)
 
+ADD_EXECUTABLE(${drive}
+    src/shared/drive.c
+    src/recognize/recognize-lib.c
+    src/shared/ctrlboard-lib.c
+)
+
 SET_PROPERTY(TARGET ${recog} PROPERTY C_STANDARD 99)
 SET_PROPERTY(TARGET ${share} PROPERTY C_STANDARD 99)
+SET_PROPERTY(TARGET ${drive} PROPERTY C_STANDARD 99)

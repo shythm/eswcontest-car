@@ -17,7 +17,7 @@ Size size_small = Size(VPE_OUTPUT_W / 2, VPE_OUTPUT_H / 2);
 
 double vanish = 0;      // Y position of vanish point
 double range = 300;     //
-double viewRange = 0.4; // Region of interest
+double viewRange = 0.6; // Region of interest
 
 Scalar blue(255, 0, 0);
 Scalar red(0, 0, 255);
@@ -131,8 +131,14 @@ void detect_lane(recog_arg *arg, vector_lane *result)
         right = W - 1;
 
     static float center = 0;
-    static float gain_irr = 0.95;
-    center = center * gain_irr + (left + right) * (1 - gain_irr) / 2;
+    static float gain_irr = 0.9;
+    int weight = left_n + right_n;
+    float temp;
+    if (weight == 0)
+        temp = 0;
+    else
+        temp = (left * left_n + right * right_n) / weight;
+    center = center * gain_irr + temp * (1 - gain_irr);
 
     // resize(img, img, size_small, 0, 0, CV_INTER_NN);
 
@@ -166,5 +172,5 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     // Copy processed image to display
     copy(img.data, img.data + W * H * 3, arg->display_input);
 
-    // result->position = center - W / 2;
+    result->position = center - W / 2;
 }
