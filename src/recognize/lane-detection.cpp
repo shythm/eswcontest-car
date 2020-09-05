@@ -142,7 +142,7 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     adaptiveThreshold(
         img, img, 255,
         CV_ADAPTIVE_THRESH_MEAN_C,
-        CV_THRESH_BINARY, 31, -30);
+        CV_THRESH_BINARY, 31, -40);
 
     vector<vector<Point>> contours;
     vector<Vec4i> hierarchy;
@@ -154,8 +154,13 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     int i, size;
     Point top, bottom;
     Point2f a;
+    float xExt = 1.2f;
+    float leftMost = -9999;
+    float rightMost = 9999;
+    bool leftSet = false, rightSet = false;
     float aSum = 0;
-    int aNum = 0;
+    float bSum = 0;
+    int aNum = 0, bNum = 0;
     for (i = 0; i < contours.size(); i++)
     {
         extremum(&contours[i], &size, &top, &bottom);
@@ -163,12 +168,60 @@ void detect_lane(recog_arg *arg, vector_lane *result)
             continue;
         lineY(top, bottom, &a);
         aSum += a.x;
+        bSum += a.y;
         aNum++;
-        line(org, dotY(0, a), dotY(H, a), green);
+        bNum++;
+        bottom = dotY(H * xExt, a);
+        Scalar color;
+        if (bottom.x > W / 2)
+        {
+            if (bottom.x < rightMost)
+            {
+                rightSet = true;
+                rightMost = bottom.x;
+            }
+            color = red;
+        }
+        else
+        {
+            if (bottom.x > leftMost)
+            {
+                leftSet = true;
+                leftMost = bottom.x;
+            }
+            color = green;
+        }
+        line(org, dotY(0, a), bottom, color);
         drawContours(org, contours, i, red, 1, 8, hierarchy, 0, Point());
     }
 
-    float center = aSum / aNum * 600 * 1.5;
+    float center;
+    float aMean = aSum / aNum;
+    float bMean = bSum / bNum;
+    float laneDist = 190 * sqrt(1 + aMean * aMean);
+    // cout << aMean << endl;
+    if (leftSet && rightSet)
+    {
+        center = (leftMost + rightMost - W) / 2;
+    }
+    else if (!(leftSet || rightSet))
+    {
+        center = 0;
+    }
+    else if (leftSet)
+    {
+        rightMost = leftMost + laneDist;
+        center = (leftMost + rightMost - W) / 2;
+        Point2f _a(aMean, bMean + laneDist);
+        line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
+    }
+    else
+    {
+        leftMost = rightMost - laneDist;
+        center = (leftMost + rightMost - W) / 2;
+        Point2f _a(aMean, bMean - laneDist);
+        line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
+    }
 
     // Draw center line
     line(org, Point(W / 2, 0), Point(W / 2, H), blue);
@@ -177,5 +230,5 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     // Copy processed image to display
     copy(org.data, org.data + W * H * 3, arg->display_input);
 
-    result->position = center;
+    result->position = -center * 10;
 }
