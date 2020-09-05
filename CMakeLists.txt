@@ -56,6 +56,7 @@ TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core 
 # Build share
 ADD_EXECUTABLE(${share}
     src/shared/ctrlboard.c
+    src/shared/ctrlboard-lib.c
 )
 TARGET_LINK_LIBRARIES(${share} m)
 

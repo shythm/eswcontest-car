@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "recognize-lib.h"
 #include "ctrlboard-lib.h"
+#include "config-car.h"
 
 #define ON 1
 #define OFF 0
@@ -66,27 +67,18 @@ void init()
 
 int main(int argc, char **argv)
 {
-    //인자 개수 예외처리
-    if (argc != 3)
-    {
-        printf("Wrong paramter number; got 1 or 2; expected 3.\n");
-        return 1;
-    }
-
     usleep(1000000);
 
-    int msgq_key = atoi(argv[2]),
-        shm_key = atoi(argv[1]),
-        shm_id;
+    int shm_id;
 
-    msgq_id = msgget(msgq_key, 0);
+    msgq_id = msgget(KEY_MSGQ_CTRLBOARD, 0);
     if (msgq_id == -1)
     {
-        printf("메세지 아이디 얻기 실패(key=%d)! 프로그램 종료\n", msgq_key);
+        printf("메세지 아이디 얻기 실패, 프로그램 종료\n");
         return 1;
     }
 
-    get_shm_recog_result(shm_key, &shm_id, &result, 0);
+    get_shm_recog_result(&result, 0);
     result->traffic_light.enabled = false;
     result->stop_obstacle.enabled = true;
 
