@@ -19,16 +19,8 @@ int ctrlboard_init(int* fd);
 ctrlboard_msg_state_t command_ctrlboard(int uart, ctrlboard_cmd_t* cmd, char* bytes);
 
 int main(int argc, char** argv) {
-    key_t msgq_key;
     int msgq_id;
     int uard_fd;
-
-    /* Get the arguments from the command line. */
-    if (argc != 2) {
-        printf("usage %s [message queue key of this] \n", argv[0]);
-        return 1;
-    }
-    msgq_key = atoi(argv[1]);   // 1st argv: get message queue key
 
     /* Initialize to communicate with control board */
     if (ctrlboard_init(&uard_fd) != 0) {
@@ -37,14 +29,10 @@ int main(int argc, char** argv) {
     }
 
     /* Initialize to communicate other processes by message queue */
-    // WARNING: there is the IPC_EXCL option.
-    if ((msgq_id = msgget(msgq_key, IPC_CREAT | IPC_EXCL | 0666)) == -1) {
-        ERROR("Cannot get message queue id with the key(%d). "
-              "Please check ipcs commnand and remove the message queue.",
-              msgq_key);
+    if (get_msgq_id_ctrlboard(&msgq_id, 1) != 0) {
+        ERROR("Cannot initialize message queue id.");
         return -1;
     }
-    MSG("Message queue(key: %d, id: %d) has been initialized.", msgq_key, msgq_id);
 
     /* Message processing part */
     ctrlboard_msg msg;
@@ -55,6 +43,8 @@ int main(int argc, char** argv) {
         if (msgrcv(msgq_id, (void*)&msg, msg_size, 0, 0) != -1) {
             // Command to the control board and get the return value.
             msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.data.bytes);
+            printf("STATE:%d\n",msg.state);
+            fflush(stdout);
             // Send the message if the message queue is availiable. (block state)
             msgsnd(msgq_id, (void*)&msg, msg_size, 0); // wait(block)
         }
