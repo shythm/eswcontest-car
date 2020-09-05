@@ -58,7 +58,7 @@ void init()
         printf("fail 6");
     }
 
-    container.c_int16 = 100;
+    container.c_int16 = 150;
     if (message_ctrlboard(msgq_id, MSGQ_ID, CMD_DESIRE_SPEED, CMD_TYPE_WRITE, 2, &container) != MSG_STATE_SUCCESS)
     {
         printf("fail 7");
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     ctrlboard_byte_container container;
     for (;;)
     {
-        steering_servo_val = 1500 + 10 * (short)(result->lane.value.position);
+        steering_servo_val = 1500 + (short)(result->lane.value.position);
         if (steering_servo_val > 2000)
             steering_servo_val = 2000;
         if (steering_servo_val < 1000)

@@ -17,7 +17,7 @@ Size size_small = Size(VPE_OUTPUT_W / 2, VPE_OUTPUT_H / 2);
 
 double vanish = 0;      // Y position of vanish point
 double range = 300;     //
-double viewRange = 0.6; // Region of interest
+double viewRange = 0.5; // Region of interest
 
 Scalar blue(255, 0, 0);
 Scalar red(0, 0, 255);
@@ -56,6 +56,53 @@ void _getPerspectiveTransform(Mat *M, Point2f *src)
     *M = getPerspectiveTransform(src, dst);
 }
 
+bool inRange(Point x)
+{
+    return x.x >= 0 && x.y >= 0 && x.x < W && x.y < H;
+}
+
+void extremum(vector<Point> *contour, int *size, Point *top, Point *bottom)
+{
+    int maxX = 0,
+        maxY = 0,
+        minX = W * H,
+        minY = W * H;
+    for (Point p : *contour)
+    {
+        maxX = max(maxX, p.x);
+        minX = min(minX, p.x);
+        if (p.y > maxY)
+        {
+            maxY = p.y;
+            *top = p;
+        }
+        if (p.y < minY)
+        {
+            minY = p.y;
+            *bottom = p;
+        }
+    }
+    *size = (maxX - minX) * (maxY - minY);
+}
+
+void lineY(Point p1, Point p2, Point2f *a)
+{
+    // a = dx/dy
+    // x-x1 = (y-y1)*a
+    // x = (y-y1)*a+x1
+    // x = a*y - y1*a + x1
+    // x = a*y x1 - y1*a
+    float dy = p2.y - p1.y;
+    float dx = p2.x - p1.x;
+    a->x = dx / dy;
+    a->y = p1.x - a->x * p1.y;
+}
+
+Point dotY(float y, Point2f a)
+{
+    return Point(y * a.x + a.y, y);
+}
+
 void detect_lane(recog_arg *arg, vector_lane *result)
 {
     static bool init = true;
@@ -80,11 +127,13 @@ void detect_lane(recog_arg *arg, vector_lane *result)
     Mat img(H, W, CV_8UC3, raw);
 
     // Draw roi
-    // polylines(img, roi, true, red, 3);
+    // polylines(org, roi, true, red, 1);
 
     cvtColor(img, img, COLOR_BGR2GRAY);
 
     warpPerspective(img, img, M, Size(W, H));
+
+    Mat org = img.clone();
 
     threshold(img, mask, 1, 128, THRESH_BINARY_INV);
 
@@ -95,82 +144,38 @@ void detect_lane(recog_arg *arg, vector_lane *result)
         CV_ADAPTIVE_THRESH_MEAN_C,
         CV_THRESH_BINARY, 31, -30);
 
-    int
-        left = 0,
-        right = 0,
-        left_n = 0,
-        right_n = 0;
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierarchy;
+    findContours(img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-    for (int i = 0; i < H; i++)
+    cvtColor(img, img, COLOR_GRAY2BGR);
+    cvtColor(org, org, COLOR_GRAY2BGR);
+
+    int i, size;
+    Point top, bottom;
+    Point2f a;
+    float aSum = 0;
+    int aNum = 0;
+    for (i = 0; i < contours.size(); i++)
     {
-        uchar *pointer_input = img.ptr<uchar>(i);
-        for (int j = 0; j < W / 2; j++)
-        {
-            if (pointer_input[j] > 128)
-            {
-                left += j;
-                left_n++;
-            }
-        }
-        for (int j = W / 2; j < W; j++)
-        {
-            if (pointer_input[j] > 128)
-            {
-                right += j;
-                right_n++;
-            }
-        }
+        extremum(&contours[i], &size, &top, &bottom);
+        if (size < 400)
+            continue;
+        lineY(top, bottom, &a);
+        aSum += a.x;
+        aNum++;
+        line(org, dotY(0, a), dotY(H, a), green);
+        drawContours(org, contours, i, red, 1, 8, hierarchy, 0, Point());
     }
 
-    if (left_n > 0)
-        left /= left_n;
-
-    if (right_n > 0)
-        right /= right_n;
-    else
-        right = W - 1;
-
-    static float center = 0;
-    static float gain_irr = 0.9;
-    int weight = left_n + right_n;
-    float temp;
-    if (weight == 0)
-        temp = 0;
-    else
-        temp = (left * left_n + right * right_n) / weight;
-    center = center * gain_irr + temp * (1 - gain_irr);
-
-    // resize(img, img, size_small, 0, 0, CV_INTER_NN);
-
-    // Threshold frame
-    // inRange(img, hsvLow, hsvHigh, mask);
-
-    // static int counter = 0;
-    // if (counter % 10 == 0)
-    // {
-    //     string fileName = "sc_" + to_string(counter + 10) + ".png";
-    //     cout << fileName << endl;
-    //     imwrite(fileName, img);
-    // }
-    // counter++;
-
-    // Get nonzero values
-    // Mat locations;
-    // findNonZero(img, locations);
-    // cout << locations << endl;
-
-    // img.copyTo(img, mask);
-    cvtColor(img, img, COLOR_GRAY2BGR);
-    // resize(img, img, size_origin, 0, 0, CV_INTER_NN);
+    float center = aSum / aNum * 600 * 1.5;
 
     // Draw center line
-    line(img, Point(W / 2, 0), Point(W / 2, H), blue);
-    line(img, Point(left, 0), Point(left, H), red);
-    line(img, Point(right, 0), Point(right, H), green);
-    line(img, Point(center, 0), Point(center, H), yellow);
+    line(org, Point(W / 2, 0), Point(W / 2, H), blue);
+    line(org, Point(W / 2 + center, 0), Point(W / 2 + center, H), yellow);
 
     // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
+    copy(org.data, org.data + W * H * 3, arg->display_input);
 
-    result->position = center - W / 2;
+    result->position = center;
 }

@@ -13,5 +13,6 @@
         "*.def": "cpp",
         "random": "cpp",
         "tuple": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
