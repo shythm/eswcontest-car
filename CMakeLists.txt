@@ -38,6 +38,7 @@ INCLUDE_DIRECTORIES(src/recognize)
 SET(recog recognize)
 SET(share ctrlboard)
 SET(drive drive)
+SET(clean clean-car)
 
 # Build recog
 ADD_EXECUTABLE(${recog}
@@ -68,3 +69,12 @@ ADD_EXECUTABLE(${drive}
 SET_PROPERTY(TARGET ${recog} PROPERTY C_STANDARD 99)
 SET_PROPERTY(TARGET ${share} PROPERTY C_STANDARD 99)
 SET_PROPERTY(TARGET ${drive} PROPERTY C_STANDARD 99)
+
+# Build clean-car
+ADD_EXECUTABLE(${clean}
+    src/shared/clean-car.c
+    src/shared/ctrlboard-lib.c
+    src/shared/util.c
+)
+TARGET_LINK_LIBRARIES(${clean})
+SET_PROPERTY(TARGET ${clean} PROPERTY C_STANDARD 99)

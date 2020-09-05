@@ -19,6 +19,7 @@
 #include "util.h"
 #include "recognize-update.h"
 #include "recognize-lib.h"
+#include "ctrlboard-lib.h"
 
 /* include capture libraries */
 #include "display-kms.h"
@@ -373,33 +374,14 @@ void *update_psd_value(void *argv)
 
 int main(int argc, char **argv)
 {
-    key_t shm_key, msgq_key_ctrlboard;
-    int shm_id, msgq_id_ctrlboard;
     recog_result *shm_rr;
     pthread_t thread_update_psd_value;
 
-    /* Get the arguments from user(shell) */
-    if (argc != 3)
-    {
-        printf("usage %s [shared memory key of this] [message queue key of ctrlboard] \n", argv[0]);
-        return 1;
-    }
-    shm_key = (key_t)atoi(argv[1]);            // 1st argv: shared memory key of this process
-    msgq_key_ctrlboard = (key_t)atoi(argv[2]); // 2nd argv: message queue key of the ctrlboard process
-
     /* Initialize a shared memory of recognition results */
-    if (get_shm_recog_result(shm_key, &shm_id, &shm_rr, 1) != 0)
+    if (get_shm_recog_result(&shm_rr, 1) != 0)
     {
         ERROR("An error occurred while getting shared memory.");
         return -1;
-    }
-
-    /* Get message queue id of ctrlboard process */
-    if ((msgq_id_ctrlboard = msgget(msgq_key_ctrlboard, 0)) == -1)
-    {
-        ERROR("An error occurred while getting the message queue id with the key %d"
-              "Please check the ctrlboard process is running.",
-              msgq_key_ctrlboard);
     }
 
     /* Get PSD data from I2C by thread */
@@ -412,7 +394,14 @@ int main(int argc, char **argv)
 
     /* Do capture and recognize */
     recog_arg arg;
-    arg.msgq_id_ctrlboard = msgq_id_ctrlboard;
+
+    // Get message queue id of ctrlboard process
+    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1)
+    {
+        ERROR("An error occurred while getting the message queue id. Check that the ctrlboard process is running");
+        return -1;
+    }
+
     for (;;)
     {
         capture_recognize(shm_rr, &arg);

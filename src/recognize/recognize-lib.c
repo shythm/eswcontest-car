@@ -1,13 +1,18 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include "recognize-lib.h"
+#include "config-car.h"
 
-int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
+int get_shm_recog_result(recog_result** rr, int init) {
+    key_t key = KEY_SHM_RECOGNIZE;
+    int id;
+
     // Reference: https://unabated.tistory.com/entry/%EA%B3%B5%EC%9C%A0-%EB%A9%94%EB%AA%A8%EB%A6%AC-shared-memory
     int getflags, atflags, size;
     if (init) {
         // arguments for the recognize process
-        getflags = IPC_CREAT | IPC_EXCL | 0666;
+        // getflags = IPC_CREAT | IPC_EXCL | 0666;
+        getflags = IPC_CREAT | 0666;
         size = sizeof(recog_result);
         atflags = SHM_RND;
     } else {
@@ -19,13 +24,13 @@ int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
     }
 
     /* Get shared memory id with the key */
-    if ((*id = shmget(key, size, getflags)) == -1) {
+    if ((id = shmget(key, size, getflags)) == -1) {
         ERROR("Cannot get shared memory id with the key(%d).", key);
         return -1;
     }
 
     /* Get shared memory address with the id */
-    if ((*rr = (recog_result*)shmat(*id, NULL, atflags)) == (recog_result*)-1) {
+    if ((*rr = (recog_result*)shmat(id, NULL, atflags)) == (recog_result*)-1) {
         ERROR("Cannot allocate shared memory");
         return -1;
     }
@@ -34,6 +39,6 @@ int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init) {
     // When the shared memory segment is created, it shall be initialized with all zero values.
     // Reference: https://pubs.opengroup.org/onlinepubs/009695399/functions/shmget.html
 
-    MSG("Shared memory(key: %d, id: %d) has been initialized.", key, *id);
+    MSG("Shared memory(key: %d, id: %d) has been initialized.", key, id);
     return 0;
 }
