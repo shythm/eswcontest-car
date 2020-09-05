@@ -146,12 +146,7 @@ int main(int argc, char** argv) {
     thread_data thr_data;
     key_t msgq_key;
 
-    if (argc != 2) {
-        printf("Usage %s: [Message queue key of ctrlboard process] \n", argv[0]);
-    }
-    msgq_key = (key_t)atoi(argv[1]);
-
-    if ((thr_data.msgq_id = msgget(msgq_key, 0)) == -1) {
+    if (get_msgq_id_ctrlboard(&(thr_data.msgq_id), 0) == -1) {
         printf("Failed get message queue id!");
         return 1;
     }
