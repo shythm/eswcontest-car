@@ -58,6 +58,7 @@ ADD_EXECUTABLE(${share}
 )
 TARGET_LINK_LIBRARIES(${share} m)
 
+# Build drive
 ADD_EXECUTABLE(${drive}
     src/shared/drive.c
     src/recognize/recognize-lib.c
