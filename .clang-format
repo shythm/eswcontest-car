@@ -1,3 +1,12 @@
 ---
 Language: Cpp
-AllowShortBlocksOnASingleLine: Always   
+AllowShortBlocksOnASingleLine: Never
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: Align
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+IndentWidth: 4
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: Always

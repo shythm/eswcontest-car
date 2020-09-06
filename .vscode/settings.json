@@ -12,8 +12,16 @@
     "regex": "cpp",
     "*.def": "cpp",
     "random": "cpp",
-    "tuple": "cpp"
+    "tuple": "cpp",
+    "*.moc": "cpp"
   },
   "C_Cpp.errorSquiggles": "Disabled",
-  "C_Cpp.clang_format_style": "file"
+  "search.exclude": {
+    "**/CrossCompiler": true,
+    "CrossCompiler": true
+  },
+  "files.exclude": {
+    "**/CrossCompiler": true,
+    "CrossCompiler": true
+  }
 }

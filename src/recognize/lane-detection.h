@@ -3,11 +3,10 @@
 #include "recognize-update.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-    void detect_lane(recog_arg *arg, vector_lane *result);
+void detectLane(recog_arg *arg, vector_lane *result);
 
 #ifdef __cplusplus
 }
