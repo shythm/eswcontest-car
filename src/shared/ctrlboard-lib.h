@@ -36,8 +36,11 @@ typedef enum _ctrlboard_cmd_rw {
 /* Message states */
 typedef enum _ctrlboard_msg_state_t {
     MSG_STATE_SUCCESS       = 0,
-    MSG_STATE_TYPE_ERR      = -1,
-    MSG_STATE_CHKSUM_ERR    = -2,
+    MSG_STATE_UNKNOWN_ERR   = -1,
+    MSG_STATE_TYPE_ERR      = -2,
+    MSG_STATE_CHKSUM_ERR    = -3,
+    MSG_STATE_SEND_ERR      = -4,
+    MSG_STATE_RECEIVE_ERR   = -5,
 } ctrlboard_msg_state_t;
 
 /*
@@ -80,9 +83,14 @@ typedef struct _ctrlboard_msg {
 } ctrlboard_msg;
 
 /*
+ * Get the message queue id of ctrlboard. You should write 0 to init argument except for ctrlboard process.
+ */
+int get_msgq_id_ctrlboard(int* id, int init);
+
+/*
  * Send a message to the control board.
- * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, bytes is used for the arguments.
- * When ctrlboard_cmd_rw is CMD_TYPE_READ,  bytes is used for storing the ouptut of the control board.
+ * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, data is used for the arguments.
+ * When ctrlboard_cmd_rw is CMD_TYPE_READ,  data is used for storing the ouptut of the control board.
  */
 ctrlboard_msg_state_t message_ctrlboard
 (int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, ctrlboard_byte_container* data);

@@ -19,6 +19,7 @@
 #include "util.h"
 #include "recognize-update.h"
 #include "recognize-lib.h"
+#include "ctrlboard-lib.h"
 
 /* include capture libraries */
 #include "display-kms.h"
@@ -235,62 +236,20 @@ int capture_recognize(recog_result* result, recog_arg* arg) {
 #define PSD_DISTANCE_MIN    4.0f
 #define PSD_DISTANCE_MAX    30.0f
 
+#define PSD_MEDIAN_SAMPLE_SIZE  11
+
 void bubble_sort(uint16_t *arr, int length){
-    int i,j;
+    int i, j;
     uint16_t temp;
-    for(i=0; i<length-1; i++){
-        for(j=0; j<length-i-1;j++){
-            if(arr[j]>arr[j+1]) {
-                temp=arr[j];
-                arr[j]=arr[j+1];
-                arr[j+1]=temp;
+
+    for (i = 0; i < length - 1; i++) {
+        for (j = 0; j < length - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
             }
         }
-    }
-}
-
-void median_psd_raw(int sample_size, uint16_t *psd_raw, int i2c_fd, size_t buf_read_size ){    
-    uint16_t samples[PSD_COUNT][11]; // max sample size of median filter is 11
-    unsigned char buf_read[PSD_I2C_BUF_SIZE];
-    int i,j;
-    const unsigned char psd_channel[PSD_COUNT] = {
-        PSD_CMD_FRONT,
-        PSD_CMD_RIGHT_1,
-        PSD_CMD_RIGHT_2,
-        PSD_CMD_BACK,
-        PSD_CMD_LEFT_2, 
-        PSD_CMD_LEFT_1
-    };
-    if(sample_size >11||sample_size<0){
-        ERROR("[median_psd_raw err]: enter correct sample_size (1 <= sample_size <= 11)\n");
-        return;
-    }
-    // take raw datas to sampes[PSD_COUNT][];
-    for (i = 0; i < PSD_COUNT; i++) {
-        for(j=0;j<sample_size; j++){
-              // command to i2c
-            write(i2c_fd, psd_channel + i, 1);
-            usleep(PSD_I2C_DELAY_US);
-
-            // get the psd raw value from i2c
-            if (read(i2c_fd, buf_read, buf_read_size) != buf_read_size) {
-                ERROR("Failed to read PSD data from I2C.");
-                return ;
-            }
-            usleep(PSD_I2C_DELAY_US);
-
-            // save psd raw value
-            samples[i][j] = ((buf_read[0] & 0b00001111) << 8) + buf_read[1];
-        }
-    }
-
-    // sort sampe[PSD_COUNT][]
-    for(i=0;i<PSD_COUNT; i++)
-        bubble_sort(samples[i], sample_size);
-
-    // get median and put it on psd_raw[PSD_COUNT];
-    for(i=0;i<PSD_COUNT; i++){
-        psd_raw[i]=samples[i][sample_size/2]; 
     }
 }
 
@@ -299,11 +258,20 @@ void* update_psd_value(void* argv) {
     recog_result* result = (recog_result*)argv;
 
     /* these are for I2C communication */
-    int i, i2c_fd = -1;
+    int i, j, i2c_fd = -1;
+    const unsigned char psd_channel[PSD_COUNT] = {
+        PSD_CMD_FRONT,
+        PSD_CMD_RIGHT_1,
+        PSD_CMD_RIGHT_2,
+        PSD_CMD_BACK,
+        PSD_CMD_LEFT_2, 
+        PSD_CMD_LEFT_1
+    };
     const size_t buf_read_size = 2;
-    //unsigned char buf_read[PSD_I2C_BUF_SIZE];
+    unsigned char buf_read[PSD_I2C_BUF_SIZE];
 
     /* these are the data containers of the PSD value */
+    uint16_t psd_samples[PSD_COUNT][PSD_MEDIAN_SAMPLE_SIZE];
     uint16_t psd_raw[PSD_COUNT];
     psd_data_t psd_dist[PSD_COUNT];
     
@@ -321,16 +289,37 @@ void* update_psd_value(void* argv) {
 
     /* Update PSD Value Part */
     for (;;) {
+        // Fisrt, Communicate with the I2C Device
+        for (i = 0; i < PSD_COUNT; i++) {
+            for (j = 0; j < PSD_MEDIAN_SAMPLE_SIZE; j++) {
+                // command to i2c
+                write(i2c_fd, psd_channel + i, 1);
+                usleep(PSD_I2C_DELAY_US);
 
-       median_psd_raw(5, psd_raw, i2c_fd, buf_read_size);
+                // get the psd raw value from i2c
+                if (read(i2c_fd, buf_read, buf_read_size) != buf_read_size) {
+                    ERROR("Failed to read PSD data from I2C.");
+                    return NULL;
+                }
+                usleep(PSD_I2C_DELAY_US);
+
+                // save psd samples
+                psd_samples[i][j] = ((buf_read[0] & 0b00001111) << 8) + buf_read[1];
+            }
+            
+            // sort the samples for applying median filter.
+            bubble_sort(psd_samples[i], PSD_MEDIAN_SAMPLE_SIZE);
+            // store the result of median filter of the psd samples
+            psd_raw[i] = psd_samples[i][PSD_MEDIAN_SAMPLE_SIZE / 2];
+        }
 
         // Second, apply the function of PSD raw data to distance data(cm)
-        psd_dist[PSD_FRONT]   = 51.83f * expf(-0.001981f * psd_raw[PSD_FRONT]) + 17.8f * expf(-0.0004166f * psd_raw[PSD_FRONT]);
+        psd_dist[PSD_FRONT]   = 51.83f * expf(-0.001981f * psd_raw[PSD_FRONT])   + 17.8f  * expf(-0.0004166f * psd_raw[PSD_FRONT]);
         psd_dist[PSD_RIGHT_1] = 52.04f * expf(-0.001964f * psd_raw[PSD_RIGHT_1]) + 18.16f * expf(-0.0003931f * psd_raw[PSD_RIGHT_1]);
         psd_dist[PSD_RIGHT_2] = 51.58f * expf(-0.001936f * psd_raw[PSD_RIGHT_2]) + 17.79f * expf(-0.0003686f * psd_raw[PSD_RIGHT_2]);
-        psd_dist[PSD_BACK]    = 57.7f * expf(-0.002206f * psd_raw[PSD_BACK]) + 19.1f * expf(-0.0004304f * psd_raw[PSD_BACK]);
-        psd_dist[PSD_LEFT_2]  = 490.1f * expf(-0.004111f * psd_raw[PSD_LEFT_2]) + 24.61f * expf(-0.0004845f * psd_raw[PSD_LEFT_2]);
-        psd_dist[PSD_LEFT_1]  = 638.6f * expf(-0.004488f * psd_raw[PSD_LEFT_1]) + 26.45f * expf(-0.000508f * psd_raw[PSD_LEFT_1]);
+        psd_dist[PSD_BACK]    = 57.7f  * expf(-0.002206f * psd_raw[PSD_BACK])    + 19.1f  * expf(-0.0004304f * psd_raw[PSD_BACK]);
+        psd_dist[PSD_LEFT_2]  = 490.1f * expf(-0.004111f * psd_raw[PSD_LEFT_2])  + 24.61f * expf(-0.0004845f * psd_raw[PSD_LEFT_2]);
+        psd_dist[PSD_LEFT_1]  = 638.6f * expf(-0.004488f * psd_raw[PSD_LEFT_1])  + 26.45f * expf(-0.000508f  * psd_raw[PSD_LEFT_1]);
 
         for (i = 0; i < PSD_COUNT; i++) { // limit the psd value (PSD_DISTANCE_MIN <= psd_dist <= PSD_DISTANCE_MAX)
             if (psd_dist[i] <= PSD_DISTANCE_MIN)
@@ -345,31 +334,15 @@ void* update_psd_value(void* argv) {
 }
 
 int main(int argc, char** argv) {
-    key_t shm_key, msgq_key_ctrlboard;
-    int shm_id, msgq_id_ctrlboard;
     recog_result* shm_rr;
     pthread_t thread_update_psd_value;
 
-    /* Get the arguments from user(shell) */
-    if (argc != 3) {
-        printf("usage %s [shared memory key of this] [message queue key of ctrlboard] \n", argv[0]);
-        return 1;
-    }
-    shm_key = (key_t)atoi(argv[1]);             // 1st argv: shared memory key of this process
-    msgq_key_ctrlboard = (key_t)atoi(argv[2]);  // 2nd argv: message queue key of the ctrlboard process
-
     /* Initialize a shared memory of recognition results */
-    if (get_shm_recog_result(shm_key, &shm_id, &shm_rr, 1) != 0) {
+    if (get_shm_recog_result(&shm_rr, 1) != 0) {
         ERROR("An error occurred while getting shared memory.");
         return -1;
     }
     
-    /* Get message queue id of ctrlboard process */
-    if ((msgq_id_ctrlboard = msgget(msgq_key_ctrlboard, 0)) == -1) {
-        ERROR("An error occurred while getting the message queue id with the key %d"
-              "Please check the ctrlboard process is running.", msgq_key_ctrlboard);
-    }
-
     /* Get PSD data from I2C by thread */
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value, shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
@@ -379,7 +352,13 @@ int main(int argc, char** argv) {
 
     /* Do capture and recognize */
     recog_arg arg;
-    arg.msgq_id_ctrlboard = msgq_id_ctrlboard;
+    
+    // Get message queue id of ctrlboard process
+    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+        ERROR("An error occurred while getting the message queue id. Check that the ctrlboard process is running");
+        return -1;
+    }
+
     for (;;) {
         capture_recognize(shm_rr, &arg);
     }

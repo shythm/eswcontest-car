@@ -50,6 +50,6 @@ typedef struct _recog_result {
  * Initialize a shared memory of the recogition results.
  * In the other processes except for the recognize process, set init to zero(0).
  */
-int get_shm_recog_result(key_t key, int* id, recog_result** rr, int init);
+int get_shm_recog_result(recog_result** rr, int init);
 
 #endif /* _RECOGNIZE_LIB_H */
