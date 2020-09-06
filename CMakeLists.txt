@@ -49,6 +49,7 @@ ADD_EXECUTABLE(${recog}
     src/shared/ctrlboard-lib.c
     src/shared/util.c)
 TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
+SET_PROPERTY(TARGET ${recog} PROPERTY C_STANDARD 99)
 
 # Build share
 ADD_EXECUTABLE(${share}
