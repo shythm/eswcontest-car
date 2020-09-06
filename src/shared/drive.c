@@ -67,8 +67,7 @@ void init()
 
 int main(int argc, char **argv)
 {
-    usleep(1000000);
-
+    usleep(100000);
     int shm_id;
 
     msgq_id = msgget(KEY_MSGQ_CTRLBOARD, 0);
@@ -85,17 +84,19 @@ int main(int argc, char **argv)
     init();
 
     int steering_servo_val = 1500;
+    float pos = 0;
     ctrlboard_byte_container container;
     for (;;)
     {
-        steering_servo_val = 1500 + (short)(result->lane.value.position);
+        pos = pos * 0.5 + result->lane.value.position * 0.5;
+        steering_servo_val = 1500 + (short)(pos);
         if (steering_servo_val > 2000)
             steering_servo_val = 2000;
         if (steering_servo_val < 1000)
             steering_servo_val = 1000;
         container.c_int16 = steering_servo_val;
         message_ctrlboard(msgq_id, MSGQ_ID, CMD_STEERING_SERVO_CONTROL, CMD_TYPE_WRITE, 2, &container);
-        usleep(100000);
+        usleep(20000);
     }
 
     return 0;
