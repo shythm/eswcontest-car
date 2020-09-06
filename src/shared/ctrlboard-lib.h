@@ -89,8 +89,8 @@ int get_msgq_id_ctrlboard(int* id, int init);
 
 /*
  * Send a message to the control board.
- * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, bytes is used for the arguments.
- * When ctrlboard_cmd_rw is CMD_TYPE_READ,  bytes is used for storing the ouptut of the control board.
+ * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, data is used for the arguments.
+ * When ctrlboard_cmd_rw is CMD_TYPE_READ,  data is used for storing the ouptut of the control board.
  */
 ctrlboard_msg_state_t message_ctrlboard
 (int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, ctrlboard_byte_container* data);

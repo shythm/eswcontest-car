@@ -48,7 +48,6 @@ int main(int argc, char **argv)
         {
             // Command to the control board and get the return value.
             msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.data.bytes);
-            fflush(stdout);
             // Send the message if the message queue is availiable. (block state)
             msgsnd(msgq_id, (void *)&msg, msg_size, 0); // wait(block)
         }
