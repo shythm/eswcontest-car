@@ -35,11 +35,13 @@ LINK_DIRECTORIES(${ROOTFS}/lib)
 
 # Include custom libraries
 INCLUDE_DIRECTORIES(src/shared)
+INCLUDE_DIRECTORIES(src/recognize)
 
 # Define variable
 SET(recog recognize)
 SET(share ctrlboard)
 SET(clean clean-car)
+SET(contr control)
 
 # Build recog
 ADD_EXECUTABLE(${recog}
@@ -68,3 +70,8 @@ ADD_EXECUTABLE(${clean}
     src/shared/util.c
 )
 TARGET_LINK_LIBRARIES(${clean})
+
+ADD_EXECUTABLE(${contr}
+    src/control/control.c
+    src/recognize/recognize-lib.c
+)

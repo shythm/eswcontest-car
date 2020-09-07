@@ -7,10 +7,10 @@
 
 int main()
 {
-    recog_result **rr;
-    get_shm_recog_result(&rr, 0);
+    recog_result *input;
+    get_shm_recog_result(&input, 0);
     State state;
-    state.input = *rr;
+    state.input = input;
     int missionsCount = sizeof(state.missions) / sizeof(Mission);
     Mission *missions = (Mission *)(&state.missions);
     while (1)
