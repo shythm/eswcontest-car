@@ -1,5 +1,5 @@
 echo "Build the source"
-cmake CMakeFiles
+cmake CMakeLists.txt
 make
 
 echo "Copy the objects file to the remote device"
