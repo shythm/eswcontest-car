@@ -1,4 +1,5 @@
 echo "Build the source"
+# Each time cmake is rebuilt so that you can use a script containing the source code automatically.
 cmake CMakeLists.txt
 make
 
