@@ -5,6 +5,20 @@
     MISSION_FUNC_NAME(name) \
     (&state)
 
+#define MISSION_CONDITION(name)                    \
+    /* A mission check function for mission name*/ \
+    __attribute__((weak)) MISSION_CONDITION_DEF(name) {}
+
+MISSION_CONDITION(drive)
+MISSION_CONDITION(overpass)
+MISSION_CONDITION(roundabout)
+MISSION_CONDITION(trafficLight)
+MISSION_CONDITION(obstacle)
+MISSION_CONDITION(tunnel)
+MISSION_CONDITION(slope)
+MISSION_CONDITION(parking)
+MISSION_CONDITION(overtaking)
+
 int main()
 {
     // Get shared memory

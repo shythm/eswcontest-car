@@ -71,7 +71,8 @@ ADD_EXECUTABLE(${clean}
 )
 TARGET_LINK_LIBRARIES(${clean})
 
+AUX_SOURCE_DIRECTORY(src/control src_control)
 ADD_EXECUTABLE(${contr}
-    src/control/control.c
     src/recognize/recognize-lib.c
+    ${src_control}
 )
