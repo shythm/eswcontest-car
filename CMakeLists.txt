@@ -10,6 +10,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 # Set C++ version 11
 SET(CMAKE_CXX_STANDARD 11)
 
+# Set C version 99
+SET(CMAKE_C_STANDARD 99)
+
 # Set cross compilor path
 SET(CROSS_COMPILE ${CP_PATH}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-)
 
@@ -39,6 +42,7 @@ SET(recog recognize)
 SET(share ctrlboard)
 SET(drive drive)
 SET(clean clean-car)
+SET(contr control)
 
 # Build recog
 ADD_EXECUTABLE(${recog}
@@ -60,17 +64,6 @@ ADD_EXECUTABLE(${share}
 )
 TARGET_LINK_LIBRARIES(${share} m)
 
-# Build drive
-ADD_EXECUTABLE(${drive}
-    src/shared/drive.c
-    src/recognize/recognize-lib.c
-    src/shared/ctrlboard-lib.c
-)
-
-SET_PROPERTY(TARGET ${recog} PROPERTY C_STANDARD 99)
-SET_PROPERTY(TARGET ${share} PROPERTY C_STANDARD 99)
-SET_PROPERTY(TARGET ${drive} PROPERTY C_STANDARD 99)
-
 # Build clean-car
 ADD_EXECUTABLE(${clean}
     src/shared/clean-car.c
@@ -78,4 +71,9 @@ ADD_EXECUTABLE(${clean}
     src/shared/util.c
 )
 TARGET_LINK_LIBRARIES(${clean})
-SET_PROPERTY(TARGET ${clean} PROPERTY C_STANDARD 99)
+
+AUX_SOURCE_DIRECTORY(src/control src_control)
+ADD_EXECUTABLE(${contr}
+    src/recognize/recognize-lib.c
+    ${src_control}
+)

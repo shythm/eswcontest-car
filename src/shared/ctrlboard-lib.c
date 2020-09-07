@@ -49,7 +49,6 @@ ctrlboard_msg_state_t message_ctrlboard
 
     if (msgsnd(msgqid, &msg, size, 0) == 0) {
         if (msgrcv(msgqid, &msg, size, msg.msgid, 0) >= 0) {
-            // msgrcv가 0 >=이 아닌거 아닐까?
             if (msg.cmd.rw == CMD_TYPE_READ) {
                 memcpy(data->bytes, msg.data.bytes, msg.cmd.bytec);
             } 

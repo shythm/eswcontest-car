@@ -13,3 +13,4 @@ bin/
 CMakeFiles/
 build/
 screenshot/
+/test/
