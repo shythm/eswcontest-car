@@ -17,9 +17,44 @@
    - 이상적으로는 파일 하나를 새로 만들고 거기에 함수 하나만 작성하면 그것만으로도 동작하는 것이 목표다.
      - 예를 들어 각 state를 구현한 로직이 다른 파일에 있다고 가정하자. 그것만으로도 로직 파일을 하나 만들고, 그것의 헤더를 또 만들고, 메인 파일에서 로직 파일을 참조하도록 바꿔야 하므로 파일을 세 개 건드려야 한다.
 
+- 이는 근본적으로 기능 추가나 삭제를 용이하게 하기 위함이다.
+
 4. 개발의 보편성 : 일반적으로 자주 사용되는 방법을 사용하여 개발이 가능해야 한다. 복잡한 전처리기나 쉘 스크립트를 이용한 트릭 등은 최대한 줄인다.
 
 5. Stateless : 목표 2를 달성하기 위하여, side-effect를 없애기 위해 최대한 stateless하게 구현하도록 한다.
+
+## 개발 상세
+
+파일은 크게 다음과 같이 나누어진다.
+
+- `control.c`
+- `control.h`
+- `mission-someMission.c`
+
+### 용어 정의
+
+#### mission
+
+개발 시 state로 주로 언급했던, 완주를 위하여 해결해야 하는 각 과제를 말한다. state라는 용어가 혼란스러울 수 있으므로 mission이라는 용어를 대신 사용하기로 하자.
+
+#### data
+
+각 mission들이 공유할 수 있도록 해 주는 변수로, 전역 변수에 해당된다. 읽고 쓰기가 모두 가능하다. 각 state들에 파라매터로 이 변수의 포인터가 전달될 것이다. 굳이 전역 변수나 전역 structure를 만들지 않은 이유는 stateless하게 개발할 수 있도록 하기 위함이다.
+
+### `control.c`
+
+프로세스의 `main`함수가 포함된 파일이다. main함수가 실행되면 각종 초기화를 진행한다. 이후 다음 루프를 무한히 반복한다.
+
+1. 모든 미션 조건 검사를 수행한다.
+2. 미션 priority에 따라 수행할 미션을 결정하고, 해당 미션을 수행한다.
+
+### `control.h`
+
+Mission,Data 등 각종 struct에 대한 정보 및 weak function에 대한 정보를 담고 있다.
+
+### `mission-someMission.c`
+
+각 미션을 구현한 파일로, weak function을 override하여 실제로 구현한다.
 
 ## 논의
 
@@ -76,32 +111,25 @@
   - struct내에서 참조를 생성하기 위해
   - weak함수를 만들기 위해
   - weak함수를 실행하기 위해 main문 안에서.
+  - struct와 weak함수는 링크되지 않음에 주의하라.
 
 ```c
-struct Mission{
+typedef void (*MissionFunction)();
 
-}
+typedef struct{
+  int missionPriority;
+  int (*missionFunction)();
+}Mission;
 
 struct State{
-  struct ShmData shm,
+  ShmData shm;
   // Some custom variables
-
+  struct Missions{
+    Mission missionA;
+    Mission missionB;
+    Mission missionC;
+    // Mission ...;
+    Mission missionZ;
+  }
 }
 ```
-
-## 개발 상세
-
-파일은 크게 다음과 같이 나누어진다.
-
-- `control.c`
-- `control.h`
-- `mission-someMission.c`
-
-### 용어 정의
-
-- mission : 개발 시 state로 주로 언급했던, 완주를 위하여 해결해야 하는 각 과제를 말한다. state라는 용어가 혼란스러울 수 있으므로 mission이라는 용어를 대신 사용하기로 하자.
-- data : 각 mission들이 공유할 수 있도록 해 주는 변수로, 전역 변수에 해당된다. 읽고 쓰기가 모두 가능하다. 각 state들에 파라매터로 이 변수의 포인터가 전달될 것이다. 굳이 전역 변수나 전역 structure를 만들지 않은 이유는 stateless하게 개발할 수 있도록 하기 위함이다.
-
-### `control.c`
-
-프로세스의 `main`함수가 포함된 파일이다. main함수가 실행되면 각종 초기화를 진행한다. 이후
