@@ -41,10 +41,10 @@ SET(board ctrlboard)
 SET(share shared)
 
 # Define source directories
-FILE(GLOB src_recog src/${recog}/*.c src/${share}/*.c)
-FILE(GLOB src_clean src/${clean}/*.c src/${share}/*.c)
-FILE(GLOB src_cntrl src/${cntrl}/*.c src/${share}/*.c)
-FILE(GLOB src_board src/${board}/*.c src/${share}/*.c)
+FILE(GLOB src_recog src/${recog}/*.c* src/${share}/*.c*)
+FILE(GLOB src_clean src/${clean}/*.c* src/${share}/*.c*)
+FILE(GLOB src_cntrl src/${cntrl}/*.c* src/${share}/*.c*)
+FILE(GLOB src_board src/${board}/*.c* src/${share}/*.c*)
 
 # Include header files
 INCLUDE_DIRECTORIES(src/${recog})
