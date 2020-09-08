@@ -1,5 +1,5 @@
-#ifndef _CONTROL_H_
-#define _CONTROL_H_
+#ifndef _PROCESS_H_
+#define _PROCESS_H_
 #include "recognize-lib.h"
 
 /*
@@ -17,6 +17,8 @@
     - overtaking
 */
 
+#define MSGQ_ID_PROCESS 299
+
 typedef void (*MissionFunction)();
 
 typedef struct
@@ -28,6 +30,7 @@ typedef struct
 typedef struct
 {
     recog_result *input;
+    int msgq_id;
     struct
     {
         Mission drive;

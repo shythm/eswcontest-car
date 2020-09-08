@@ -36,20 +36,20 @@ LINK_DIRECTORIES(${ROOTFS}/lib)
 # Define variable
 SET(recog recognize)
 SET(clean clean-car)
-SET(cntrl control)
+SET(prcss process)
 SET(board ctrlboard)
 SET(share shared)
 
 # Define source directories
 FILE(GLOB src_recog src/${recog}/*.c* src/${share}/*.c*)
 FILE(GLOB src_clean src/${clean}/*.c* src/${share}/*.c*)
-FILE(GLOB src_cntrl src/${cntrl}/*.c* src/${share}/*.c*)
+FILE(GLOB src_prcss src/${prcss}/*.c* src/${share}/*.c*)
 FILE(GLOB src_board src/${board}/*.c* src/${share}/*.c*)
 
 # Include header files
 INCLUDE_DIRECTORIES(src/${recog})
 INCLUDE_DIRECTORIES(src/${clean})
-INCLUDE_DIRECTORIES(src/${cntrl})
+INCLUDE_DIRECTORIES(src/${prcss})
 INCLUDE_DIRECTORIES(src/${board})
 INCLUDE_DIRECTORIES(src/${share})
 
@@ -71,8 +71,8 @@ ADD_EXECUTABLE(${clean}
 )
 # TARGET_LINK_LIBRARIES(${clean})
 
-# Build control
-ADD_EXECUTABLE(${cntrl}
-    ${src_cntrl}
+# Build process
+ADD_EXECUTABLE(${prcss}
+    ${src_prcss}
 )
-# TARGET_LINK_LIBRARIES(${cntrl})
+# TARGET_LINK_LIBRARIES(${prcss})
