@@ -13,9 +13,7 @@ scp "build/recognize" root@10.10.70.4:"bin/"
 scp "build/clean-car" root@10.10.70.4:"bin/"
 scp "build/process"   root@10.10.70.4:"bin/"
 
-# Because -e flag was set, initialization before start is required.
-echo "Initialize ipcs on the remote device."
-ssh -t root@10.10.70.4 "bin/clean-car"
+set +e
 
 echo "Execute the programs on the remote device"
 ssh -t root@10.10.70.4 "bin/ctrlboard & bin/recognize & bin/process"
