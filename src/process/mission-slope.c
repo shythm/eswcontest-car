@@ -1,4 +1,4 @@
-#include "control.h"
+#include "process.h"
 
 void climb_slope(State *state)
 {
