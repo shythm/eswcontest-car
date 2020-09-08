@@ -42,12 +42,14 @@ MISSION_INIT(overtaking)
 int msgq_id;
 int main()
 {
+    usleep(1000 * 1000);
+
     // Get shared memory
     recog_result *input;
     get_shm_recog_result(&input, 0);
 
     // Get message queue
-    get_msgq_id_ctrlboard(&msgq_id, 1);
+    get_msgq_id_ctrlboard(&msgq_id, 0);
 
     // Initialize state
     State state = {0};
@@ -75,6 +77,7 @@ int main()
     INIT(parking);
     INIT(overtaking);
 
+    printf("Start process while loop\n");
     Mission *missions = (Mission *)(&state.missions);
     MissionFunction mission;
     while (1)
@@ -107,9 +110,11 @@ int main()
         }
         if (mission)
             mission();
-        // No mission has a priority of 1 or higher.
         else
+        {
+            printf("No mission has a priority of 1 or higher.\nExit process.\n");
             return -2;
+        }
     }
     return 0;
 }
