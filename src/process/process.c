@@ -7,6 +7,10 @@
     MISSION_FUNC_NAME(name) \
     (&state)
 
+#define INIT(name)               \
+    MISSION_INIT_FUNC_NAME(name) \
+    (&state)
+
 #define MISSION_CONDITION(name)                    \
     /* A mission check function for mission name*/ \
     __attribute__((weak)) MISSION_CONDITION_DEF(name) {}
@@ -60,6 +64,17 @@ int main()
         printf("Mission conversion error occurred.\n");
         return -1;
     }
+
+    INIT(drive);
+    INIT(overpass);
+    INIT(roundabout);
+    INIT(trafficLight);
+    INIT(obstacle);
+    INIT(tunnel);
+    INIT(slope);
+    INIT(parking);
+    INIT(overtaking);
+
     Mission *missions = (Mission *)(&state.missions);
     MissionFunction mission;
     while (1)
