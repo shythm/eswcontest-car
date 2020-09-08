@@ -1,5 +1,7 @@
 #include "control.h"
 #include "recognize-lib.h"
+#include "ctrlboard-lib.h"
+#include <sys/msg.h>
 
 #define CHECK(name)         \
     MISSION_FUNC_NAME(name) \
@@ -19,15 +21,20 @@ MISSION_CONDITION(slope)
 MISSION_CONDITION(parking)
 MISSION_CONDITION(overtaking)
 
+int msgq_id;
 int main()
 {
     // Get shared memory
     recog_result *input;
     get_shm_recog_result(&input, 0);
 
+    // Get message queue
+    get_msgq_id_ctrlboard(&msgq_id, 1);
+
     // Initialize state
     State state = {0};
     state.input = input;
+    state.msgq_id = msgq_id;
 
     // Initialize mission-associated variables
     int missionsCount = sizeof(state.missions) / sizeof(Mission),
@@ -76,4 +83,23 @@ int main()
             return -2;
     }
     return 0;
+}
+
+// There is no value to be read from the hardware in the processing stage.
+// Therefore, there is no need to do receive check.
+// If there is a value to be read from the hardware, the task must be done in 'recognize' step.
+int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_container *data)
+{
+    static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
+    ctrlboard_msg msg;
+
+    // set message information
+    msg.msgid = MSGQ_ID_CONTROL;
+    msg.cmd.code = code;
+    msg.cmd.rw = CMD_TYPE_WRITE;
+    msg.cmd.bytec = bytec;
+    msg.state = MSG_STATE_UNKNOWN_ERR;
+    memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
+    if (msgsnd(msgq_id, &msg, size, 0))
+        return MSG_STATE_SEND_ERR;
 }

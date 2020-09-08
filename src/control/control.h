@@ -17,6 +17,8 @@
     - overtaking
 */
 
+#define MSGQ_ID_CONTROL 299
+
 typedef void (*MissionFunction)();
 
 typedef struct
@@ -28,6 +30,7 @@ typedef struct
 typedef struct
 {
     recog_result *input;
+    int msgq_id;
     struct
     {
         Mission drive;
