@@ -4,6 +4,13 @@ cmake_minimum_required(VERSION 3.5)
 SET(CP_PATH ${CMAKE_SOURCE_DIR}/CrossCompiler)
 SET(ROOTFS ${CP_PATH}/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)
 
+# Set cross compilor path
+SET(CROSS_COMPILE ${CP_PATH}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-)
+
+# Set C cross compilor and C++ cross compilor path
+SET(CMAKE_C_COMPILER ${CROSS_COMPILE}gcc)
+SET(CMAKE_CXX_COMPILER ${CROSS_COMPILE}g++)
+
 # Build executable file
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 
@@ -13,13 +20,6 @@ SET(CMAKE_CXX_STANDARD 11)
 # Set C version 99
 SET(CMAKE_C_STANDARD 99)
 
-# Set cross compilor path
-SET(CROSS_COMPILE ${CP_PATH}/gcc-linaro-arm-linux-gnueabihf/bin/arm-linux-gnueabihf-)
-
-# Set C cross compilor and C++ cross compilor path
-SET(CMAKE_C_COMPILER ${CROSS_COMPILE}gcc)
-SET(CMAKE_CXX_COMPILER ${CROSS_COMPILE}g++)
-
 # Include libraries
 INCLUDE_DIRECTORIES(protocol)
 INCLUDE_DIRECTORIES(${ROOTFS}/include)
@@ -28,51 +28,53 @@ INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/omap)
 INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/libdrm)
 INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/gbm)
 
+# Include custom libraries
+INCLUDE_DIRECTORIES(src/shared)
+
 # Link dynamic library
 LINK_DIRECTORIES(${ROOTFS}/usr/lib)
 LINK_DIRECTORIES(${ROOTFS}/usr/src)
 LINK_DIRECTORIES(${ROOTFS}/lib)
 
-# Include custom libraries
-INCLUDE_DIRECTORIES(src/shared)
-INCLUDE_DIRECTORIES(src/recognize)
-
 # Define variable
 SET(recog recognize)
-SET(share ctrlboard)
 SET(clean clean-car)
-SET(contr control)
+SET(cntrl control)
+SET(board ctrlboard)
+SET(share shared)
 
-# Build recog
+# Define source directories
+AUX_SOURCE_DIRECTORY(src/${recog} src_recog)
+AUX_SOURCE_DIRECTORY(src/${clean} src_clean)
+AUX_SOURCE_DIRECTORY(src/${cntrl} src_cntrl)
+AUX_SOURCE_DIRECTORY(src/${board} src_board)
+AUX_SOURCE_DIRECTORY(src/${share} src_share)
+
+
+# Build recognize
 ADD_EXECUTABLE(${recog}
-    src/recognize/recognize.c
-    src/recognize/recognize-lib.c
-    src/recognize/display-kms.c
-    src/recognize/recognize-update.c
-    src/recognize/v4l2.c
-    src/recognize/vpe-common.c
-    src/shared/ctrlboard-lib.c
-    src/shared/util.c)
+    ${dir_recog}
+    ${dir_share}
+)
 TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
 
-# Build share
-ADD_EXECUTABLE(${share}
-    src/shared/ctrlboard.c
-    src/shared/ctrlboard-lib.c
-    src/shared/util.c
+# Build control board
+ADD_EXECUTABLE(${board}
+    ${dir_board}
+    ${dir_share}
 )
-TARGET_LINK_LIBRARIES(${share} m)
+TARGET_LINK_LIBRARIES(${board} m)
 
 # Build clean-car
 ADD_EXECUTABLE(${clean}
-    src/shared/clean-car.c
-    src/shared/ctrlboard-lib.c
-    src/shared/util.c
+    ${dir_clean}
+    ${dir_share}
 )
-TARGET_LINK_LIBRARIES(${clean})
+# TARGET_LINK_LIBRARIES(${clean})
 
-AUX_SOURCE_DIRECTORY(src/control src_control)
-ADD_EXECUTABLE(${contr}
-    src/recognize/recognize-lib.c
-    ${src_control}
+# Build control
+ADD_EXECUTABLE(${cntrl}
+    ${dir_cntrl}
+    ${dir_share}
 )
+# TARGET_LINK_LIBRARIES(${cntrl})
