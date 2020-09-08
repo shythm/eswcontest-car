@@ -48,7 +48,9 @@ typedef struct
 } State;
 
 #define MISSION_FUNC_NAME(name) check_##name
+#define MISSION_INIT_FUNC_NAME(name) init_##name
 #define MISSION_CONDITION_DEF(name) void MISSION_FUNC_NAME(name)(State * state)
+#define MISSION_INIT_DEF(name) void MISSION_INIT_FUNC_NAME(name)(State * state)
 
 MISSION_CONDITION_DEF(drive);
 MISSION_CONDITION_DEF(overpass);
@@ -59,5 +61,15 @@ MISSION_CONDITION_DEF(tunnel);
 MISSION_CONDITION_DEF(slope);
 MISSION_CONDITION_DEF(parking);
 MISSION_CONDITION_DEF(overtaking);
+
+MISSION_INIT_DEF(drive);
+MISSION_INIT_DEF(overpass);
+MISSION_INIT_DEF(roundabout);
+MISSION_INIT_DEF(trafficLight);
+MISSION_INIT_DEF(obstacle);
+MISSION_INIT_DEF(tunnel);
+MISSION_INIT_DEF(slope);
+MISSION_INIT_DEF(parking);
+MISSION_INIT_DEF(overtaking);
 
 #endif

@@ -11,6 +11,10 @@
     /* A mission check function for mission name*/ \
     __attribute__((weak)) MISSION_CONDITION_DEF(name) {}
 
+#define MISSION_INIT(name)                         \
+    /* A mission check function for mission name*/ \
+    __attribute__((weak)) MISSION_INIT_DEF(name) {}
+
 MISSION_CONDITION(drive)
 MISSION_CONDITION(overpass)
 MISSION_CONDITION(roundabout)
@@ -20,6 +24,16 @@ MISSION_CONDITION(tunnel)
 MISSION_CONDITION(slope)
 MISSION_CONDITION(parking)
 MISSION_CONDITION(overtaking)
+
+MISSION_INIT(drive)
+MISSION_INIT(overpass)
+MISSION_INIT(roundabout)
+MISSION_INIT(trafficLight)
+MISSION_INIT(obstacle)
+MISSION_INIT(tunnel)
+MISSION_INIT(slope)
+MISSION_INIT(parking)
+MISSION_INIT(overtaking)
 
 int msgq_id;
 int main()
