@@ -28,9 +28,6 @@ INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/omap)
 INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/libdrm)
 INCLUDE_DIRECTORIES(${ROOTFS}/usr/include/gbm)
 
-# Include custom libraries
-INCLUDE_DIRECTORIES(src/shared)
-
 # Link dynamic library
 LINK_DIRECTORIES(${ROOTFS}/usr/lib)
 LINK_DIRECTORIES(${ROOTFS}/usr/src)
@@ -44,37 +41,38 @@ SET(board ctrlboard)
 SET(share shared)
 
 # Define source directories
-AUX_SOURCE_DIRECTORY(src/${recog} src_recog)
-AUX_SOURCE_DIRECTORY(src/${clean} src_clean)
-AUX_SOURCE_DIRECTORY(src/${cntrl} src_cntrl)
-AUX_SOURCE_DIRECTORY(src/${board} src_board)
-AUX_SOURCE_DIRECTORY(src/${share} src_share)
+FILE(GLOB src_recog src/${recog}/*.c src/${share}/*.c)
+FILE(GLOB src_clean src/${clean}/*.c src/${share}/*.c)
+FILE(GLOB src_cntrl src/${cntrl}/*.c src/${share}/*.c)
+FILE(GLOB src_board src/${board}/*.c src/${share}/*.c)
 
+# Include header files
+INCLUDE_DIRECTORIES(src/${recog})
+INCLUDE_DIRECTORIES(src/${clean})
+INCLUDE_DIRECTORIES(src/${cntrl})
+INCLUDE_DIRECTORIES(src/${board})
+INCLUDE_DIRECTORIES(src/${share})
 
 # Build recognize
 ADD_EXECUTABLE(${recog}
-    ${dir_recog}
-    ${dir_share}
+    ${src_recog}
 )
 TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
 
 # Build control board
 ADD_EXECUTABLE(${board}
-    ${dir_board}
-    ${dir_share}
+    ${src_board}
 )
 TARGET_LINK_LIBRARIES(${board} m)
 
 # Build clean-car
 ADD_EXECUTABLE(${clean}
-    ${dir_clean}
-    ${dir_share}
+    ${src_clean}
 )
 # TARGET_LINK_LIBRARIES(${clean})
 
 # Build control
 ADD_EXECUTABLE(${cntrl}
-    ${dir_cntrl}
-    ${dir_share}
+    ${src_cntrl}
 )
 # TARGET_LINK_LIBRARIES(${cntrl})
