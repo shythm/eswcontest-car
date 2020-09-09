@@ -32,7 +32,7 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_SPEED_PID_DIFFERENTAL, 1, &data) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    data.c_int16 = 0;
+    data.c_int16 = 120;
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
@@ -46,15 +46,23 @@ void check_drive(State *state) {
 
 #define GAIN_IRR 0.5f
 void do_drive(State *state) {
-    int          steering_val = 1500;
-    static float pos          = 0;
-    container    data;
+    int       steering_val = 1500;
+    container data;
 
-    // Update position value with
-    pos = state->input->lane.value.position;
+#define GAIN_P 10
+#define GAIN_I 0.1f
+#define ANTI_WINDUP
 
-    // P-control with pos value
-    steering_val = 1500 + (short)(pos);
+    int          pos    = state->input->lane.value.position;
+    static float errSum = 0;
+    errSum += pos * GAIN_I;
+
+    // Anti-windup
+    if (errSum > ANTI_WINDUP) errSum = ANTI_WINDUP;
+    if (errSum < -ANTI_WINDUP) errSum = -ANTI_WINDUP;
+
+    // PI-control with pos value and convert control value to steer value
+    steering_val = 1500 + (short)(pos * GAIN_P + errSum);
 
     // Limit steering range
     if (steering_val > 2000) steering_val = 2000;
@@ -64,6 +72,6 @@ void do_drive(State *state) {
     data.c_int16 = steering_val;
     ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
 
-    // Sleep for 20ms
+    // Sleep for 20ms (Maybe this function will not be requried further.)
     usleep(20 * 1000);
 }

@@ -29,7 +29,7 @@ double range     = 300; //
 double viewRange = 0.4; // Region of interest, higher, closer(crop reverse
                         // perspective transformed image)
 
-float detectLineRatio = 0.1;
+float detectLineRatio = 0.3;
 
 void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     // Vanish와 range가 주어질 때, y좌표에 따른 x좌표를 계산해보자.
@@ -92,6 +92,50 @@ void lineY(Point p1, Point p2, Point2f *a) {
 
 Point dotY(float y, Point2f a) { return Point(y * a.x + a.y, y); }
 
+bool init     = true;
+int  laneL    = 0;
+int  laneR    = sizeSmall.width - 1;
+int  dist     = 24;
+int  ScoreMin = -16;
+
+void update(vector<int> dots) {
+    int lScoreMax = -9999;
+    int rScoreMax = -9999;
+    int lScore, rScore, nl, nr;
+    for (int dot : dots) {
+        lScore = -abs(dot - laneL);
+        rScore = -abs(dot - laneR);
+        // cout << dot << "," << laneL << "," << laneR << endl;
+        if (lScore > lScoreMax) {
+            lScoreMax = lScore;
+            nl        = dot;
+        }
+        if (rScore > rScoreMax) {
+            rScoreMax = rScore;
+            nr        = dot;
+        }
+    }
+
+    bool detectL = lScoreMax > ScoreMin;
+    bool detectR = rScoreMax > ScoreMin;
+
+    if (init) {
+        if (detectL && detectR) { ScoreMin++; }
+        if (ScoreMin = -8) init = false;
+    }
+    if (!detectL && !detectR) {
+        nl = laneL;
+        nr = laneR;
+    }
+    if (!detectL || !detectR) {
+        if (detectR) { nl = nr - dist; }
+        if (detectL) { nr = nl + dist; }
+    }
+
+    laneL = nl;
+    laneR = nr;
+}
+
 void detectLane(recog_arg *arg, vector_lane *result) {
     static bool init = true;
     static Mat  M, mask;
@@ -108,20 +152,38 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     copy(arg->camera_output, arg->camera_output + W * H * 3, raw);
     Mat img(H, W, CV_8UC3, raw);
 
-    cvtColor(img, img, COLOR_BGR2GRAY);
+    // Convert to small perspective small size image
     warpPerspective(img, img, M, Size(W, H));
     resize(img, img, sizeSmall, INTER_NEAREST);
+
+    // Now I can do complicated tasks because image is very small.
+
+    // Convert color to hsv
+    cvtColor(img, img, COLOR_BGR2HSV);
+    vector<Mat> hsv;
+    split(img, hsv);
+    int hc = 30;
+    int he = 20;
+    bitwise_and(hsv[0] > hc - he, hsv[0] < hc + he, mask);
+    bitwise_and(hsv[1] > 50, mask, mask);
+
+    cvtColor(mask, mask, COLOR_GRAY2BGR);
+    bitwise_and(img, mask, img);
     threshold(img, mask, 1, 255, THRESH_BINARY_INV);
-    add(img, mask, img);
-    adaptiveThreshold(img, img, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 3,
-                      -5);
-    bitwise_and(img, ~mask, img);
+
+    cvtColor(img, img, COLOR_RGB2GRAY);
+
+    vector<int> dots;
+    uchar *     row = img.ptr(detectLinePos);
+    for (int i = 0; i < sizeSmall.width; i++)
+        if (row[i]) { dots.push_back(i); }
+    update(dots);
+    // cout << laneL << "," << laneR << endl;
 
     // Restore colorspace
     cvtColor(img, img, COLOR_GRAY2BGR);
 
-    // Do some drawing for debugging
-    uchar *row = img.ptr(detectLinePos);
+    row = img.ptr(detectLinePos);
     for (int i = 0; i < sizeSmall.width; i++) {
         if (row[i * 3]) {
             row[i * 3]     = 0;
@@ -130,6 +192,17 @@ void detectLane(recog_arg *arg, vector_lane *result) {
             row[i * 3] = 255;
         }
     }
+    if (laneL >= 0 || laneL < sizeSmall.width) {
+        row[laneL * 3 + 0] = 0;
+        row[laneL * 3 + 1] = 255;
+        row[laneL * 3 + 2] = 255;
+    }
+
+    if (laneR >= 0 || laneR < sizeSmall.width) {
+        row[laneR * 3 + 0] = 255;
+        row[laneR * 3 + 1] = 255;
+        row[laneR * 3 + 2] = 0;
+    }
 
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
@@ -137,5 +210,5 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     // Copy processed image to display
     copy(img.data, img.data + W * H * 3, arg->display_input);
 
-    result->position = 0;
+    result->position = -(laneL + laneR - sizeSmall.width);
 }
