@@ -15,13 +15,5 @@
     "tuple": "cpp",
     "*.moc": "cpp"
   },
-  "C_Cpp.errorSquiggles": "Disabled",
-  "search.exclude": {
-    "**/CrossCompiler": true,
-    "CrossCompiler": true
-  },
-  "files.exclude": {
-    "**/CrossCompiler": true,
-    "CrossCompiler": true
-  }
+  "C_Cpp.errorSquiggles": "Disabled"
 }

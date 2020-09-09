@@ -8,7 +8,7 @@ void do_drive(State *state);
 void init_drive(State *state) {
     container data;
 
-    data.c_int16 = 0;
+    data.c_int16 = 1810;
     if (ctrl_msgq(CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
@@ -32,7 +32,7 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_SPEED_PID_DIFFERENTAL, 1, &data) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    data.c_int16 = 150;
+    data.c_int16 = 0;
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
@@ -51,7 +51,7 @@ void do_drive(State *state) {
     container    data;
 
     // Update position value with
-    pos = state->input->lane.value.position ;
+    pos = state->input->lane.value.position;
 
     // P-control with pos value
     steering_val = 1500 + (short)(pos);

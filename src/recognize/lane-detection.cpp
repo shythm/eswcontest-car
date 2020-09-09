@@ -1,4 +1,5 @@
 #include "lane-detection.h"
+#include "mask-thresh.h"
 #include "recognize-update.h"
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
@@ -9,26 +10,26 @@
 using namespace cv;
 using namespace std;
 
+// Color constants
+const Scalar blue(255, 0, 0);
+const Scalar red(0, 0, 255);
+const Scalar green(0, 255, 0);
+const Scalar yellow(0, 255, 255);
+
 // This is possible because W(=VPE_OUT_W) and H(=VPE_OUTPUT_H) are actually
 // constants defined with preprocessor. Therefore, dynamic memory allocation is
 // not requried.
 unsigned char raw[W * H * 3];
 
 Size sizeOrigin = Size(VPE_OUTPUT_W, VPE_OUTPUT_H);
-Size sizeSmall  = Size(VPE_OUTPUT_W / 2, VPE_OUTPUT_H / 2);
+Size sizeSmall  = Size(VPE_OUTPUT_W / 8, VPE_OUTPUT_H / 8);
 
 double vanish    = 0;   // Y position of vanish point
 double range     = 300; //
-double viewRange = 0.3; // Region of interest
+double viewRange = 0.4; // Region of interest, higher, closer(crop reverse
+                        // perspective transformed image)
 
-Scalar blue(255, 0, 0);
-Scalar red(0, 0, 255);
-Scalar green(0, 255, 0);
-Scalar yellow(0, 255, 255);
-
-int    hAverage = 100, hRange = 30;
-Scalar hsvLow(hAverage - hRange, 100, 0);
-Scalar hsvHigh(hAverage + hRange, 255, 255);
+float detectLineRatio = 0.1;
 
 void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     // Vanish와 range가 주어질 때, y좌표에 따른 x좌표를 계산해보자.
@@ -92,118 +93,49 @@ void lineY(Point p1, Point p2, Point2f *a) {
 Point dotY(float y, Point2f a) { return Point(y * a.x + a.y, y); }
 
 void detectLane(recog_arg *arg, vector_lane *result) {
-    static bool                  init = true;
-    static Mat                   M, mask;
-    static vector<vector<Point>> roi;
-    static int                   npt[] = {4};
+    static bool init = true;
+    static Mat  M, mask;
+    static int  detectLinePos;
     if (init) {
         init = false;
         cout << sizeOrigin << "," << sizeSmall << endl;
-        Point2f       pts[4];
-        vector<Point> _roi;
+        Point2f pts[4];
         getRoiPerspectiveTransform(&M, pts);
-        for (int i = 0; i < 4; i++)
-            _roi.push_back(pts[i]);
-        roi.push_back(_roi);
-        cout << M << endl;
+        detectLinePos = sizeSmall.height * detectLineRatio;
     }
 
     // Copy image and wrap raw data with Mat object
     copy(arg->camera_output, arg->camera_output + W * H * 3, raw);
     Mat img(H, W, CV_8UC3, raw);
 
-    // Draw roi
-    // polylines(org, roi, true, red, 1);
-
     cvtColor(img, img, COLOR_BGR2GRAY);
-
     warpPerspective(img, img, M, Size(W, H));
-
-    Mat org = img.clone();
-
+    resize(img, img, sizeSmall, INTER_NEAREST);
     threshold(img, mask, 1, 255, THRESH_BINARY_INV);
-
     add(img, mask, img);
+    adaptiveThreshold(img, img, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 3,
+                      -5);
+    bitwise_and(img, ~mask, img);
 
-    adaptiveThreshold(img, img, 255, CV_ADAPTIVE_THRESH_MEAN_C,
-                      CV_THRESH_BINARY, 31, -20);
-
-    bitwise_not(mask, mask);
-    bitwise_and(mask, img, img);
-
-    vector<vector<Point>> contours;
-    vector<Vec4i>         hierarchy;
-    findContours(img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE,
-                 Point(0, 0));
-
+    // Restore colorspace
     cvtColor(img, img, COLOR_GRAY2BGR);
-    cvtColor(org, org, COLOR_GRAY2BGR);
 
-    int          i, size;
-    Point        top, bottom;
-    Point2f      a;
-    static float centerLine = W / 2;
-     float leftMost = -9999, rightMost = 9999;
-
-    float xExt = 1.0f, aSum = 0, bSum = 0;
-
-    bool leftSet = false, rightSet = false;
-    int  aNum = 0, bNum = 0;
-    for (i = 0; i < contours.size(); i++) {
-        extremum(&contours[i], &size, &top, &bottom);
-        if (size < 250) continue;
-        lineY(top, bottom, &a);
-        aSum += a.x;
-        bSum += a.y;
-        aNum++;
-        bNum++;
-        bottom = dotY(H * xExt, a);
-        Scalar color;
-        if (bottom.x > centerLine) {
-            if (bottom.x < rightMost) {
-                rightSet  = true;
-                rightMost = bottom.x;
-            }
-            color = red;
+    // Do some drawing for debugging
+    uchar *row = img.ptr(detectLinePos);
+    for (int i = 0; i < sizeSmall.width; i++) {
+        if (row[i * 3]) {
+            row[i * 3]     = 0;
+            row[i * 3 + 1] = 0;
         } else {
-            if (bottom.x > leftMost) {
-                leftSet  = true;
-                leftMost = bottom.x;
-            }
-            color = green;
+            row[i * 3] = 255;
         }
-        line(org, dotY(0, a), bottom, color);
-        drawContours(org, contours, i, red, 1, 8, hierarchy, 0, Point());
     }
 
-    float center;
-    float aMean    = aSum / aNum;
-    float bMean    = bSum / bNum;
-    float laneDist = 190 * sqrt(1 + aMean * aMean);
-    if (leftSet && rightSet) {
-        center = (leftMost + rightMost - W) / 2;
-    } else if (!(leftSet || rightSet)) {
-        center = 0;
-    } else if (leftSet) {
-        rightMost = leftMost + laneDist;
-        center    = (leftMost + rightMost - W) / 2;
-        Point2f _a(aMean, bMean + laneDist);
-        line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
-    } else {
-        leftMost = rightMost - laneDist;
-        center   = (leftMost + rightMost - W) / 2;
-        Point2f _a(aMean, bMean - laneDist);
-        line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
-    }
-
-    centerLine = 0.99 * centerLine + 0.01 * (center + W / 2);
-
-    // Draw center line
-    line(org, Point(centerLine, 0), Point(centerLine, H), blue);
-    line(org, Point(W / 2 + center, 0), Point(W / 2 + center, H), yellow);
+    // Restore size
+    resize(img, img, sizeOrigin, INTER_NEAREST);
 
     // Copy processed image to display
-    copy(org.data, org.data + W * H * 3, arg->display_input);
+    copy(img.data, img.data + W * H * 3, arg->display_input);
 
-    result->position = -center * 10;
+    result->position = 0;
 }
