@@ -137,4 +137,5 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
         printf("ERR2\n");
         return MSG_STATE_RECEIVE_ERR;
     }
+    return MSG_STATE_SUCCESS;
 }

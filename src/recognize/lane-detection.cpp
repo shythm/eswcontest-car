@@ -143,7 +143,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     Point        top, bottom;
     Point2f      a;
     static float centerLine = W / 2;
-    static float leftMost = -9999, rightMost = 9999;
+     float leftMost = -9999, rightMost = 9999;
 
     float xExt = 1.0f, aSum = 0, bSum = 0;
 
@@ -196,7 +196,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
         line(org, dotY(0, _a), dotY(H * xExt, _a), yellow);
     }
 
-    // centerLine = 0.98 * centerLine + 0.02 * (center + W / 2);
+    centerLine = 0.99 * centerLine + 0.01 * (center + W / 2);
 
     // Draw center line
     line(org, Point(centerLine, 0), Point(centerLine, H), blue);
