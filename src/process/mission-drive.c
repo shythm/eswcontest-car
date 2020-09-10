@@ -32,7 +32,7 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_SPEED_PID_DIFFERENTAL, 1, &data) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    data.c_int16 = 120;
+    data.c_int16 = 200;
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
@@ -49,9 +49,9 @@ void do_drive(State *state) {
     int       steering_val = 1500;
     container data;
 
-#define GAIN_P 10
-#define GAIN_I 0.1f
-#define ANTI_WINDUP
+#define GAIN_P 12
+#define GAIN_I 0.01f
+#define ANTI_WINDUP 500
 
     int          pos    = state->input->lane.value.position;
     static float errSum = 0;
