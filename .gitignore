@@ -12,6 +12,10 @@ CrossCompiler/
 screenshot/
 /test/
 
+# Personal setting
+.vscode/
+.clang-format
+
 # Others
 Application/
 Flashing/
