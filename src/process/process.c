@@ -1,6 +1,6 @@
 #include "process.h"
-#include "recognize-lib.h"
 #include "ctrlboard-lib.h"
+#include "recognize-lib.h"
 #include <sys/msg.h>
 
 #define CHECK(name)         \
@@ -57,8 +57,7 @@ int main()
     state.msgq_id = msgq_id;
 
     // Initialize mission-associated variables
-    int missionsCount = sizeof(state.missions) / sizeof(Mission),
-        maxPriority;
+    int missionsCount = sizeof(state.missions) / sizeof(Mission), maxPriority;
 
     // Check if missions structrue is contaminated.
     if (sizeof(state.missions) % sizeof(Mission) != 0)
@@ -93,10 +92,11 @@ int main()
         CHECK(overtaking);
 
         // Functions are executed in the order of highest priority.
-        // Among the same priorities, they are executed in the order of checking first.
-        // For example, if priority of the overpass is 1 and drive is 0, the overpass will be executed.
-        // However, if priority of both overpass and drive are 1, the drive will be executed.
-        // Therefore, if no mission has selected, drive will be executed by default.
+        // Among the same priorities, they are executed in the order of checking
+        // first. For example, if priority of the overpass is 1 and drive is 0,
+        // the overpass will be executed. However, if priority of both overpass
+        // and drive are 1, the drive will be executed. Therefore, if no mission
+        // has selected, drive will be executed by default.
         maxPriority = -1;
         mission = NULL;
         for (int i = 0; i < missionsCount; i++)
@@ -112,7 +112,8 @@ int main()
             mission();
         else
         {
-            printf("No mission has a priority of 1 or higher.\nExit process.\n");
+            printf(
+                "No mission has a priority of 1 or higher.\nExit process.\n");
             return -2;
         }
     }
@@ -121,8 +122,10 @@ int main()
 
 // There is no value to be read from the hardware in the processing stage.
 // Therefore, there is no need to do receive check.
-// If there is a value to be read from the hardware, the task must be done in 'recognize' step.
-int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_container *data)
+// If there is a value to be read from the hardware, the task must be done in
+// 'recognize' step.
+int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
+              ctrlboard_byte_container *data)
 {
     static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
     ctrlboard_msg msg;
@@ -135,6 +138,14 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_conta
     msg.state = MSG_STATE_UNKNOWN_ERR;
     memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
     if (msgsnd(msgq_id, &msg, size, 0))
+    {
+        printf("ERR1\n");
         return MSG_STATE_SEND_ERR;
-    msgrcv(msgqid, &msg, size, msg.msgid, 0);
+    }
+    if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) < 0)
+    {
+        printf("ERR2\n");
+        return MSG_STATE_RECEIVE_ERR;
+    }
+    return MSG_STATE_SUCCESS;
 }
