@@ -136,4 +136,5 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_conta
     memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
     if (msgsnd(msgq_id, &msg, size, 0))
         return MSG_STATE_SEND_ERR;
+    msgrcv(msgqid, &msg, size, msg.msgid, 0);
 }
