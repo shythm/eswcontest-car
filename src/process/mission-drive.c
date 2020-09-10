@@ -32,7 +32,7 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_SPEED_PID_DIFFERENTAL, 1, &data) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    data.c_int16 = 200;
+    data.c_int16 = 300;
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
@@ -49,9 +49,11 @@ void do_drive(State *state) {
     int       steering_val = 1500;
     container data;
 
-#define GAIN_P 12
-#define GAIN_I 0.01f
+#define GAIN_P 15
+#define GAIN_I 0.00f
 #define ANTI_WINDUP 500
+#define MAX_VELO 200
+#define CURVE_DECEL 500 // The smaller this value, the more it slows down.
 
     int          pos    = state->input->lane.value.position;
     static float errSum = 0;
@@ -64,6 +66,8 @@ void do_drive(State *state) {
     // PI-control with pos value and convert control value to steer value
     steering_val = 1500 + (short)(pos * GAIN_P + errSum);
 
+    short velocity = (short)(MAX_VELO * CURVE_DECEL / (CURVE_DECEL + abs(pos)));
+
     // Limit steering range
     if (steering_val > 2000) steering_val = 2000;
     if (steering_val < 1000) steering_val = 1000;
@@ -71,7 +75,11 @@ void do_drive(State *state) {
     // Send steering value to hardware
     data.c_int16 = steering_val;
     ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    usleep(50 * 1000);
 
-    // Sleep for 20ms (Maybe this function will not be requried further.)
-    usleep(20 * 1000);
+    // Send velocity to hardware
+    data.c_int16 = velocity;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+
+    usleep(50 * 1000);
 }

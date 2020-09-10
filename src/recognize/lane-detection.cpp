@@ -165,7 +165,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     int hc = 30;
     int he = 20;
     bitwise_and(hsv[0] > hc - he, hsv[0] < hc + he, mask);
-    bitwise_and(hsv[1] > 50, mask, mask);
+    bitwise_and(hsv[1] >= 0, mask, mask);
 
     cvtColor(mask, mask, COLOR_GRAY2BGR);
     bitwise_and(img, mask, img);
