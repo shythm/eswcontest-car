@@ -148,6 +148,8 @@ void drawString(...){
 
 # 함수
 
+주요한 명령들만 간략하게 쓴다.
+
 ## 	main
 
 ```c
@@ -163,4 +165,257 @@ int main(int argc, char **argv){
     printf("-- 3_camera_overlay_draw_disp example Start --\n");
 
     tdata.dump_state = DUMP_NONE;
-    memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); //덤프할 이미지는 dump_img_data에 저장될 �
+    memset(tdata.dump_img_data, 0, sizeof(tdata.dump_img_data)); //덤프할 이미지는 dump_img_data에 저장될 것이다.
+    disp = disp_open(disp_argc, disp_argv);
+    
+    set_z_order(disp, disp->overlay_p.id);// 2차원 도형들은 (x,y)좌표로 나타냈다. 이들의 순서를 z축의 값을 통해 나타낸다.
+    set_global_alpha(disp, disp->overlay_p.id); // 전역 투명도(?)
+    set_pre_multiplied_alpha(disp, disp->overlay_p.id);
+    alloc_overlay_plane(disp, OVERLAY_DISP_FORCC, 0, 0, OVERLAY_DISP_W, OVERLAY_DISP_H); //오버레이 평면버퍼 할당
+	fourcc = getfourccformat(CAPTURE_IMG_FORMAT);
+	v4l2 = v4l2_open(fourcc, CAPTURE_IMG_W, CAPTURE_IMG_H);
+    
+    //초기화
+    tdata.disp = disp;
+    tdata.v4l2 = v4l2;
+    tdata.bfull_screen = true;
+    tdata.bstream_start = false;
+    tdata.dump_screen = false;
+    
+     if(-1 == (tdata.msgq_id = msgget((key_t)DUMP_MSGQ_KEY, IPC_CREAT | 0666)))
+     pexam_data = &tdata;
+    
+    //스레드 3개 만든다.
+    // thread[0]: capture_thread
+    // thread[1]: capture_dump_thread
+    // thread[2]: input_thread
+    ret = pthread_create(&tdata.threads[0], NULL, capture_thread, &tdata);
+    pthread_detach(tdata.threads[0]);
+
+    ret = pthread_create(&tdata.threads[1], NULL, capture_dump_thread, &tdata);
+    pthread_detach(tdata.threads[1]);
+
+    ret = pthread_create(&tdata.threads[2], NULL, input_thread, &tdata);
+    pthread_detach(tdata.threads[2]);
+    
+    // signal_handler에서 Ctrl+C 체크
+    if(signal(SIGINT, signal_handler) == SIG_ERR) {
+        MSG("could not register signal handler");
+        closelog();
+        exit(EXIT_FAILURE);
+    }
+    
+        pause();
+}
+```
+
+## **capture_thread**
+
+```c
+void * capture_thread(void *arg)
+{
+    //초기화
+    struct thr_data *data = (struct thr_data *)arg;
+    struct display *disp = data->disp;
+    struct v4l2 *v4l2 = data->v4l2;
+    struct buffer **buffers, *capt;
+    int ret, i;
+	// 버퍼할당
+    buffers = disp_get_vid_buffers(disp, NBUF, getfourccformat(CAPTURE_IMG_FORMAT), CAPTURE_IMG_W, CAPTURE_IMG_H);
+
+    ret = v4l2_reqbufs(v4l2, buffers, NBUF);
+
+    for (i = 0; i < NBUF; i++) {	//6개 버퍼들 큐에 넣기
+        v4l2_qbuf(v4l2, buffers[i]); // 드라이버
+    }
+    ret = v4l2_streamon(v4l2); // 스트림 시작
+    data->bstream_start = true;//스트림 시작 플래그
+
+    while(1) {	//무한 루프 (signal_handler에 의해 함수 종료될 수 있음)
+        capt = v4l2_dqbuf(v4l2); //스레드
+        if(data->bfull_screen) // ?? 스케일?
+            capt->noScale = false;
+        else
+            capt->noScale = true;
+        ret = disp_post_vid_buffer(disp, capt, 0, 0, CAPTURE_IMG_W, CAPTURE_IMG_H);
+
+        if(data->dump_state == DUMP_READY) {// 덤프 레디이면
+            DumpMsg dumpmsg;
+            unsigned char* pbuf[4];
+
+            if(get_framebuf(capt, pbuf) == 0)
+                memcpy(data->dump_img_data, pbuf[0], CAPTURE_IMG_SIZE);
+  
+            dumpmsg.type = DUMP_MSGQ_MSG_TYPE;// 메세지큐를 이용하기 위한 준비
+            dumpmsg.state_msg = DUMP_WRITE_TO_FILE;//메세지
+            data->dump_state = DUMP_WRITE_TO_FILE;// 덤프관련 스테이트
+            msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0);
+            // 메세지는 capture_dump_thread가 받음
+        }
+        v4l2_qbuf(v4l2, capt); //영상 받아옴
+    }
+    v4l2_streamoff(v4l2);
+    return NULL;
+}
+```
+
+
+
+## **capture_dump_thread**
+
+```c
+void * capture_dump_thread(void *arg)
+{
+    // 초기화
+    struct thr_data *data = (struct thr_data *)arg;
+    FILE *fp;
+    char filename[50];
+    struct timeval timestamp;
+    struct tm *today;
+    DumpMsg dumpmsg;
+
+    while(1) {
+        if(msgrcv(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), DUMP_MSGQ_MSG_TYPE, 0) >= 0) {
+            switch(dumpmsg.state_msg) {
+                case DUMP_CMD : //input_thread에서 덤프 명령 받으면
+                    gettimeofday(&timestamp, NULL);
+                    today = localtime(&timestamp.tv_sec);//현재 시간으로
+                    memset(filename, 0, sizeof(filename));//파일이름 만들고
+                    data->dump_state = DUMP_READY;//덤프레디capture_thread로
+                    break;
+
+                case DUMP_WRITE_TO_FILE : //capture_thread에서 작업 후 넘어옴
+                    fp = fopen(filename, "w+");
+                    if(data->dump_screen) {
+                        makescreendata(data);
+                        fwrite(data->dump_screen_data, SCREEN_DUMP_SIZE, 1, fp);
+                    }
+
+                    fclose(fp);
+                    data->dump_state = DUMP_DONE; //덤프 완료
+                    break;
+
+                default :
+                    MSG("dump msg wrong (%d)", dumpmsg.state_msg);
+                    break;
+            }
+        }
+    }
+    return NULL;
+}
+```
+
+
+
+## **input_thread**
+
+```c
+void * input_thread(void *arg)
+{
+    struct thr_data *data = (struct thr_data *)arg;
+    struct display *disp = data->disp;
+
+    char cmd_input[256];
+    char cmd_ready = true;
+
+    while(!data->bstream_start) { // capture_thread에서 시작할 때까지 대기 
+        usleep(100*1000);
+    }
+
+    while(1)
+    {
+        if(cmd_ready == true) { //입력받을 준비가 되었다면
+            /*standby to input command */
+            cmd_ready = StandbyInput(cmd_input);     //define in cmd.cpp
+        } else { // 이미 입력이 있다면
+            if(0 == strncmp(cmd_input,"dump",4)) { // 입력이 dump면
+                DumpMsg dumpmsg;
+                dumpmsg.type = DUMP_MSGQ_MSG_TYPE;
+                dumpmsg.state_msg = DUMP_CMD; //덤프 명령: capture_dump_thread가 받음
+                data->dump_state = DUMP_CMD;
+
+                msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0);
+                while(data->dump_state != DUMP_DONE) //덤프 끝날 때까지 대기
+                    usleep(5*1000);
+
+                data->dump_state = DUMP_NONE; //덤프할 거 없음
+            } else if(0 == strncmp(cmd_input,"sdump",5)) {// 입력이 sdump
+                DumpMsg dumpmsg;
+                data->dump_screen = true;
+                dumpmsg.type = DUMP_MSGQ_MSG_TYPE;
+                dumpmsg.state_msg = DUMP_CMD;//덤프 명령: capture_dump_thread가 받음
+                data->dump_state = DUMP_CMD;
+
+                msgsnd(data->msgq_id, &dumpmsg, sizeof(DumpMsg)-sizeof(long), 0);
+                while(data->dump_state != DUMP_DONE) //덤프 끝날 때까지 대기
+                    usleep(5*1000);
+                
+                data->dump_state = DUMP_NONE;
+                data->dump_screen = false;
+                printf("sdump done!\n");
+                
+            } else if(0 == strncmp(cmd_input,"draw",4)) { // draw명령
+                FrameBuffer tmpFrame;
+                unsigned char* pbuf[4];
+                char drawcmd[12];
+                char drawtxt[24];
+                int type = 0;
+                uint32_t x1, y1, x2, y2, w, h, color;
+                memset(&tmpFrame, 0, sizeof(FrameBuffer));
+
+                if(0 == strncmp(cmd_input,"drawP",5)) {
+                    sscanf(cmd_input, "%5s:%d,%d:0x%08x", drawcmd, &x1, &y1,&color);
+                    type = 0; //draw pointer
+                } else if(0 == strncmp(cmd_input,"drawL",5)) {
+                    sscanf(cmd_input, "%5s:%d,%d:%d,%d:0x%08x", drawcmd, &x1, &y1,&x2,&y2,&color);
+                    type = 1; //draw line
+                } else if(0 == strncmp(cmd_input,"drawR",5)) {
+                    sscanf(cmd_input, "%5s:%d,%d:%d,%d:0x%08x", drawcmd, &x1, &y1,&w,&h,&color);
+                    type = 2; //draw rect
+                } else if(0 == strncmp(cmd_input,"drawT",5)) {
+                    sscanf(cmd_input, "%5s:%d,%d:0x%08x:%[^\n]", drawcmd, &x1, &y1,&color, drawtxt);
+                    type = 3; //draw string
+                } else if(0 == strncmp(cmd_input,"drawC",5)) {
+                    type = 4; // clear
+                } else {
+                    cmd_ready = true;
+                    continue;
+                }
+
+                if(get_framebuf(disp->overlay_p_bo, pbuf) == 0) {
+                    tmpFrame.buf = pbuf[0]; // 영상 버퍼에 draw한다
+                    tmpFrame.format = draw_get_pixel_foramt(disp->overlay_p_bo->fourcc); //FORMAT_RGB888; //alloc_overlay_plane() -- FOURCC('R','G','2','4');
+                    tmpFrame.stride = disp->overlay_p_bo->pitches[0];//tmpFrame.width*3;
+
+                    switch(type) {
+                        case 0: // draw pointer
+                            drawPixel(&tmpFrame, x1, y1, color);
+                            break;
+                        case 1: // draw line
+                            drawLine(&tmpFrame, x1, y1, x2, y2, color);
+                            break;
+                        case 2: // draw rect
+                            drawRect(&tmpFrame, x1, y1, w, h, color);
+                            break;
+                        case 3: // draw string
+                            drawString(&tmpFrame, drawtxt, x1, y1, 0, color);
+                            break;
+                        case 4 : // draw clear
+                            memset(tmpFrame.buf, 0, disp-> overlay_p.yres *tmpFrame.stride);
+                            break;
+                        default :
+                            break;
+                    }
+                }
+                update_overlay_disp(disp); //그려주고 update 꼭 해주어야 함.
+
+            }
+            cmd_ready = true;
+        }
+    }
+    return NULL;
+}
+```
+
+
+

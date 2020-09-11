@@ -3,20 +3,20 @@
 #include "recognize-lib.h"
 #include <sys/msg.h>
 
-#define CHECK(name)         \
-    MISSION_FUNC_NAME(name) \
+#define CHECK(name)                                                            \
+    MISSION_FUNC_NAME(name)                                                    \
     (&state)
 
-#define INIT(name)               \
-    MISSION_INIT_FUNC_NAME(name) \
+#define INIT(name)                                                             \
+    MISSION_INIT_FUNC_NAME(name)                                               \
     (&state)
 
-#define MISSION_CONDITION(name)                    \
-    /* A mission check function for mission name*/ \
+#define MISSION_CONDITION(name)                                                \
+    /* A mission check function for mission name*/                             \
     __attribute__((weak)) MISSION_CONDITION_DEF(name) {}
 
-#define MISSION_INIT(name)                         \
-    /* A mission check function for mission name*/ \
+#define MISSION_INIT(name)                                                     \
+    /* A mission check function for mission name*/                             \
     __attribute__((weak)) MISSION_INIT_DEF(name) {}
 
 MISSION_CONDITION(drive)
@@ -40,8 +40,7 @@ MISSION_INIT(parking)
 MISSION_INIT(overtaking)
 
 int msgq_id;
-int main()
-{
+int main() {
     usleep(1000 * 1000);
 
     // Get shared memory
@@ -52,16 +51,15 @@ int main()
     get_msgq_id_ctrlboard(&msgq_id, 0);
 
     // Initialize state
-    State state = {0};
-    state.input = input;
+    State state   = {0};
+    state.input   = input;
     state.msgq_id = msgq_id;
 
     // Initialize mission-associated variables
     int missionsCount = sizeof(state.missions) / sizeof(Mission), maxPriority;
 
     // Check if missions structrue is contaminated.
-    if (sizeof(state.missions) % sizeof(Mission) != 0)
-    {
+    if (sizeof(state.missions) % sizeof(Mission) != 0) {
         printf("Mission conversion error occurred.\n");
         return -1;
     }
@@ -77,10 +75,9 @@ int main()
     INIT(overtaking);
 
     printf("Start process while loop\n");
-    Mission *missions = (Mission *)(&state.missions);
+    Mission *       missions = (Mission *)(&state.missions);
     MissionFunction mission;
-    while (1)
-    {
+    while (1) {
         CHECK(drive);
         CHECK(overpass);
         CHECK(roundabout);
@@ -98,20 +95,16 @@ int main()
         // and drive are 1, the drive will be executed. Therefore, if no mission
         // has selected, drive will be executed by default.
         maxPriority = -1;
-        mission = NULL;
-        for (int i = 0; i < missionsCount; i++)
-        {
-            if (missions[i].priority > maxPriority)
-            {
-                maxPriority = missions[i].priority;
-                mission = missions[i].function;
+        mission     = NULL;
+        for (int i = 0; i < missionsCount; i++) {
+            if (missions[i].priority > maxPriority) {
+                maxPriority          = missions[i].priority;
+                mission              = missions[i].function;
                 missions[i].priority = 0;
             }
         }
-        if (mission)
-            mission();
-        else
-        {
+        if (mission) mission();
+        else {
             printf(
                 "No mission has a priority of 1 or higher.\nExit process.\n");
             return -2;
@@ -125,25 +118,22 @@ int main()
 // If there is a value to be read from the hardware, the task must be done in
 // 'recognize' step.
 int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
-              ctrlboard_byte_container *data)
-{
+              ctrlboard_byte_container *data) {
     static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
     ctrlboard_msg msg;
 
     // set message information
-    msg.msgid = MSGQ_ID_PROCESS;
-    msg.cmd.code = code;
-    msg.cmd.rw = CMD_TYPE_WRITE;
+    msg.msgid     = MSGQ_ID_PROCESS;
+    msg.cmd.code  = code;
+    msg.cmd.rw    = CMD_TYPE_WRITE;
     msg.cmd.bytec = bytec;
-    msg.state = MSG_STATE_UNKNOWN_ERR;
+    msg.state     = MSG_STATE_UNKNOWN_ERR;
     memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
-    if (msgsnd(msgq_id, &msg, size, 0))
-    {
+    if (msgsnd(msgq_id, &msg, size, 0)) {
         printf("ERR1\n");
         return MSG_STATE_SEND_ERR;
     }
-    if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) < 0)
-    {
+    if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) < 0) {
         printf("ERR2\n");
         return MSG_STATE_RECEIVE_ERR;
     }

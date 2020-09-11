@@ -1,16 +1,21 @@
-#file
+# Build related
 *.o
 CMakeCache.txt
 cmake_install.cmake
 Makefile
-
-#folder
-Application/
-CrossCompiler/
-cc/
-Flashing/
 bin/
 CMakeFiles/
 build/
+CrossCompiler/
+
+# Test
 screenshot/
 /test/
+
+# Personal setting
+.vscode/
+
+# Others
+Application/
+Flashing/
+cc/
