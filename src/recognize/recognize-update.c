@@ -61,18 +61,7 @@ recog_traffic_light_t get_traffic_light(recog_arg *arg) {
 #include "lane-detection.h"
 vector_lane get_lane(recog_arg *arg) {
     static vector_lane              result;
-    static bool                     init = true;
     static ctrlboard_byte_container container;
-    if (init) {
-        printf("RECOG INIT\n");
-        init              = false;
-        container.c_int16 = 1700;
-        if (message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_GET_LANE,
-                              CMD_CAMERA_Y_SERVO_CONTROL, CMD_TYPE_WRITE, 2,
-                              &container) != MSG_STATE_SUCCESS) {
-            printf("Servo y failed");
-        }
-    }
     detectLane(arg, &result);
     return result;
 }

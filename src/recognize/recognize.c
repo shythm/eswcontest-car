@@ -51,8 +51,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update lane
-    result->lane.enabled = true;
-    if (result->lane.enabled) { result->lane.value = get_lane(arg); }
+    if (result->lane.enabled) {
+        // TODO: write your update function
+        result->lane.value = get_lane(arg);
+    }
 
     // update is_on_lane
     if (result->is_on_lane.enabled) {
