@@ -4,20 +4,19 @@
 void do_obstacle(State *state);
 
 void init_obstacle(State *state) {
-    state->input->stop_obstacle.enabled = true;
-    state->missions.obstacle.function   = do_obstacle;
+    state->input->stop_obstacle.enabled     = true;
+    state->input->stop_obstacle.value.pos_x = -1;
+    state->missions.obstacle.function       = do_obstacle;
 }
 
 void check_obstacle(State *state) {
-    static int is_checked = 0;
+    static int is_checked = false;
 
     if (!is_checked) {
         if (state->input->stop_obstacle.value.pos_x != -1) {
-            printf("!");
             state->missions.obstacle.priority = 10;
+            is_checked                        = true;
         }
-
-        is_checked = 1;
     } else {
         state->input->stop_obstacle.enabled = false;
     }

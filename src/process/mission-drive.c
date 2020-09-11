@@ -36,6 +36,8 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
+    state->input->lane.enabled = true;
+
     printf("Initialize finished.\n");
 }
 

@@ -83,12 +83,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update stop_obstacle
     if (result->stop_obstacle.enabled) {
-        if (result->stop_obstacle.enabled) {
-            result->stop_obstacle.value = get_stop_obstacle(arg);
-            // printf("%f %d %d\n", result->stop_obstacle.value.area,
-            // result->stop_obstacle.value.pos_x,
-            // result->stop_obstacle.value.pos_y);
-        }
+        result->stop_obstacle.value = get_stop_obstacle(arg);
+        // printf("%f %d %d\n", result->stop_obstacle.value.area,
+        //        result->stop_obstacle.value.pos_x,
+        //        result->stop_obstacle.value.pos_y);
     }
 
     // update is_there_car
