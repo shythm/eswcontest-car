@@ -10,6 +10,6 @@ AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackArguments: true
 IndentWidth: 4
-AllowShortBlocksOnASingleLine: Always
+AllowShortBlocksOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: Always
 AlignTrailingComments: true
