@@ -49,11 +49,11 @@ void do_drive(State *state) {
     int       steering_val = 1500;
     container data;
 
-#define GAIN_P 15
-#define GAIN_I 0.00f
-#define ANTI_WINDUP 500
-#define MAX_VELO 200
-#define CURVE_DECEL 500 // The smaller this value, the more it slows down.
+#define GAIN_P      15    // P gain of PID control
+#define GAIN_I      0.00f // I gain of PID control
+#define ANTI_WINDUP 500   // Anti windup of I error
+#define MAX_VELO    200   // Maximum velocity
+#define CURVE_DECEL 500   // The smaller this value, the more it slows down.
 
     int          pos    = state->input->lane.value.position;
     static float errSum = 0;
