@@ -40,8 +40,20 @@ bool get_is_on_end_point(recog_arg *arg) { return false; }
 
 /* START OF get_traffic_light SECTION */
 #define RECOG_ID_GET_TRAFFIC_LIGHT 104L
+#include "detect-object.h"
 
-recog_traffic_light_t get_traffic_light(recog_arg *arg) { return TL_NONE; }
+recog_traffic_light_t get_traffic_light(recog_arg *arg) {
+    struct TrafficLights detected =
+        detectLights(arg->camera_output, VPE_OUTPUT_W, VPE_OUTPUT_H,
+                     arg->display_input, VPE_OUTPUT_W, VPE_OUTPUT_H);
+
+    if (detected.green) return TL_GREEN;
+    if (detected.yellow) return TL_YELLOW;
+    if (detected.left) return TL_LEFT;
+    if (detected.red) return TL_RED;
+
+    return TL_NONE;
+}
 /* END OF get_traffic_light SECTION */
 
 /* START OF get_lane SECTION */
@@ -101,6 +113,19 @@ float get_curr_velocity(recog_arg *arg) { return 0.0f; }
 
 recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
     static recog_stop_obstacle_t result;
+
+    struct StopObstacle detected =
+        detectStopObstacle(arg->camera_output, VPE_OUTPUT_W, VPE_OUTPUT_H,
+                           arg->display_input, VPE_OUTPUT_W, VPE_OUTPUT_H);
+    if (detected.exist) {
+        result.area  = detected.area;
+        result.pos_x = detected.center.x;
+        result.pos_y = detected.center.y;
+    } else {
+        result.area  = 0;
+        result.pos_x = -1;
+        result.pos_y = -1;
+    }
 
     return result;
 }
