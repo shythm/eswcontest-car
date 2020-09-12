@@ -29,27 +29,21 @@ unsigned char *get_sample(recog_arg *arg) {
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
 
-bool get_is_on_stop_line(recog_arg* arg) {
-    ctrlboard_byte_container container;
-    uint8_t bitmask = 0x80; //이진수 1000 0000으로 초기화
+bool get_is_on_stop_line(recog_arg *arg) {
+    static ctrlboard_byte_container container;
+    static uint8_t bitmask = 0x80; //이진수 1000 0000으로 초기화
 
-    if( message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR, CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS ) {
-            printf("라인센서값: ");
-            for(int i=0; i<8; i++) {
-                if( container.c_uint8 & bitmask ) { // 맨 왼쪽부터 마스킹 해서 검사. 마스킹 결과가 1일 때(흰색)
-                    printf("1 ");
-                }
-                else {
-                    printf("0 "); //마스킹 결과가 0일 때(검은색)
-                }
-                bitmask >> 1;
-            }
-            printf("\n");
+    if (message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_IS_ON_STOP_LINE,
+                          CMD_LINE_SENSOR, CMD_TYPE_READ, 1,
+                          &container) == MSG_STATE_SUCCESS) {
+        for (int i = 0; i < 8; i++) {
+            container.c_uint8 &bitmask;
+            bitmask = bitmask >> 1;
         }
-        else {
-            printf("라인센서값 얻어오기 실패!\n");
-        }
-    return false;
+
+    } else {
+        return false;
+    }
 }
 /* END OF get_is_on_stop_line SECTION */
 
@@ -78,7 +72,7 @@ vector_lane get_lane(recog_arg *arg) {
 /* START OF is_on_lane SECTION */
 #define RECOG_ID_IS_ON_LANE 106L
 
-bool get_is_on_lane(recog_arg *arg) { return false; }
+recog_is_on_lane_t get_is_on_lane(recog_arg *arg) { return ON_LANE_NONE; }
 /* END OF is_on_lane SECTION */
 
 /* START OF is_on_slope SECTION */
