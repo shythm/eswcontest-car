@@ -1,7 +1,7 @@
 #ifndef _PROCESS_H_
 #define _PROCESS_H_
-#include "recognize-lib.h"
 #include "ctrlboard-lib.h"
+#include "recognize-lib.h"
 
 /*
 
@@ -22,18 +22,15 @@
 
 typedef void (*MissionFunction)();
 
-typedef struct
-{
-    int priority;
+typedef struct {
+    int             priority;
     MissionFunction function;
 } Mission;
 
-typedef struct
-{
+typedef struct {
     recog_result *input;
-    int msgq_id;
-    struct
-    {
+    int           msgq_id;
+    struct {
         Mission drive;
         Mission overpass;
         Mission roundabout;
@@ -48,10 +45,10 @@ typedef struct
     // Some custom variables
 } State;
 
-#define MISSION_FUNC_NAME(name) check_##name
+#define MISSION_FUNC_NAME(name)      check_##name
 #define MISSION_INIT_FUNC_NAME(name) init_##name
-#define MISSION_CONDITION_DEF(name) void MISSION_FUNC_NAME(name)(State * state)
-#define MISSION_INIT_DEF(name) void MISSION_INIT_FUNC_NAME(name)(State * state)
+#define MISSION_CONDITION_DEF(name)  void MISSION_FUNC_NAME(name)(State * state)
+#define MISSION_INIT_DEF(name)       void MISSION_INIT_FUNC_NAME(name)(State * state)
 
 MISSION_CONDITION_DEF(drive);
 MISSION_CONDITION_DEF(overpass);
@@ -73,6 +70,7 @@ MISSION_INIT_DEF(slope);
 MISSION_INIT_DEF(parking);
 MISSION_INIT_DEF(overtaking);
 
-int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_container *data);
+int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
+              ctrlboard_byte_container *data);
 
 #endif
