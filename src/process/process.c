@@ -105,8 +105,8 @@ int main()
             {
                 maxPriority = missions[i].priority;
                 mission = missions[i].function;
-                missions[i].priority = 0;
             }
+            missions[i].priority = 0;
         }
         if (mission)
             mission();
