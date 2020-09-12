@@ -1,0 +1,15 @@
+---
+Language: Cpp
+AllowShortBlocksOnASingleLine: Never
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+AlignEscapedNewlines: Right
+AlignAfterOpenBracket: Align
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+IndentWidth: 4
+AllowShortBlocksOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Always
+AlignTrailingComments: true
