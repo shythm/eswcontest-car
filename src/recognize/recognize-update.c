@@ -31,16 +31,15 @@ unsigned char *get_sample(recog_arg *arg) {
 
 bool get_is_on_stop_line(recog_arg *arg) {
     static ctrlboard_byte_container container;
-    static uint8_t bitmask = 0x80; //이진수 1000 0000으로 초기화
+    static uint8_t                  bitmask = 0x7F; //이진수로 0111 1111임.
 
     if (message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_IS_ON_STOP_LINE,
                           CMD_LINE_SENSOR, CMD_TYPE_READ, 1,
                           &container) == MSG_STATE_SUCCESS) {
-        for (int i = 0; i < 8; i++) {
-            container.c_uint8 &bitmask;
-            bitmask = bitmask >> 1;
+        if (!(container.c_uint8 &
+              bitmask)) { //전부 흰색이고 bitmask랑 앤드연산하면 전부 0됨
+            return true;
         }
-
     } else {
         return false;
     }
@@ -72,7 +71,22 @@ vector_lane get_lane(recog_arg *arg) {
 /* START OF is_on_lane SECTION */
 #define RECOG_ID_IS_ON_LANE 106L
 
-recog_is_on_lane_t get_is_on_lane(recog_arg *arg) { return ON_LANE_NONE; }
+recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
+    static ctrlboard_byte_container container;
+    static uint8_t                  bitmask_left  = 0x01;
+    static uint8_t                  bitmask_right = 0x40;
+    if (message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_IS_ON_LANE,
+                          CMD_LINE_SENSOR, CMD_TYPE_READ, 1,
+                          &container) == MSG_STATE_SUCCESS) {
+        if (container.c_uint8 & bitmask_left) {
+            return ON_LANE_LEFT;
+        } else if (container.c_uint8 & bitmask_right) {
+            return ON_LANE_RIGHT;
+        } else {
+            return ON_LANE_NONE;
+        }
+    }
+}
 /* END OF is_on_lane SECTION */
 
 /* START OF is_on_slope SECTION */

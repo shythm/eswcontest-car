@@ -27,10 +27,9 @@ int main(int argc, char **argv) {
             for (int i = 0; i < 8; i++) {
                 if (container.c_uint8 &
                     bitmask) { // 맨 왼쪽부터 마스킹 해서 검사. 마스킹 결과가
-                               // 1일 때(흰색)
-                    printf("1 ");
+                    printf("1 "); //마스킹 결과가 1일 때 (검은색)
                 } else {
-                    printf("0 "); //마스킹 결과가 0일 때(검은색)
+                    printf("0 "); //마스킹 결과가 0일 때(흰색)
                 }
                 bitmask = bitmask >> 1;
             }
