@@ -98,10 +98,10 @@ int main() {
         mission     = NULL;
         for (int i = 0; i < missionsCount; i++) {
             if (missions[i].priority > maxPriority) {
-                maxPriority          = missions[i].priority;
-                mission              = missions[i].function;
-                missions[i].priority = 0;
+                maxPriority = missions[i].priority;
+                mission     = missions[i].function;
             }
+            missions[i].priority = 0;
         }
         if (mission) mission();
         else {
