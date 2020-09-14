@@ -8,7 +8,7 @@ void do_drive(State *state);
 void init_drive(State *state) {
     container data;
 
-    data.c_int16 = 1810;
+    data.c_int16 = 1700;
     if (ctrl_msgq(CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
@@ -36,6 +36,8 @@ void init_drive(State *state) {
     if (ctrl_msgq(CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
         printf("fail 7\n");
 
+    state->input->lane.enabled = true;
+
     printf("Initialize finished.\n");
 }
 
@@ -52,8 +54,8 @@ void do_drive(State *state) {
 #define GAIN_P      15    // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    200   // Maximum velocity
-#define CURVE_DECEL 500   // The smaller this value, the more it slows down.
+#define MAX_VELO    300   // Maximum velocity
+#define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
     int          pos    = state->input->lane.value.position;
     static float errSum = 0;

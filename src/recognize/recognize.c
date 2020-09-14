@@ -47,6 +47,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     // update traffic_light
     if (result->traffic_light.enabled) {
         // TODO: write your update function
+        result->traffic_light.value = get_traffic_light(arg);
     }
 
     // update lane
@@ -82,7 +83,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update stop_obstacle
     if (result->stop_obstacle.enabled) {
-        // TODO: write your update function
+        result->stop_obstacle.value = get_stop_obstacle(arg);
+        // printf("%f %d %d\n", result->stop_obstacle.value.area,
+        //        result->stop_obstacle.value.pos_x,
+        //        result->stop_obstacle.value.pos_y);
     }
 
     // update is_there_car
