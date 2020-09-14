@@ -42,7 +42,8 @@ int stop_car() {
 int del_ipcs() {
     int id_msgq, id_shm, r = 0;
 
-    if ((id_msgq = msgget(KEY_MSGQ_CTRLBOARD, 0)) == -1) r = -1;
+    if ((id_msgq = msgget(KEY_MSGQ_TO_CTRLBOARD, 0)) == -1) r = -1;
+    if ((id_msgq = msgget(KEY_MSGQ_TO_PROCESS, 0)) == -1) r = -1;
 
     if (msgctl(id_msgq, IPC_RMID, NULL) == -1) r = -1;
 

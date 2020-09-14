@@ -20,7 +20,8 @@ ctrlboard_msg_state_t command_ctrlboard(int uart, ctrlboard_cmd_t *cmd,
                                         char *bytes);
 
 int main(int argc, char **argv) {
-    int msgq_id;
+    int msgq_board_id;
+    int msgq_process_id;
     int uard_fd;
 
     /* Initialize to communicate with control board */
@@ -30,7 +31,7 @@ int main(int argc, char **argv) {
     }
 
     /* Initialize to communicate other processes by message queue */
-    if (get_msgq_id_ctrlboard(&msgq_id, 1) != 0) {
+    if (get_msgq(&msgq_board_id, &msgq_process_id) != 0) {
         ERROR("Cannot initialize message queue id.");
         return -1;
     }
@@ -41,12 +42,12 @@ int main(int argc, char **argv) {
 
     for (;;) {
         // Wait until receive a message. (block state)
-        if (msgrcv(msgq_id, (void *)&msg, msg_size, 0, 0) != -1) {
+        if (msgrcv(msgq_board_id, (void *)&msg, msg_size, 0, 0) != -1) {
             // Command to the control board and get the return value.
             msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.data.bytes);
             // Send the message if the message queue is availiable.
             // (block state)
-            msgsnd(msgq_id, (void *)&msg, msg_size, 0); // wait(block)
+            msgsnd(msgq_process_id, (void *)&msg, msg_size, 0); // wait(block)
             usleep(1000);
         }
     }

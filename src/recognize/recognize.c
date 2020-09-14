@@ -367,12 +367,13 @@ int main(int argc, char **argv) {
     recog_arg arg;
 
     // Get message queue id of ctrlboard process
-    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+    if (get_msgq(&(arg.msgq_id_ctrlboard), &(arg.msgq_id_process)) == -1) {
         ERROR("An error occurred while getting the message queue id. Check "
               "that the ctrlboard process is running");
         return -1;
     }
 
+    printf("RECOGNIZE\n");
     for (;;) {
         capture_recognize(shm_rr, &arg);
     }

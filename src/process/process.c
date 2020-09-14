@@ -39,7 +39,9 @@ MISSION_INIT(slope)
 MISSION_INIT(parking)
 MISSION_INIT(overtaking)
 
-int msgq_id;
+int msgq_board_id;
+int msgq_process_id;
+
 int main() {
     usleep(1000 * 1000);
 
@@ -48,12 +50,12 @@ int main() {
     get_shm_recog_result(&input, 0);
 
     // Get message queue
-    get_msgq_id_ctrlboard(&msgq_id, 0);
+    get_msgq(&msgq_board_id, &msgq_process_id);
 
     // Initialize state
     State state   = {0};
     state.input   = input;
-    state.msgq_id = msgq_id;
+    state.msgq_id = msgq_board_id;
 
     // Initialize mission-associated variables
     int missionsCount = sizeof(state.missions) / sizeof(Mission), maxPriority;
@@ -129,11 +131,11 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
     msg.cmd.bytec = bytec;
     msg.state     = MSG_STATE_UNKNOWN_ERR;
     memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
-    if (msgsnd(msgq_id, &msg, size, 0)) {
+    if (msgsnd(msgq_board_id, &msg, size, 0)) {
         printf("ERR1\n");
         return MSG_STATE_SEND_ERR;
     }
-    if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) < 0) {
+    if (msgrcv(msgq_process_id, &msg, size, msg.msgid, 0) < 0) {
         printf("ERR2\n");
         return MSG_STATE_RECEIVE_ERR;
     }

@@ -85,10 +85,9 @@ typedef struct _ctrlboard_msg {
 } ctrlboard_msg;
 
 /*
- * Get the message queue id of ctrlboard. You should write 0 to init argument
- * except for ctrlboard process.
+ * Get the message queue id of ctrlboard. and process.
  */
-int get_msgq_id_ctrlboard(int *id, int init);
+int get_msgq(int *board_id, int *process_id);
 
 /*
  * Send a message to the control board.

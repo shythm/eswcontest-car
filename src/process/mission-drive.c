@@ -77,11 +77,8 @@ void do_drive(State *state) {
     // Send steering value to hardware
     data.c_int16 = steering_val;
     ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
-    usleep(50 * 1000);
 
     // Send velocity to hardware
     data.c_int16 = velocity;
     ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
-
-    usleep(50 * 1000);
 }

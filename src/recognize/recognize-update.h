@@ -24,6 +24,7 @@
  */
 typedef struct _recog_arg {
     int            msgq_id_ctrlboard;
+    int            msgq_id_process;
     unsigned char  camera_output[VPE_OUTPUT_IMG_SIZE];
     unsigned char *display_input;
 } recog_arg;

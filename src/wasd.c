@@ -154,7 +154,8 @@ int main(int argc, char **argv) {
     thread_data thr_data;
     key_t       msgq_key;
 
-    if (get_msgq_id_ctrlboard(&thr_data.msgq_id, 0) == -1) {
+    int msgq_process_id;
+    if (get_msgq(&thr_data.msgq_id, &msgq_process_id) == -1) {
         printf("Failed get message queue id!");
         return 1;
     }

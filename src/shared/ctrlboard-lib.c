@@ -6,28 +6,21 @@
 #include "ctrlboard-lib.h"
 #include "util.h"
 
-int get_msgq_id_ctrlboard(int *id, int init) {
-    int msgq_id;
-
-    int msg_flag = 0;
-    if (init) {
-        // WARNING: there is the IPC_EXCL option.
-        msg_flag = IPC_CREAT | IPC_EXCL | 0666;
-    }
+int get_msgq(int *board_id, int *process_id) {
+    int msg_flag = IPC_CREAT | 0666;
 
     // Get Message Queue ID
-    if ((msgq_id = msgget(KEY_MSGQ_CTRLBOARD, msg_flag)) == -1) {
+    if ((*board_id = msgget(KEY_MSGQ_TO_CTRLBOARD, msg_flag)) == -1) {
         ERROR("Cannot get message queue id with the key.");
         return -1;
     }
-
-    // return Messagq Queue ID
-    *id = msgq_id;
-
-    if (init) {
-        MSG("Message queue(key: %d, id: %d) has been initialized.",
-            KEY_MSGQ_CTRLBOARD, msgq_id);
+    if ((*process_id = msgget(KEY_MSGQ_TO_PROCESS, msg_flag)) == -1) {
+        ERROR("Cannot get message queue id with the key.");
+        return -2;
     }
+
+    MSG("Connected to (key: %d, id: %d)/(key: %d, id: %d)",
+        KEY_MSGQ_TO_CTRLBOARD, *board_id, KEY_MSGQ_TO_CTRLBOARD, *process_id);
 
     return 0;
 }
