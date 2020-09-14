@@ -135,9 +135,11 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
         printf("ERR1\n");
         return MSG_STATE_SEND_ERR;
     }
+    usleep(10000);
     if (msgrcv(msgq_process_id, &msg, size, msg.msgid, 0) < 0) {
         printf("ERR2\n");
         return MSG_STATE_RECEIVE_ERR;
     }
+    usleep(10000);
     return MSG_STATE_SUCCESS;
 }
