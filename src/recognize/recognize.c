@@ -50,8 +50,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update lane
-    result->lane.enabled = true;
-    if (result->lane.enabled) { result->lane.value = get_lane(arg); }
+    if (result->lane.enabled) {
+        // TODO: write your update function
+        result->lane.value = get_lane(arg);
+    }
 
     // update is_on_lane
     if (result->is_on_lane.enabled) {
@@ -224,16 +226,16 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 }
 
 /* define I2C & PSD constants */
-#define PSD_I2C_DEVICE "/dev/i2c-2"
+#define PSD_I2C_DEVICE   "/dev/i2c-2"
 #define PSD_I2C_BUF_SIZE 8
 #define PSD_I2C_DELAY_US 2000
 
-#define PSD_CMD_FRONT 0x8C
+#define PSD_CMD_FRONT   0x8C
 #define PSD_CMD_RIGHT_1 0xCC
 #define PSD_CMD_RIGHT_2 0x9C
-#define PSD_CMD_BACK 0xDC
-#define PSD_CMD_LEFT_2 0xAC
-#define PSD_CMD_LEFT_1 0xEC
+#define PSD_CMD_BACK    0xDC
+#define PSD_CMD_LEFT_2  0xAC
+#define PSD_CMD_LEFT_1  0xEC
 
 #define PSD_DISTANCE_MIN 4.0f
 #define PSD_DISTANCE_MAX 30.0f

@@ -36,12 +36,13 @@
  *
  *     struct bar {
  *          ...
- *          struct foo *list_of_foos; -----> struct foo {}, struct foo {}, struct foo{}
+ *          struct foo *list_of_foos; -----> struct foo {}, struct foo {},
+ * struct foo{}
  *          ...
  *     }
  *
- * We need one list head in bar and a list element in all list_of_foos (both are of
- * data type 'struct list').
+ * We need one list head in bar and a list element in all list_of_foos (both are
+ * of data type 'struct list').
  *
  *     struct bar {
  *          ...
@@ -72,8 +73,8 @@
  *      list_del(&foo->entry);
  *      free(foo);
  *
- * Note: calling list_del(&bar.list_of_foos) will set bar.list_of_foos to an empty
- * list again.
+ * Note: calling list_del(&bar.list_of_foos) will set bar.list_of_foos to an
+ * empty list again.
  *
  * Looping through the list requires a 'struct foo' as iterator and the
  * name of the field the subnodes use.
@@ -117,21 +118,14 @@ struct list {
  *
  * @param The list to initialized.
  */
-static void
-list_init(struct list *list)
-{
-    list->next = list->prev = list;
-}
+static void list_init(struct list *list) { list->next = list->prev = list; }
 
-static inline void
-__list_add(struct list *entry,
-        struct list *prev,
-        struct list *next)
-{
-    next->prev = entry;
+static inline void __list_add(struct list *entry, struct list *prev,
+                              struct list *next) {
+    next->prev  = entry;
     entry->next = next;
     entry->prev = prev;
-    prev->next = entry;
+    prev->next  = entry;
 }
 
 /**
@@ -149,9 +143,7 @@ __list_add(struct list *entry,
  * @param entry The new element to prepend to the list.
  * @param head The existing list.
  */
-static inline void
-list_add(struct list *entry, struct list *head)
-{
+static inline void list_add(struct list *entry, struct list *head) {
     __list_add(entry, head, head->next);
 }
 
@@ -170,16 +162,11 @@ list_add(struct list *entry, struct list *head)
  * @param entry The new element to prepend to the list.
  * @param head The existing list.
  */
-static inline void
-list_append(struct list *entry, struct list *head)
-{
+static inline void list_append(struct list *entry, struct list *head) {
     __list_add(entry, head->prev, head);
 }
 
-
-static inline void
-__list_del(struct list *prev, struct list *next)
-{
+static inline void __list_del(struct list *prev, struct list *next) {
     next->prev = prev;
     prev->next = next;
 }
@@ -198,9 +185,7 @@ __list_del(struct list *prev, struct list *next)
  *
  * @param entry The element to remove.
  */
-static inline void
-list_del(struct list *entry)
-{
+static inline void list_del(struct list *entry) {
     __list_del(entry->prev, entry->next);
     list_init(entry);
 }
@@ -213,9 +198,7 @@ list_del(struct list *entry)
  *
  * @return True if the list contains one or more elements or False otherwise.
  */
-static inline bool
-list_is_empty(struct list *head)
-{
+static inline bool list_is_empty(struct list *head) {
     return head->next == head;
 }
 
@@ -233,15 +216,14 @@ list_is_empty(struct list *head)
  * @return A pointer to the data struct containing the list head.
  */
 #ifndef container_of
-#define container_of(ptr, type, member) \
-    (type *)((char *)(ptr) - (char *) &((type *)0)->member)
+#define container_of(ptr, type, member)                                        \
+    (type *)((char *)(ptr) - (char *)&((type *)0)->member)
 #endif
 
 /**
  * Alias of container_of
  */
-#define list_entry(ptr, type, member) \
-    container_of(ptr, type, member)
+#define list_entry(ptr, type, member) container_of(ptr, type, member)
 
 /**
  * Retrieve the first list entry for the given list pointer.
@@ -255,7 +237,7 @@ list_is_empty(struct list *head)
  * @param member Member name of the struct list field in the list element.
  * @return A pointer to the first list element.
  */
-#define list_first_entry(ptr, type, member) \
+#define list_first_entry(ptr, type, member)                                    \
     list_entry((ptr)->next, type, member)
 
 /**
@@ -270,12 +252,10 @@ list_is_empty(struct list *head)
  * @param member Member name of the struct list field in the list element.
  * @return A pointer to the last list element.
  */
-#define list_last_entry(ptr, type, member) \
-    list_entry((ptr)->prev, type, member)
+#define list_last_entry(ptr, type, member) list_entry((ptr)->prev, type, member)
 
-#define __container_of(ptr, sample, member)             \
-    (void *)((char *)(ptr)                      \
-         - ((char *)&(sample)->member - (char *)(sample)))
+#define __container_of(ptr, sample, member)                                    \
+    (void *)((char *)(ptr) - ((char *)&(sample)->member - (char *)(sample)))
 /**
  * Loop through the list given by head and set pos to struct in the list.
  *
@@ -293,10 +273,10 @@ list_is_empty(struct list *head)
  * @param member Member name of the struct list in the list elements.
  *
  */
-#define list_for_each_entry(pos, head, member)              \
-    for (pos = __container_of((head)->next, pos, member);       \
-     &pos->member != (head);                    \
-     pos = __container_of(pos->member.next, pos, member))
+#define list_for_each_entry(pos, head, member)                                 \
+    for (pos = __container_of((head)->next, pos, member);                      \
+         &pos->member != (head);                                               \
+         pos = __container_of(pos->member.next, pos, member))
 
 /**
  * Loop through the list, keeping a backup pointer to the element. This
@@ -305,10 +285,10 @@ list_is_empty(struct list *head)
  *
  * See list_for_each_entry for more details.
  */
-#define list_for_each_entry_safe(pos, tmp, head, member)        \
-    for (pos = __container_of((head)->next, pos, member),       \
-     tmp = __container_of(pos->member.next, pos, member);       \
-     &pos->member != (head);                    \
-     pos = tmp, tmp = __container_of(pos->member.next, tmp, member))
+#define list_for_each_entry_safe(pos, tmp, head, member)                       \
+    for (pos = __container_of((head)->next, pos, member),                      \
+        tmp  = __container_of(pos->member.next, pos, member);                  \
+         &pos->member != (head);                                               \
+         pos = tmp, tmp = __container_of(pos->member.next, tmp, member))
 
 #endif
