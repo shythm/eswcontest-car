@@ -20,17 +20,17 @@ ctrlboard_msg_state_t command_ctrlboard(int uart, ctrlboard_cmd_t *cmd,
                                         char *bytes);
 
 int main(int argc, char **argv) {
-    int msgq_id;
-    int uard_fd;
+    mqid_ctrl mqid;
+    int       uart_fd;
 
     /* Initialize to communicate with control board */
-    if (ctrlboard_init(&uard_fd) != 0) {
+    if (ctrlboard_init(&uart_fd) != 0) {
         ERROR("Cannot iniailize control borad.");
         return -1;
     }
 
     /* Initialize to communicate other processes by message queue */
-    if (get_msgq_id_ctrlboard(&msgq_id, 1) != 0) {
+    if (get_mqid_ctrl(&mqid) != 0) {
         ERROR("Cannot initialize message queue id.");
         return -1;
     }
@@ -41,16 +41,21 @@ int main(int argc, char **argv) {
 
     for (;;) {
         // Wait until receive a message. (block state)
-        if (msgrcv(msgq_id, (void *)&msg, msg_size, 0, 0) != -1) {
+        if (msgrcv(mqid.id_snd, (void *)&msg, msg_size, 0, 0) != -1) {
             // Command to the control board and get the return value.
-            msg.state = command_ctrlboard(uard_fd, &msg.cmd, msg.data.bytes);
-            // Send the message if the message queue is availiable. (block
-            // state)
-            msgsnd(msgq_id, (void *)&msg, msg_size, 0); // wait(block)
+            msg.state = command_ctrlboard(uart_fd, &msg.cmd, msg.data.bytes);
+
+            if (msg.is_for_snd) {
+                // Only send not recieve the data
+                continue;
+            } else {
+                // Send the message if the message queue is availiable. (block
+                // state)
+                msgsnd(mqid.id_rcv, (void *)&msg, msg_size, 0); // wait(block)
+            }
         }
     }
 
-    pause();
     return 0;
 }
 
@@ -86,9 +91,9 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t *cmd,
 
     /*
      * NOTICE
-     * If this is write command, there is the required arguments.
+     * If this is write command, there are the required arguments.
      * -> In this case use bytes for the requried arguments.
-     * Else if this is read command, there is no required arguments.
+     * Else if this is read command, there are no required arguments.
      * -> In this case use bytes for storing the outputs.
      *    Because there is no required arguments in read command.
      */
@@ -98,9 +103,9 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t *cmd,
 
     // <2nd byte>: The length of the code(The length of the required arguments)
     if (cmd->rw == CMD_TYPE_WRITE) {
-        buf[1] = 2 + cmd->bytec; // default length + 2
+        buf[1] = 2 + cmd->bytec; // default length(2) + required byte count
     } else if (cmd->rw == CMD_TYPE_READ) {
-        buf[1] = 2; // default length
+        buf[1] = 2; // default length(2)
     } else {
         return MSG_STATE_TYPE_ERR; // return the error code
     }
@@ -109,11 +114,9 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t *cmd,
     buf[2] = cmd->rw;
 
     // <Remaining Byte(s)> for the write command: Fill the required arguments
-    cur_buf_i = 3;
     if (cmd->rw == CMD_TYPE_WRITE) {
-        for (i = 0; i < cmd->bytec; i++) {
+        for (cur_buf_i = 3, i = 0; i < cmd->bytec; cur_buf_i++, i++) {
             buf[cur_buf_i] = bytes[i]; // Fill the required argumnets
-            cur_buf_i++;
         }
     }
 

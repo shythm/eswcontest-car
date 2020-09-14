@@ -82,8 +82,7 @@ typedef struct _ctrlboard_msg {
     // the required arguments in write command or the output value in read
     // command
     ctrlboard_byte_container data;
-    //
-    int is_double_mqline;
+    int                      is_for_snd;
 } ctrlboard_msg;
 
 /* For storing message queue ID of ctrlboard */
@@ -93,29 +92,28 @@ typedef struct _mgid_ctrl {
 } mqid_ctrl;
 
 /*
- * (Legacy, Using single message queue line, but comm_ctrlboard and
- * snd_ctrlboard use double message queue line) Get the message queue id of
- * ctrlboard. You should write 0 to init argument except for ctrlboard process.
- */
-int get_msgq_id_ctrlboard(int *id, int init);
-
-/*
  * Get the message queue id of ctrlboard. You will be get the message queue id
  * for sending and recieving. You should write 0 to init argument except for
  * ctrlboard process.
  */
-int get_mqid_ctrl(mqid_ctrl *mgid, int init);
+int get_mqid_ctrl(mqid_ctrl *mgid);
 
 /*
- * Send a message to the control board with single message queue line.
- * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, data is used for the arguments.
- * When ctrlboard_cmd_rw is CMD_TYPE_READ,  data is used for storing the ouptut
- * of the control board.
+ * Communication with the ctrlboard. When rw is CMD_TYPE_READ, data argument is
+ * for storing data. When rw is CMD_TYPE_WRITE, data argument is for sending the
+ * arguments for ctrlboard
  */
-ctrlboard_msg_state_t message_ctrlboard(int msgqid, long msgid,
-                                        ctrlboard_cmd_code        code,
-                                        ctrlboard_cmd_rw          rw,
-                                        unsigned char             bytec,
-                                        ctrlboard_byte_container *data);
+ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid,
+                                     ctrlboard_cmd_code code,
+                                     ctrlboard_cmd_rw rw, unsigned char bytec,
+                                     ctrlboard_byte_container *data);
+
+/*
+ * Only send to the ctrlboard. Not receiving data from the ctrlboard.
+ */
+ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, long mid,
+                                     ctrlboard_cmd_code        code,
+                                     unsigned char             bytec,
+                                     ctrlboard_byte_container *data);
 
 #endif /* _CTRLBOARD_LIB_H */
