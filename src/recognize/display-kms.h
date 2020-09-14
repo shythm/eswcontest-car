@@ -1,7 +1,7 @@
 
 #ifndef DISPLAY_KMS_H_
 #define DISPLAY_KMS_H_
-
+#include "util.h"
 #include <omap_drm.h>
 #include <omap_drmif.h>
 #define HAVE_CONFIG_H

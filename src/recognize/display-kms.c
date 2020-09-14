@@ -643,9 +643,9 @@ struct display *disp_kms_open(int argc, char **argv) {
         }
     }
 
-    disp->overlay_p.id    = 20;
-    disp->overlay_p.z_val = 3;     // Range: 0 to 3 lowest value for bottom
-    disp->overlay_p.glo_alp = 255; // 150; // 255 : transparency 0.
+    disp->overlay_p.id          = 20;
+    disp->overlay_p.z_val       = 3;   // Range: 0 to 3 lowest value for bottom
+    disp->overlay_p.glo_alp     = 255; // 150; // 255 : transparency 0.
     disp->overlay_p.pre_mul_alp = 0;
 
     MSG("display : using %d connectors, %dx%d", disp_kms->connectors_count,
