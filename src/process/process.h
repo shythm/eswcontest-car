@@ -18,7 +18,7 @@
     - overtaking
 */
 
-#define MSGQ_ID_PROCESS 299
+#define MSG_ID_PROCESS 299
 
 typedef void (*MissionFunction)();
 
