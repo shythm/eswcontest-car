@@ -19,7 +19,8 @@
 #define OVERLAY_DISP_H     272
 
 /*
- * This is source data for recognition. This is only for recognition process.
+ * This is source data for recognition. This is only for recognition
+ * process.
  */
 typedef struct _recog_arg {
     int            msgq_id_ctrlboard;
