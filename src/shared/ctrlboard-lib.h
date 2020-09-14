@@ -68,9 +68,9 @@ typedef union _ctrlboard_byte_container {
 /*
  * Message structure for ctrlboard process.
  * It contains the message id(for return the message), command, state, and
- * bytes. The state field represends whether the processing of the message had
- * been succeed. The bytes field is used for getting the required arguments in
- * write command or storing the output value in read command.
+ * bytes. The state field represents whether the processing of the message had
+ * been succeed. The data field is used for writing command or storing the
+ * output value in read command.
  */
 typedef struct _ctrlboard_msg {
     // the message id
@@ -82,16 +82,32 @@ typedef struct _ctrlboard_msg {
     // the required arguments in write command or the output value in read
     // command
     ctrlboard_byte_container data;
+    //
+    int is_double_mqline;
 } ctrlboard_msg;
 
+/* For storing message queue ID of ctrlboard */
+typedef struct _mgid_ctrl {
+    int id_snd; // for send message
+    int id_rcv; // for recieve message
+} mqid_ctrl;
+
 /*
- * Get the message queue id of ctrlboard. You should write 0 to init argument
- * except for ctrlboard process.
+ * (Legacy, Using single message queue line, but comm_ctrlboard and
+ * snd_ctrlboard use double message queue line) Get the message queue id of
+ * ctrlboard. You should write 0 to init argument except for ctrlboard process.
  */
 int get_msgq_id_ctrlboard(int *id, int init);
 
 /*
- * Send a message to the control board.
+ * Get the message queue id of ctrlboard. You will be get the message queue id
+ * for sending and recieving. You should write 0 to init argument except for
+ * ctrlboard process.
+ */
+int get_mqid_ctrl(mqid_ctrl *mgid, int init);
+
+/*
+ * Send a message to the control board with single message queue line.
  * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, data is used for the arguments.
  * When ctrlboard_cmd_rw is CMD_TYPE_READ,  data is used for storing the ouptut
  * of the control board.
