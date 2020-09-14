@@ -136,18 +136,14 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t *cmd,
 
 #ifndef DISABLE_OUTPUT_CHECKSUM
         // Check the checksum
-        for (i = 0, temp = 0; i < 2 + cmd->bytec; i++) {
-            temp += read_buf[i];
-        }
+        for (i = 0, temp = 0; i < 2 + cmd->bytec; i++) { temp += read_buf[i]; }
         if (read_buf[2 + cmd->bytec] != (temp % 256)) {
             return MSG_STATE_CHKSUM_ERR; // return the error code
         }
 #endif
 
         // Store the output bytes
-        for (i = 0; i < cmd->bytec; i++) {
-            bytes[i] = read_buf[2 + i];
-        }
+        for (i = 0; i < cmd->bytec; i++) { bytes[i] = read_buf[2 + i]; }
     }
 
     return MSG_STATE_SUCCESS;

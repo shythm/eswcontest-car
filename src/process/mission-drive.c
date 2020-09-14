@@ -35,6 +35,48 @@ void init_drive(State *state) {
     state->input->lane.enabled = true;
 
     printf("Initialize finished.\n");
+
+#if 0
+#define TERM_DRIVE 1200
+#define TERM_STEER 500
+
+    data.c_int16 = 1000;
+    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    for (int i = 0; i < TERM_STEER; i++) usleep(1000);
+
+    data.c_int16 = -200;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    for (int i = 0; i < TERM_DRIVE; i++) usleep(1000);
+
+    data.c_int16 = 0;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    for (int i = 0; i < TERM_STEER; i++) usleep(1000);
+
+    data.c_int16 = 2000;
+    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    for (int i = 0; i < TERM_STEER; i++) usleep(1000);
+
+    data.c_int16 = 200;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
+
+    data.c_int16 = 0;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    for (int i = 0; i < TERM_STEER; i++) usleep(1000);
+
+    data.c_int16 = 1500;
+    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    for (int i = 0; i < TERM_STEER; i++) usleep(1000);
+
+    data.c_int16 = -200;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
+
+    data.c_int16 = 0;
+    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+
+    for (;;) { usleep(100000); }
+#endif
 }
 
 void check_drive(State *state) {
