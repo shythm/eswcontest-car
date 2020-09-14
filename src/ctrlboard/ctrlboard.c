@@ -44,11 +44,8 @@ int main(int argc, char **argv) {
         if (msgrcv(mqid.id_snd, (void *)&msg, msg_size, 0, 0) != -1) {
             // Command to the control board and get the return value.
             msg.state = command_ctrlboard(uart_fd, &msg.cmd, msg.data.bytes);
-
-            if (msg.is_for_snd) {
-                // Only send not recieve the data
-                continue;
-            } else {
+            // printf("message recieve! \n");
+            if (msg.is_for_snd == 0) {
                 // Send the message if the message queue is availiable. (block
                 // state)
                 msgsnd(mqid.id_rcv, (void *)&msg, msg_size, 0); // wait(block)

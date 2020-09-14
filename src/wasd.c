@@ -65,6 +65,7 @@ void *control_thread(void *argv) {
         printf("Desire Speed: %d \n", speed);
     } else {
         printf("Failed to set desire speed (Errno: %d) \n", ret);
+        return NULL;
     }
 
     // PositionControlOnOff_Write(CONTROL);
@@ -75,6 +76,7 @@ void *control_thread(void *argv) {
         printf("Position Control ON \n");
     } else {
         printf("Failed to set position control to ON (Errno: %d) \n", ret);
+        return NULL;
     }
 
     // PositionProportionPoint_Write(gain);
@@ -86,6 +88,7 @@ void *control_thread(void *argv) {
         printf("Position Proportion Point: %d \n", gain);
     } else {
         printf("Failed to set position proportion point (Errno: %d) \n", ret);
+        return NULL;
     }
 
     // Initialization to servo motor
@@ -97,6 +100,7 @@ void *control_thread(void *argv) {
         printf("Steering Servo Control: %d \n", steering);
     } else {
         printf("Failed to set steering servo control (Errno: %d) \n", ret);
+        return NULL;
     }
 
     printf("Initializing wasd process is success! \n");
@@ -107,8 +111,7 @@ void *control_thread(void *argv) {
         desire_encoder = 0;
         /* Set the encoder count to zero(0) */
         container.c_int32 = 0;
-        send_ctrlboard(thr_data->ctrl, msg_id, CMD_ENCODER_COUNTER, 4,
-                       &container);
+        send_ctrlboard(thr_data->ctrl, CMD_ENCODER_COUNTER, 4, &container);
         key_code = getkey(0);
         count++;
         printf("cnt: %d \n", count);
@@ -132,12 +135,11 @@ void *control_thread(void *argv) {
 
         // Desire Encoder Count
         container.c_int32 = desire_encoder;
-        send_ctrlboard(thr_data->ctrl, msg_id, CMD_DESIRE_ENCODER_COUNT, 4,
-                       &container);
+        send_ctrlboard(thr_data->ctrl, CMD_DESIRE_ENCODER_COUNT, 4, &container);
 
         // Steering Servo
         container.c_int16 = steering;
-        send_ctrlboard(thr_data->ctrl, msg_id, CMD_STEERING_SERVO_CONTROL, 2,
+        send_ctrlboard(thr_data->ctrl, CMD_STEERING_SERVO_CONTROL, 2,
                        &container);
     }
 }

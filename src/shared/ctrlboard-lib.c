@@ -66,15 +66,14 @@ ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid,
     }
 }
 
-ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, long mid,
-                                     ctrlboard_cmd_code        code,
+ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, ctrlboard_cmd_code code,
                                      unsigned char             bytec,
                                      ctrlboard_byte_container *data) {
     static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
     ctrlboard_msg msg;
 
     // set message information
-    msg.msgid      = mid;
+    msg.msgid      = 1;
     msg.cmd.code   = code;
     msg.cmd.rw     = CMD_TYPE_WRITE;
     msg.cmd.bytec  = bytec;
