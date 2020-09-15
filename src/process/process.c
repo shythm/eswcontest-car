@@ -125,7 +125,7 @@ int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
     ctrlboard_msg msg;
 
     // set message information
-    msg.msgid     = MSGQ_ID_PROCESS;
+    msg.msgid     = MSG_ID_PROCESS;
     msg.cmd.code  = code;
     msg.cmd.rw    = CMD_TYPE_WRITE;
     msg.cmd.bytec = bytec;
