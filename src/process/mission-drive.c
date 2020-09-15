@@ -47,39 +47,39 @@ void init_drive(State *state) {
 #define TERM_STEER 500
 
     data.c_int16 = 1000;
-    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = -200;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) usleep(1000);
 
     data.c_int16 = 0;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 2000;
-    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 200;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
     data.c_int16 = 0;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 1500;
-    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = -200;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
     data.c_int16 = 0;
-    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
 
     for (;;) { usleep(100000); }
 #endif
@@ -95,7 +95,7 @@ void do_drive(State *state) {
     int       steering_val = 1500;
     container data;
 
-#define GAIN_P      15    // P gain of PID control
+#define GAIN_P      14.4  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
 #define MAX_VELO    200   // Maximum velocity
