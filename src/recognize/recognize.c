@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
     recog_arg arg;
 
     // Get message queue id of ctrlboard process
-    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+    if (get_mqid_ctrl(&arg.ctrl) == -1) {
         ERROR("An error occurred while getting the message queue id. Check "
               "that the ctrlboard process is running");
         return -1;
