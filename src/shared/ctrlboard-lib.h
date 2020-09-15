@@ -6,6 +6,7 @@
 #include <sys/types.h>
 
 #define MAX_CMD_BYTE_CNT 4
+#define UART_DELAY       10 * 1000
 
 /* Command codes */
 typedef enum _ctrlboard_cmd_code {
