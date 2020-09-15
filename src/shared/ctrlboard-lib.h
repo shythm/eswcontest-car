@@ -68,9 +68,9 @@ typedef union _ctrlboard_byte_container {
 /*
  * Message structure for ctrlboard process.
  * It contains the message id(for return the message), command, state, and
- * bytes. The state field represends whether the processing of the message had
- * been succeed. The bytes field is used for getting the required arguments in
- * write command or storing the output value in read command.
+ * bytes. The state field represents whether the processing of the message had
+ * been succeed. The data field is used for writing command or storing the
+ * output value in read command.
  */
 typedef struct _ctrlboard_msg {
     // the message id
@@ -82,23 +82,37 @@ typedef struct _ctrlboard_msg {
     // the required arguments in write command or the output value in read
     // command
     ctrlboard_byte_container data;
+    int                      is_for_snd;
 } ctrlboard_msg;
 
-/*
- * Get the message queue id of ctrlboard. and process.
- */
-int get_msgq(int *board_id, int *process_id);
+/* For storing message queue ID of ctrlboard */
+typedef struct _mgid_ctrl {
+    int id_snd; // for send message
+    int id_rcv; // for recieve message
+} mqid_ctrl;
 
 /*
- * Send a message to the control board.
- * When ctrlboard_cmd_rw is CMD_TYPE_WRITE, data is used for the arguments.
- * When ctrlboard_cmd_rw is CMD_TYPE_READ,  data is used for storing the ouptut
- * of the control board.
+ * Get the message queue id of ctrlboard. You will be get the message queue id
+ * for sending and recieving. You should write 0 to init argument except for
+ * ctrlboard process.
  */
-ctrlboard_msg_state_t message_ctrlboard(int msgqid, long msgid,
-                                        ctrlboard_cmd_code        code,
-                                        ctrlboard_cmd_rw          rw,
-                                        unsigned char             bytec,
-                                        ctrlboard_byte_container *data);
+int get_mqid_ctrl(mqid_ctrl *mgid);
+
+/*
+ * Communication with the ctrlboard. When rw is CMD_TYPE_READ, data argument is
+ * for storing data. When rw is CMD_TYPE_WRITE, data argument is for sending the
+ * arguments for ctrlboard
+ */
+ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid,
+                                     ctrlboard_cmd_code code,
+                                     ctrlboard_cmd_rw rw, unsigned char bytec,
+                                     ctrlboard_byte_container *data);
+
+/*
+ * Only send to the ctrlboard. Not receiving data from the ctrlboard.
+ */
+ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, ctrlboard_cmd_code code,
+                                     unsigned char             bytec,
+                                     ctrlboard_byte_container *data);
 
 #endif /* _CTRLBOARD_LIB_H */

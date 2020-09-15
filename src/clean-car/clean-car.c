@@ -40,15 +40,13 @@ int stop_car() {
 }
 
 int del_ipcs() {
-    int id_msgq, id_shm, r = 0;
+    int id_snd, id_rcv, id_shm, r = 0;
 
-    if ((id_msgq = msgget(KEY_MSGQ_TO_CTRLBOARD, 0)) == -1) r = -1;
-    if ((id_msgq = msgget(KEY_MSGQ_TO_PROCESS, 0)) == -1) r = -1;
-
-    if (msgctl(id_msgq, IPC_RMID, NULL) == -1) r = -1;
-
+    if ((id_snd = msgget(KEY_MSGQ_CTRLBOARD, 0)) == -1) r = -1;
+    if (msgctl(id_snd, IPC_RMID, NULL) == -1) r = -1;
+    if ((id_rcv = msgget(KEY_MSGQ_CTRLBOARD_RCV, 0)) == -1) r = -1;
+    if (msgctl(id_rcv, IPC_RMID, NULL) == -1) r = -1;
     if ((id_shm = shmget(KEY_SHM_RECOGNIZE, 0, 0)) == -1) r = -1;
-
     if (shmctl(id_shm, IPC_RMID, NULL) == -1) r = -1;
 
     return r;
@@ -56,7 +54,7 @@ int del_ipcs() {
 
 int main(int argc, char **argv) {
     if (stop_car() != 0) MSG("Could not stop car");
-
     if (del_ipcs() != 0) MSG("Fail to delete ipcs");
+
     return 0;
 }
