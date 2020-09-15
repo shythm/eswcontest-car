@@ -53,6 +53,8 @@ ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid,
     }
 
     if (msgsnd(mqid.id_snd, &msg, size, 0) == 0) {
+        usleep(UART_DELAY); // There is another usleep(UART_DELAY) in the
+                            // bottom. So, total is 20ms.
         if (msgrcv(mqid.id_rcv, &msg, size, msg.msgid, 0) >= 0) {
             if (msg.cmd.rw == CMD_TYPE_READ) {
                 memcpy(data->bytes, msg.data.bytes, msg.cmd.bytec);
@@ -61,6 +63,7 @@ ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid,
         } else {
             return MSG_STATE_RECEIVE_ERR;
         }
+        usleep(UART_DELAY);
     } else {
         return MSG_STATE_SEND_ERR;
     }
@@ -84,11 +87,12 @@ ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, ctrlboard_cmd_code code,
         memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
     }
 
-    usleep(10 * 1000);
+    usleep(UART_DELAY); // There is another usleep(UART_DELAY) in the bottom.
+                        // So, total is 20ms.
     if (msgsnd(mqid.id_snd, &msg, size, 0) == 0) {
         return MSG_STATE_SUCCESS;
     } else {
         return MSG_STATE_SEND_ERR;
     }
-    usleep(10 * 1000);
+    usleep(UART_DELAY);
 }
