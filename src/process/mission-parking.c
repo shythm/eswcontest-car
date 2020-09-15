@@ -51,25 +51,25 @@ __________|    parking    |__________
 */
 
 void check_parking(State *state) {
+    printf("psd: %3.1f\n", rr->psd.value[PSD_RIGHT_1]);
     // beep(50);
     // return;
 
     static enum _parking_state { NONE, READY, DECISION } parking_state = 0;
 
     container data;
-    // printf("PSD_RIGHT_2: %f\n", (float)(rr->psd.value[PSD_RIGHT_2]));
 
     switch (parking_state) {
     case NONE: { // no obstacle sensed
         state->missions.drive.priority = 0;
         if (parking_complete >= 2) break;
-        if ((rr)->psd.value[PSD_RIGHT_2] < 26.f) parking_state = READY;
+        if ((rr)->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
         break;
     }
     case READY: { // first obstacle sensed
 
         state->missions.drive.priority = 0;
-        if ((rr)->psd.value[PSD_RIGHT_2] > 29.f) {
+        if ((rr)->psd.value[PSD_RIGHT_1] > 29.f) {
             encoder_count1 =
                 read_encoder_counter(state->msgq_id); // parking area start
             set_desire_speed(50);
@@ -80,7 +80,7 @@ void check_parking(State *state) {
     case DECISION: { // parking area sensed
 
         state->missions.drive.priority = 0;
-        if ((rr)->psd.value[PSD_RIGHT_2] < 26.f) {
+        if ((rr)->psd.value[PSD_RIGHT_1] < 26.f) {
             int distance = read_encoder_counter(state->msgq_id) -
                            encoder_count1; // width of parking area [tick]
             if (25.f * TICK_PER_CM < distance &&
@@ -122,37 +122,32 @@ void do_parking_vertical(State *state) {
     short steering       = 1500;
 
     // position_control_on();
-    set_encoder_counter(0);
     // set_desire_encoder_count(0);
     set_steering(1500);
     sleep(1);
 
     // regress
-    set_desire_encoder_count(-1000);
+    set_encoder_counter(0);
     set_desire_speed(-50);
     while (1) {
-        if (rr->psd.value[PSD_RIGHT_2] < 26.f) break;
+        if (rr->psd.value[PSD_RIGHT_1] < 26.f) break;
         usleep(1000);
     }
-    // while (1) {
-    //     if (rr->psd.value[PSD_RIGHT_2] > 29.f) break;
-    //     usleep(1000);
-    // }
     set_desire_speed(0);
     // set_desire_encoder_count(0);
     sleep(1);
 
     // progress
-    // set_encoder_counter(0);
-    // desire_encoder = 10.f * TICK_PER_CM;
-    // set_desire_speed(50);
-    // // set_desire_encoder_count(14.7f * TICK_PER_CM);
-    // while (1) {
-    //     if (desire_encoder < read_encoder_counter(state->msgq_id)) break;
-    //     usleep(1000);
-    // }
-    // set_desire_speed(0);
-    // sleep(1);
+    set_encoder_counter(0);
+    desire_encoder = 30.f * TICK_PER_CM;
+    set_desire_speed(50);
+    // set_desire_encoder_count(14.7f * TICK_PER_CM);
+    while (1) {
+        if (desire_encoder < read_encoder_counter(state->msgq_id)) break;
+        usleep(1000);
+    }
+    set_desire_speed(0);
+    sleep(1);
 
     // steering to 1000
     set_steering(1000);
