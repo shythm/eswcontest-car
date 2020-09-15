@@ -47,6 +47,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     // update traffic_light
     if (result->traffic_light.enabled) {
         // TODO: write your update function
+        result->traffic_light.value = get_traffic_light(arg);
     }
 
     // update lane
@@ -82,7 +83,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update stop_obstacle
     if (result->stop_obstacle.enabled) {
-        // TODO: write your update function
+        result->stop_obstacle.value = get_stop_obstacle(arg);
+        // printf("%f %d %d\n", result->stop_obstacle.value.area,
+        //        result->stop_obstacle.value.pos_x,
+        //        result->stop_obstacle.value.pos_y);
     }
 
     // update is_there_car
@@ -181,9 +185,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
         for (int i = 0; i < NUMBUF; i++) {
             v4l2_qbuf(v4l2, vpe->input_buf_dmafd[i], i);
         }
-        for (int i = 0; i < NUMBUF; i++) {
-            vpe_output_qbuf(vpe, i);
-        }
+        for (int i = 0; i < NUMBUF; i++) { vpe_output_qbuf(vpe, i); }
 
         v4l2_streamon(v4l2);
         vpe_stream_on(vpe->fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
@@ -363,15 +365,14 @@ int main(int argc, char **argv) {
     recog_arg arg;
 
     // Get message queue id of ctrlboard process
-    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+    if (get_mqid_ctrl(&arg.ctrl) == -1) {
         ERROR("An error occurred while getting the message queue id. Check "
               "that the ctrlboard process is running");
         return -1;
     }
 
-    for (;;) {
-        capture_recognize(shm_rr, &arg);
-    }
+    printf("RECOGNIZE\n");
+    for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;
 }

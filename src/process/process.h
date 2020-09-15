@@ -29,7 +29,7 @@ typedef struct {
 
 typedef struct {
     recog_result *input;
-    int           msgq_id;
+    mqid_ctrl     ctrl;
     struct {
         Mission drive;
         Mission overpass;
@@ -69,8 +69,5 @@ MISSION_INIT_DEF(tunnel);
 MISSION_INIT_DEF(slope);
 MISSION_INIT_DEF(parking);
 MISSION_INIT_DEF(overtaking);
-
-int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
-              ctrlboard_byte_container *data);
 
 #endif

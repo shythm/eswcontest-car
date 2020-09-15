@@ -39,7 +39,9 @@ MISSION_INIT(slope)
 MISSION_INIT(parking)
 MISSION_INIT(overtaking)
 
-int msgq_id;
+int msgq_board_id;
+int msgq_process_id;
+
 int main() {
     usleep(1000 * 1000);
 
@@ -48,12 +50,13 @@ int main() {
     get_shm_recog_result(&input, 0);
 
     // Get message queue
-    get_msgq_id_ctrlboard(&msgq_id, 0);
+    mqid_ctrl ctrl;
+    get_mqid_ctrl(&ctrl);
 
     // Initialize state
-    State state   = {0};
-    state.input   = input;
-    state.msgq_id = msgq_id;
+    State state = {0};
+    state.input = input;
+    state.ctrl  = ctrl;
 
     // Initialize mission-associated variables
     int missionsCount = sizeof(state.missions) / sizeof(Mission), maxPriority;
@@ -111,31 +114,4 @@ int main() {
         }
     }
     return 0;
-}
-
-// There is no value to be read from the hardware in the processing stage.
-// Therefore, there is no need to do receive check.
-// If there is a value to be read from the hardware, the task must be done in
-// 'recognize' step.
-int ctrl_msgq(ctrlboard_cmd_code code, unsigned char bytec,
-              ctrlboard_byte_container *data) {
-    static size_t size = sizeof(ctrlboard_msg) - sizeof(long);
-    ctrlboard_msg msg;
-
-    // set message information
-    msg.msgid     = MSG_ID_PROCESS;
-    msg.cmd.code  = code;
-    msg.cmd.rw    = CMD_TYPE_WRITE;
-    msg.cmd.bytec = bytec;
-    msg.state     = MSG_STATE_UNKNOWN_ERR;
-    memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
-    if (msgsnd(msgq_id, &msg, size, 0)) {
-        printf("ERR1\n");
-        return MSG_STATE_SEND_ERR;
-    }
-    if (msgrcv(msgq_id, &msg, size, msg.msgid, 0) < 0) {
-        printf("ERR2\n");
-        return MSG_STATE_RECEIVE_ERR;
-    }
-    return MSG_STATE_SUCCESS;
 }

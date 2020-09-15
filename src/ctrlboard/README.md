@@ -6,33 +6,33 @@
     - 이러한 문제를 해결하기 위해 ctrlboard 프로세스를 따로 만들었다. 그리고 명령을 message queue에 넣어 순차적으로 실행시키고 message id를 통해 읽기 명령의 결과물을 전달할 위치를 명확하게 지정해주었다.
 - ctrlboard가 일종의 서버 역할을 하며, 클라이언트는 `ctrlboard-lib.h`를 include 해서 ctrlboard와 message queue 통신을 수행한다.
     - 따라서 ctrlboard 프로세스가 실행되어야 제어 보드에 명령을 내릴 수 있다.
+- 2020년 09월 15일 추가: Message Queue 하나만을 이용해서 message를 송수신하니 다음과 같은 문제가 발생했다.
+    1. 어떤 프로세스 p가 ctrlboard에 message A 전송 (block A - 시작)
+    2. ctrlboard process에서 message A 받음 (block B - 시작)
+    3. ctrlboard process에서 제어 보드를 제어하고 결과 값을 받아옴 (block B)
+    4. ctrlboard process에서 message B를 보냄 (block B - 탈출)
+    5. 어떤 프로세스 p(block A)에서 message B를 받음 (block A - 탈출)
+    - 위의 과정의 4번에서 ctrlboard process가 block B를 탈출하여 순식간에 다시 2번으로 돌아가 message B를 받을 수 있는 경우가 생긴다.
+    - **-> 따라서 message queue line을 두개 만들어서 운용한다(하나는 전송용, 하나는 수신용)**
 
 ## 기본 셋팅
 1. `#include "ctrlboard-lib.h"` 매크로를 추가한다.
-1. ctrlboard 프로세스를 실행할 때 사용한 message queue key 값을 가지고 있어야 한다.
-    - 이를 위해서 shell을 통해 외부로부터 messag queue key 값을 인자로 받아온다.
+1. `get_mqid_ctrl` 함수를 통해 `mqid_ctrl` 구조체 변수를 받는다. 이때 `mqid_ctrl` 구조체는 `comm_ctrlboard` 함수와 `send_ctrlboard` 함수에 사용된다.
     ``` c
-    int main(int argc, char** argv) {
-        key_t msgq_key; // 'sys/ipc.h' and `sys/msg.h` must be included.
-
-        if (argc != 2) {
-            printf("Usage %s: [Message queue key of ctrlboard process] \n", argv[0]);
-        }
-        msgq_key = (key_t)atoi(argv[1]); // 'stdlib.h' must be included.
-    }
+    // Get message queue
+    mqid_ctrl ctrl;
+    get_mqid_ctrl(&ctrl);
     ```
-1. `msgget` 함수를 이용해서 message queue id를 얻는다.
-    - message queue id는 ctrlboard 프로세스에 메시지를 보내는 `message_ctrlboard` 함수에 사용된다.
-1. `message_ctrlboard` 함수를 이용해서 ctrlboard에 메시지를 보낸다.
+1. `comm_ctrlboard` 함수 또는 `send_ctrlboard` 함수를 이용해서 ctrlboard에 메시지를 보낸다.
 
-## message_ctrlboard 함수 설명
+## comm_ctrlboard & send_ctrlboard 함수 설명
+### comm_ctrlboard 함수: 제어 보드와 소통하고 싶을 때(데이터를 주고 받고 싶을 때)
 ``` c
-ctrlboard_msg_state_t message_ctrlboard
-(int msgqid, long msgid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, ctrlboard_byte_container* data);
+ctrlboard_msg_state_t comm_ctrlboard(mqid_ctrl mqid, long mid, ctrlboard_cmd_code code, ctrlboard_cmd_rw rw, unsigned char bytec, ctrlboard_byte_container *data);
 ```
-- 첫 번째 인자: ctrlboard의 message queue id
+- 첫 번째 인자: `get_mqid_ctrl` 함수를 통해 얻은(또는 해당 c 파일에 있는) `mqid_ctrl` 구조체 변수를 넣는다.
 - 두 번째 인자: message를 구분할 message id
-    - message queue에서 message를 구분하는데 사용한다. 따라서 `message_ctrlboard` 함수를 사용하는 서로 다른 함수는 `msgid`가 각각 달라야 한다.
+    - message queue에서 message를 구분하는데 사용한다. 따라서 `comm_ctrlboard` 함수를 사용하는 서로 다른 함수는 `mid`가 각각 달라야 한다.
 - 세 번째 인자: 제어보드 명령어
     - `ctrlboard-lib.h`의 `ctrlboard_cmd_code`를 참조바람.
 - 네 번째 인자: 쓰기 명령일 때에는 `CMD_TYPE_WRITE` 지정, 읽기 명령을 내릴 때에는 `CMD_TYPE_READ` 지정.
@@ -42,18 +42,35 @@ ctrlboard_msg_state_t message_ctrlboard
     - 만약, 제어보드 명령어가 signed 16bit integer의 인자를 필요로 할 때, `ctrlboard_byte_container`의 `container_int16` 필드에 정보를 담으면 된다.
 - 반환 값: `ctrlboard-lib.h`의 `ctrlboard_msg_state_t` 중에 하나를 반환한다.
     - `MSG_STATE_SUCCESS`: 메시지 주고받기 성공 상태
+    - `MSG_STATE_UNKNOWN_ERR`: 알 수 없는 오류
     - `MSG_STATE_TYPE_ERR`: 네 번째 인자에 문제가 있을 때 발생하는 오류 코드
     - `MSG_STATE_CHKSUM_ERR`: 읽기 명령 시 제어 보드로 부터 받은 데이터의 checksum이 일치하지 않을 때 발생하는 오류 코드
+    - `MSG_STATE_SEND_ERR`: 메시지 전송 중 발생한 오류
+    - `MSG_STATE_RECEIVE_ERR`: 메시지 수신 중 발생한 오류
+
+### send_ctrlboard 함수: 일방적으로 명령을 내리고 싶을 때 (데이터를 반환하지 않음)
+``` c
+/*
+ * Only send to the ctrlboard. Not receiving data from the ctrlboard.
+ */
+ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, ctrlboard_cmd_code code, unsigned char bytec, ctrlboard_byte_container *data);
+```
+사용 방법은 comm_ctrlboard 함수와 같다. 다만 차이점으로 항상 쓰기 명령을 보내므로 `rw` 인자가 사라지고 메시지를 구분할 필요가 없으므로 `mid` 인자가 필요 없다.
 
 ## 쓰기 메시지 예시
 ``` c
-int msgq_id = msgget(100, 0); // 첫 번째 인자에 messagq queue key 넣기
+mqid_ctrl ctrl;
 int msg_id = 't' + 'e' + 's' + 't';
 ctrlboard_byte_container container;
 
+if (get_mqid_ctrl(&ctrl)) == -1) {
+    printf("Failed get message queue id!");
+    return 1;
+}
+
 // SPEED_CONTROL 제어
 container.container_uint8 = 1; // SPEED_CONTROL 명령에 사용되는 인자의 타입은 '부호없는 8bit Byte' -> container_uint8에 데이터 삽입.
-if (message_ctrlboard(msgq_id, msg_id, CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE, 1, &container) == MSG_STATE_SUCCESS) { // ctrlboard_byte_container 공용체의 주소값을 전달해야 한다.
+if (comm_ctrlboard(ctrl, msg_id, CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE, 1, &container) == MSG_STATE_SUCCESS) { // ctrlboard_byte_container 공용체의 주소값을 전달해야 한다.
     printf("SPEED_CONTROL를 ON으로 제어 성공! \n");
 } else {
     printf("SPEED_CONTROL 제어 실패. \n");
@@ -61,21 +78,22 @@ if (message_ctrlboard(msgq_id, msg_id, CMD_SPEED_CONTROL_ON_OFF, CMD_TYPE_WRITE,
 
 // DESIRE_SPEED 제어
 container.container_int16 = 300; // DESIRE_SPEED 명령에 사용되는 인자의 타입은 '부호있는 16bit Short' -> container_int16에 데이터 삽입.
-if (message_ctrlboard(msgq_id, msg_id, CMD_DESIRE_SPEED, CMD_TYPE_WRITE, 2, &container) == MSG_STATE_SUCCESS) {
-    printf("DESIRE_SPEED 제어 성공! \n");
-} else {
-    printf("DESIRE_SPEED 제어 실패. \n");
-}
+send_ctrlboard(ctrl, CMD_DESIRE_SPEED, 2, &container);
 ```
 
 ## 읽기 메시지 예시
 ``` c
-int msgq_id = msgget(100, 0); // 첫 번째 인자에 messagq queue key 넣기
+mqid_ctrl ctrl;
 int msg_id = 'i' + 'r';
 ctrlboard_byte_container container;
 
+if (get_mqid_ctrl(&ctrl)) == -1) {
+    printf("Failed get message queue id!");
+    return 1;
+}
+
 // 라인 센서값 가져오기
-if (message_ctrlboard(msgq_id, msg_id, CMD_LINE_SENSOR, CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) { // LINE_SNESOR 명령어는 1 바이트의 결과를 반환한다.
+if (comm_ctrlboard(ctrl, msg_id, CMD_LINE_SENSOR, CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) { // LINE_SNESOR 명령어는 1 바이트의 결과를 반환한다.
     printf("라인 센서값을 받아 왔습니다.\n");
     printf("%d", container.container_uint8); // 1 바이트의 결과를 받아오기 때문에 container_uint8 필드를 이용해서 데이터를 읽어온다.
 } else {
