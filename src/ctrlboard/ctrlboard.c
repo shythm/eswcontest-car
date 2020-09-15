@@ -49,6 +49,7 @@ int main(int argc, char **argv) {
                 // Send the message if the message queue is availiable. (block
                 // state)
                 msgsnd(mqid.id_rcv, (void *)&msg, msg_size, 0); // wait(block)
+                usleep(1000);
             }
         }
     }
