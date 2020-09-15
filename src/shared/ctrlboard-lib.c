@@ -30,9 +30,6 @@ int get_mqid_ctrl(mqid_ctrl *mgid) {
     MSG("Success to get message queue of ctrlboard(id_snd: %d, id_rcv: %d)",
         KEY_MSGQ_CTRLBOARD, mgid->id_snd, mgid->id_rcv);
 
-    MSG("Connected to (key: %d, id: %d)/(key: %d, id: %d)",
-        KEY_MSGQ_TO_CTRLBOARD, *board_id, KEY_MSGQ_TO_CTRLBOARD, *process_id);
-
     return 0;
 }
 
@@ -87,9 +84,11 @@ ctrlboard_msg_state_t send_ctrlboard(mqid_ctrl mqid, ctrlboard_cmd_code code,
         memcpy(msg.data.bytes, data->bytes, msg.cmd.bytec);
     }
 
+    usleep(10 * 1000);
     if (msgsnd(mqid.id_snd, &msg, size, 0) == 0) {
         return MSG_STATE_SUCCESS;
     } else {
         return MSG_STATE_SEND_ERR;
     }
+    usleep(10 * 1000);
 }

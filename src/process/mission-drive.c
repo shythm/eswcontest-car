@@ -9,27 +9,33 @@ void init_drive(State *state) {
     container data;
 
     data.c_int16 = 1700;
-    if (ctrl_msgq(CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
     data.c_uint8 = 0;
-    if (ctrl_msgq(CMD_POSITION_CONTROL_ON_OFF, 1, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_POSITION_CONTROL_ON_OFF, 1, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 2\n");
 
     data.c_uint8 = 1;
-    if (ctrl_msgq(CMD_SPEED_CONTROL_ON_OFF, 1, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_SPEED_CONTROL_ON_OFF, 1, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 3\n");
 
     data.c_uint8 = 20;
-    if (ctrl_msgq(CMD_SPEED_PID_PROPORTIONAL, 1, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_PROPORTIONAL, 1, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 4\n");
 
     data.c_uint8 = 20;
-    if (ctrl_msgq(CMD_SPEED_PID_INTEGRAL, 1, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_INTEGRAL, 1, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 5\n");
 
     data.c_uint8 = 20;
-    if (ctrl_msgq(CMD_SPEED_PID_DIFFERENTAL, 1, &data) != MSG_STATE_SUCCESS)
+    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_DIFFERENTAL, 1, &data) !=
+        MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
     state->input->lane.enabled = true;
@@ -41,39 +47,39 @@ void init_drive(State *state) {
 #define TERM_STEER 500
 
     data.c_int16 = 1000;
-    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = -200;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) usleep(1000);
 
     data.c_int16 = 0;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 2000;
-    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 200;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
     data.c_int16 = 0;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = 1500;
-    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_STEERING_SERVO_CONTROL, 2, &data);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
     data.c_int16 = -200;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
     data.c_int16 = 0;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl,CMD_DESIRE_SPEED, 2, &data);
 
     for (;;) { usleep(100000); }
 #endif
@@ -114,9 +120,9 @@ void do_drive(State *state) {
 
     // Send steering value to hardware
     data.c_int16 = steering_val;
-    ctrl_msgq(CMD_STEERING_SERVO_CONTROL, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
 
     // Send velocity to hardware
     data.c_int16 = velocity;
-    ctrl_msgq(CMD_DESIRE_SPEED, 2, &data);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
 }
