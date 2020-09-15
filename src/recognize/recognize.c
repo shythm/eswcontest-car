@@ -239,7 +239,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_DISTANCE_MIN 4.0f
 #define PSD_DISTANCE_MAX 30.0f
 
-#define PSD_MEDIAN_SAMPLE_SIZE 11
+#define PSD_MEDIAN_SAMPLE_SIZE 3
 
 void bubble_sort(uint16_t *arr, int length) {
     int      i, j;
