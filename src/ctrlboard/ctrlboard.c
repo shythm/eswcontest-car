@@ -112,9 +112,11 @@ ctrlboard_msg_state_t command_ctrlboard(int uart_fd, ctrlboard_cmd_t *cmd,
     buf[2] = cmd->rw;
 
     // <Remaining Byte(s)> for the write command: Fill the required arguments
+    cur_buf_i = 3;
     if (cmd->rw == CMD_TYPE_WRITE) {
-        for (cur_buf_i = 3, i = 0; i < cmd->bytec; cur_buf_i++, i++) {
+        for (i = 0; i < cmd->bytec; i++) {
             buf[cur_buf_i] = bytes[i]; // Fill the required argumnets
+            cur_buf_i++;
         }
     }
 
