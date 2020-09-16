@@ -36,7 +36,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update is_on_stop_line
     if (result->is_on_stop_line.enabled) {
-        // TODO: write your update function
+        result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
 
     // update is_on_end_point
@@ -56,7 +56,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update is_on_lane
     if (result->is_on_lane.enabled) {
-        // TODO: write your update function
+        result->is_on_lane.value = get_is_on_lane(arg);
     }
 
     // update is_on_slope
