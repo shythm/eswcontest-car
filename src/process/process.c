@@ -39,7 +39,8 @@ MISSION_INIT(slope)
 MISSION_INIT(parking)
 MISSION_INIT(overtaking)
 
-int msgq_id;
+mqid_ctrl ctrl;
+
 int main() {
     usleep(1000 * 1000);
 
@@ -48,7 +49,6 @@ int main() {
     get_shm_recog_result(&input, 0);
 
     // Get message queue
-    mqid_ctrl ctrl;
     get_mqid_ctrl(&ctrl);
 
     // Initialize state
@@ -112,4 +112,34 @@ int main() {
         }
     }
     return 0;
+}
+
+ctrlboard_msg_state_t command(ctrlboard_cmd_code cmd, int data) {
+    static ctrlboard_byte_container container;
+    static unsigned char            bytec;
+    container.c_int32 = data;
+    switch (cmd) {
+    case CMD_DESIRE_SPEED:
+        bytec = 2;
+        break;
+    case CMD_DESIRE_ENCODER_COUNT:
+        bytec = 4;
+        break;
+    case CMD_STEERING_SERVO_CONTROL:
+        bytec = 2;
+        break;
+    case CMD_CAMERA_X_SERVO_CONTROL:
+        bytec = 2;
+        break;
+    case CMD_CAMERA_Y_SERVO_CONTROL:
+        bytec = 2;
+        break;
+    case CMD_ENCODER_COUNTER:
+        bytec = 2;
+        break;
+    default:
+        bytec = 1;
+        break;
+    }
+    return send_ctrlboard(ctrl, cmd, bytec, &container);
 }
