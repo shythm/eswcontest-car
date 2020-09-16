@@ -70,4 +70,6 @@ MISSION_INIT_DEF(slope);
 MISSION_INIT_DEF(parking);
 MISSION_INIT_DEF(overtaking);
 
+ctrlboard_msg_state_t command(ctrlboard_cmd_code cmd, int data);
+
 #endif
