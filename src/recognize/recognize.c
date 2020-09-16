@@ -239,7 +239,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_DISTANCE_MIN 4.0f
 #define PSD_DISTANCE_MAX 30.0f
 
-#define PSD_MEDIAN_SAMPLE_SIZE 11
+#define PSD_MEDIAN_SAMPLE_SIZE 3
 
 void bubble_sort(uint16_t *arr, int length) {
     int      i, j;
@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
     recog_arg arg;
 
     // Get message queue id of ctrlboard process
-    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+    if (get_mqid_ctrl(&arg.ctrl) == -1) {
         ERROR("An error occurred while getting the message queue id. Check "
               "that the ctrlboard process is running");
         return -1;
