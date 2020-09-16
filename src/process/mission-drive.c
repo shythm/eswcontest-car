@@ -6,36 +6,22 @@ typedef ctrlboard_byte_container container;
 void do_drive(State *state);
 
 void init_drive(State *state) {
-    container data;
-
-    data.c_int16 = 1700;
-    if (send_ctrlboard(state->ctrl, CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1700) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
-    data.c_uint8 = 0;
-    if (send_ctrlboard(state->ctrl, CMD_POSITION_CONTROL_ON_OFF, 1, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_POSITION_CONTROL_ON_OFF, 0) != MSG_STATE_SUCCESS)
         printf("fail 2\n");
 
-    data.c_uint8 = 1;
-    if (send_ctrlboard(state->ctrl, CMD_SPEED_CONTROL_ON_OFF, 1, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_SPEED_CONTROL_ON_OFF, 1) != MSG_STATE_SUCCESS)
         printf("fail 3\n");
 
-    data.c_uint8 = 20;
-    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_PROPORTIONAL, 1, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_SPEED_PID_PROPORTIONAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 4\n");
 
-    data.c_uint8 = 20;
-    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_INTEGRAL, 1, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_SPEED_PID_INTEGRAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 5\n");
 
-    data.c_uint8 = 20;
-    if (send_ctrlboard(state->ctrl, CMD_SPEED_PID_DIFFERENTAL, 1, &data) !=
-        MSG_STATE_SUCCESS)
+    if (command(CMD_SPEED_PID_DIFFERENTAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
     state->input->lane.enabled = true;
@@ -46,40 +32,31 @@ void init_drive(State *state) {
 #define TERM_DRIVE 1200
 #define TERM_STEER 500
 
-    data.c_int16 = 1000;
-    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
+    command(CMD_STEERING_SERVO_CONTROL, 1000);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
-    data.c_int16 = -200;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, -200);
     for (int i = 0; i < TERM_DRIVE; i++) usleep(1000);
 
-    data.c_int16 = 0;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, 0);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
-    data.c_int16 = 2000;
-    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
+    command(CMD_STEERING_SERVO_CONTROL, 2000);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
-    data.c_int16 = 200;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, 200);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
-    data.c_int16 = 0;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, 0);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
-    data.c_int16 = 1500;
-    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
+    command(CMD_STEERING_SERVO_CONTROL, 1500);
     for (int i = 0; i < TERM_STEER; i++) usleep(1000);
 
-    data.c_int16 = -200;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, -200);
     for (int i = 0; i < TERM_DRIVE; i++) { usleep(1000); }
 
-    data.c_int16 = 0;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, 0);
 
     for (;;) { usleep(100000); }
 #endif
@@ -92,8 +69,7 @@ void check_drive(State *state) {
 
 #define GAIN_IRR 0.5f
 void do_drive(State *state) {
-    int       steering_val = 1500;
-    container data;
+    int steering_val = 1500;
 
 #define GAIN_P      14.4  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
@@ -119,10 +95,8 @@ void do_drive(State *state) {
     if (steering_val < 1000) steering_val = 1000;
 
     // Send steering value to hardware
-    data.c_int16 = steering_val;
-    send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
+    command(CMD_STEERING_SERVO_CONTROL, steering_val);
 
     // Send velocity to hardware
-    data.c_int16 = velocity;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+    command(CMD_DESIRE_SPEED, velocity);
 }
