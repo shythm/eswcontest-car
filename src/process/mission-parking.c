@@ -5,8 +5,8 @@
 #define TICK_PER_CM 19.7628f
 #define RADIUS      37.00f
 #define PI          3.141592f
-#define PARK_SPEED  50
-#define PARK_SLEEP  500000
+#define PARK_SPEED  50     // 50~100
+#define PARK_SLEEP  500000 // 500ms = 0.5s
 
 void  rr_save_and_recover(char);
 int   read_encoder_counter();
@@ -17,6 +17,7 @@ void  set_desire_speed(short);
 void  do_parking_vertical(State *);
 void  do_parking_parallel(State *);
 void  beep(unsigned char);
+void  move(short, int);
 
 typedef ctrlboard_byte_container container;
 
@@ -47,10 +48,11 @@ __________|    parking    |__________
 */
 
 void check_parking(State *state) {
-    printf("psd: %3.1f\n", rr->psd.value[PSD_RIGHT_1]);
+    // printf("psd: %3.1f\n", rr->psd.value[PSD_RIGHT_1]);
 
     static enum { NONE, READY, DECISION } parking_state = 0;
-    static int encoder_count1 = 0, encoder_count2 = 0;
+
+    static int encoder_count1 = 0;
 
     switch (parking_state) {
     case NONE: { // no obstacle sensed
@@ -70,7 +72,7 @@ void check_parking(State *state) {
         if (rr->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
             int distance =
                 (read_encoder_counter() - encoder_count1) / TICK_PER_CM;
-            printf("@@@@distance : %d\n", distance);
+            printf("@@@@distance : %d [cm]\n", distance);
             if (25 < distance && distance < 45) { // parking vertical
                 set_desire_speed(0);
                 state->missions.parking.priority = 10;
@@ -78,8 +80,6 @@ void check_parking(State *state) {
 
             } else if (45 < distance && distance < 65) { // parking parallel
                 set_desire_speed(0);
-                beep(50);
-                sleep(3);
                 state->missions.parking.priority = 10;
                 state->missions.parking.function = do_parking_parallel;
             }
@@ -96,10 +96,9 @@ void check_parking(State *state) {
 
 void do_parking_vertical(State *state) {
     rr_save_and_recover(0);
-
-    int desire_encoder = 0; // [tick]
-
+    int   desire_encoder    = 0; // [tick]
     short previous_steering = read_steering();
+
     // set steering at center
     set_steering(1500);
     usleep(PARK_SLEEP);
@@ -111,24 +110,14 @@ void do_parking_vertical(State *state) {
     usleep(PARK_SLEEP);
 
     // progress : move to proper position to park
-    set_encoder_counter(0);
-    desire_encoder = 25.f * TICK_PER_CM;
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, 25.f * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1000);
     usleep(PARK_SLEEP);
 
     // turn 90-degree backward
-    set_encoder_counter(0);
-    desire_encoder = -(RADIUS * PI / 2 * TICK_PER_CM);
-    set_desire_speed(-PARK_SPEED);
-    while (desire_encoder < read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(-PARK_SPEED, -(RADIUS * PI / 2 * TICK_PER_CM));
 
     // steering to 1500
     set_steering(1500);
@@ -146,24 +135,14 @@ void do_parking_vertical(State *state) {
     sleep(1);
 
     // go straight as the car regressed
-    set_encoder_counter(0);
-    desire_encoder = -desire_encoder;
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, -desire_encoder);
 
     // steering to 1000
     set_steering(1000);
     usleep(PARK_SLEEP);
 
     // turn 90-degree forward
-    set_encoder_counter(0);
-    desire_encoder = RADIUS * PI / 2 * TICK_PER_CM;
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, (RADIUS * PI / 2 * TICK_PER_CM));
 
     // set steering as previous steering before parking
     set_steering(previous_steering);
@@ -176,11 +155,10 @@ void do_parking_vertical(State *state) {
 
 void do_parking_parallel(State *state) {
     rr_save_and_recover(0);
-
     int   desire_encoder    = 0; // [tick]
     short previous_steering = read_steering();
     float turn_radian       = PI / 3.f;
-    float straight_cm       = 15;
+    float straight_cm       = 15.f;
 
     // set steering at center
     set_steering(1500);
@@ -193,36 +171,21 @@ void do_parking_parallel(State *state) {
     usleep(PARK_SLEEP);
 
     // progress: move to proper position to park
-    set_encoder_counter(0);
-    desire_encoder = 40.f * TICK_PER_CM;
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, 40.f * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1000);
     usleep(PARK_SLEEP);
 
     // turn 60-degree backward
-    set_encoder_counter(0);
-    desire_encoder = -(RADIUS * turn_radian * TICK_PER_CM);
-    set_desire_speed(-PARK_SPEED);
-    while (desire_encoder < read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(-PARK_SPEED, -(RADIUS * turn_radian * TICK_PER_CM));
 
     // steering to 1500
     set_steering(1500);
     usleep(PARK_SLEEP);
 
     // regress: move to proper position
-    set_encoder_counter(0);
-    desire_encoder = -straight_cm * TICK_PER_CM;
-    set_desire_speed(-PARK_SPEED);
-    while (desire_encoder < read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(-PARK_SPEED, -straight_cm * TICK_PER_CM);
 
     // steering to 2000
     set_steering(2000);
@@ -230,7 +193,6 @@ void do_parking_parallel(State *state) {
 
     // turn until the distance from the wall is 5cm backward
     set_encoder_counter(0);
-    // desire_encoder = -(RADIUS * PI / 3.5f * TICK_PER_CM);
     set_desire_speed(-PARK_SPEED);
     while (rr->psd.value[PSD_BACK] > 5.f) usleep(1000);
     set_desire_speed(0);
@@ -242,36 +204,21 @@ void do_parking_parallel(State *state) {
     sleep(1);
 
     // turn forward as the car regressed
-    set_encoder_counter(0);
-    desire_encoder = -desire_encoder;
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, -desire_encoder);
 
     // steering to 1500
     set_steering(previous_steering);
     usleep(PARK_SLEEP);
 
     // progress: move to proper position
-    set_encoder_counter(0);
-    desire_encoder = straight_cm * TICK_PER_CM;
-    set_desire_speed(100);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, straight_cm * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1000);
     usleep(PARK_SLEEP);
 
     // turn 45-degree forward
-    set_encoder_counter(0);
-    desire_encoder = (RADIUS * turn_radian * TICK_PER_CM);
-    set_desire_speed(PARK_SPEED);
-    while (desire_encoder > read_encoder_counter()) usleep(1000);
-    set_desire_speed(0);
-    usleep(PARK_SLEEP);
+    move(PARK_SPEED, (RADIUS * turn_radian * TICK_PER_CM));
 
     // set steering as previous steering before parking
     set_steering(previous_steering);
@@ -337,4 +284,16 @@ void beep(unsigned char time) {
     container data = {time};
     if (send_ctrlboard(mqid, CMD_SOUND, 1, &data) != MSG_STATE_SUCCESS)
         printf("fail to sound beep: mission-parking\n");
+}
+
+void move(short speed, int desire_encoder) {
+    set_encoder_counter(0);
+    set_desire_speed(speed);
+    if (desire_encoder > 0) {
+        while (desire_encoder > read_encoder_counter()) usleep(1000);
+    } else {
+        while (desire_encoder < read_encoder_counter()) usleep(1000);
+    }
+    set_desire_speed(0);
+    usleep(PARK_SLEEP);
 }
