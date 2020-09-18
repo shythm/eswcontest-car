@@ -37,7 +37,13 @@ bool get_is_on_stop_line(recog_arg *arg) {
 
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
-        if (container.c_uint8 == stop_line) { return true; }
+        if (container.c_uint8 == stop_line) {
+            printf("stop line raw data : %c \n", container.c_uint8);
+            return true;
+        } else {
+            printf("stop line raw data : %c \n", container.c_uint8);
+            return false;
+        }
     } else {
         return false;
     }

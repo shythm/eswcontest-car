@@ -39,7 +39,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->is_on_stop_line.enabled) {
         result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
-    printf("정지선 감지: %d\n", result->is_on_stop_line.value);
+    // printf("정지선 감지: %d \n", result->is_on_stop_line.value);
 
     // update is_on_end_point
     if (result->is_on_end_point.enabled) {
