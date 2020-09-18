@@ -29,16 +29,15 @@ unsigned char *get_sample(recog_arg *arg) {
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
 
+//받아온 container.uint8_t의 LSB가 제일 왼쪽, 흰색이 0.
 bool get_is_on_stop_line(recog_arg *arg) {
     static ctrlboard_byte_container container;
-    static uint8_t                  bitmask = 0x7F; //이진수로 0111 1111임.
+    static uint8_t                  stop_line =
+        0xC1; //이진수로 1100 0001임. 가운데 다섯개가 흰색인지..
 
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
-        if (!(container.c_uint8 &
-              bitmask)) { //전부 흰색이고 bitmask랑 앤드연산하면 전부 0됨
-            return true;
-        }
+        if (container.c_uint8 == stop_line) { return true; }
     } else {
         return false;
     }

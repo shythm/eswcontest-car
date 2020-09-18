@@ -35,9 +35,11 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_stop_line
+    result->is_on_stop_line.enabled = true;
     if (result->is_on_stop_line.enabled) {
         result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
+    printf("정지선 감지: %d\n", result->is_on_stop_line.value);
 
     // update is_on_end_point
     if (result->is_on_end_point.enabled) {
@@ -55,9 +57,18 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_lane
+    result->is_on_lane.enabled = true;
     if (result->is_on_lane.enabled) {
         result->is_on_lane.value = get_is_on_lane(arg);
     }
+    if (result->is_on_lane.value == ON_LANE_LEFT) {
+        printf("차선감지: Left\n");
+    } else if (result->is_on_lane.value == ON_LANE_RIGHT) {
+        printf("차선감지: Right\n");
+    } else {
+        printf("차선감지: None\n");
+    }
+    usleep(100000);
 
     // update is_on_slope
     if (result->is_on_slope.enabled) {
