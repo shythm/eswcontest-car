@@ -1,5 +1,7 @@
 #include "recognize-update.h"
 #include "ctrlboard-lib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /* START OF get_sample SECTION */
 #define RECOG_ID_GET_SAMPLE 101L
@@ -29,7 +31,6 @@ unsigned char *get_sample(recog_arg *arg) {
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
 
-//받아온 container.uint8_t의 LSB가 제일 왼쪽, 흰색이 0.
 bool get_is_on_stop_line(recog_arg *arg) {
     static ctrlboard_byte_container container;
     static uint8_t                  stop_line =
@@ -37,11 +38,20 @@ bool get_is_on_stop_line(recog_arg *arg) {
 
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
+        printf("stop line raw data : ");
         if (container.c_uint8 == stop_line) {
-            printf("stop line raw data : %c \n", container.c_uint8);
+            for (int i = 0; i < 8; i++) {
+                printf("%o ", container.c_uint8 & 0x01);
+                container.c_uint8 = container.c_uint8 >> 1;
+            }
+            printf("\n");
             return true;
         } else {
-            printf("stop line raw data : %c \n", container.c_uint8);
+            for (int i = 0; i < 8; i++) {
+                printf("%o ", container.c_uint8 & 0x01);
+                container.c_uint8 = container.c_uint8 >> 1;
+            }
+            printf("\n");
             return false;
         }
     } else {
@@ -77,8 +87,8 @@ vector_lane get_lane(recog_arg *arg) {
 
 recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
     static ctrlboard_byte_container container;
-    static uint8_t                  bitmask_left  = 0x01;
-    static uint8_t                  bitmask_right = 0x40;
+    static uint8_t                  bitmask_left  = 0x40; // 0100 0000
+    static uint8_t                  bitmask_right = 0x01; // 0000 0001
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_LANE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
         if (container.c_uint8 & bitmask_left) {
@@ -88,7 +98,7 @@ recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
         } else {
             return ON_LANE_NONE;
         }
-    }
+    } else { return ON_LANE_NONE; }
 }
 /* END OF is_on_lane SECTION */
 

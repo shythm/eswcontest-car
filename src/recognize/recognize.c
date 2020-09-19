@@ -39,6 +39,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->is_on_stop_line.enabled) {
         result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
+    usleep(200000);
     // printf("정지선 감지: %d \n", result->is_on_stop_line.value);
 
     // update is_on_end_point
@@ -68,7 +69,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     } else {
         printf("차선감지: None\n");
     }
-    usleep(100000);
+    usleep(200000);
 
     // update is_on_slope
     if (result->is_on_slope.enabled) {
