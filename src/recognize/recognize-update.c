@@ -18,8 +18,8 @@ unsigned char *get_sample(recog_arg *arg) {
 
     result[0] += arg->camera_output[0]; // example of using camera output data
     // example of using ctrlboard
-    message_ctrlboard(arg->msgq_id_ctrlboard, RECOG_ID_GET_SAMPLE,
-                      CMD_SPEED_PID_PROPORTIONAL, CMD_TYPE_READ, 1, &container);
+    comm_ctrlboard(arg->ctrl, RECOG_ID_GET_SAMPLE, CMD_SPEED_PID_PROPORTIONAL,
+                   CMD_TYPE_READ, 1, &container);
     result[1] = container.c_uint8;
 
     return result;

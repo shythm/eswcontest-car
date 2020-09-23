@@ -185,9 +185,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
         for (int i = 0; i < NUMBUF; i++) {
             v4l2_qbuf(v4l2, vpe->input_buf_dmafd[i], i);
         }
-        for (int i = 0; i < NUMBUF; i++) {
-            vpe_output_qbuf(vpe, i);
-        }
+        for (int i = 0; i < NUMBUF; i++) { vpe_output_qbuf(vpe, i); }
 
         v4l2_streamon(v4l2);
         vpe_stream_on(vpe->fd, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
@@ -244,7 +242,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_DISTANCE_MIN 4.0f
 #define PSD_DISTANCE_MAX 30.0f
 
-#define PSD_MEDIAN_SAMPLE_SIZE 11
+#define PSD_MEDIAN_SAMPLE_SIZE 3
 
 void bubble_sort(uint16_t *arr, int length) {
     int      i, j;
@@ -367,15 +365,14 @@ int main(int argc, char **argv) {
     recog_arg arg;
 
     // Get message queue id of ctrlboard process
-    if (get_msgq_id_ctrlboard(&(arg.msgq_id_ctrlboard), 0) == -1) {
+    if (get_mqid_ctrl(&arg.ctrl) == -1) {
         ERROR("An error occurred while getting the message queue id. Check "
               "that the ctrlboard process is running");
         return -1;
     }
 
-    for (;;) {
-        capture_recognize(shm_rr, &arg);
-    }
+    printf("RECOGNIZE\n");
+    for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;
 }

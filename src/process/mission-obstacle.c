@@ -22,14 +22,15 @@ void check_obstacle(State *state) {
     }
 }
 
+#define ONE_SHOT_COUNT 10
 void do_obstacle(State *state) {
-    int                      msgqid = state->msgq_id;
     ctrlboard_byte_container container;
 
     container.c_int16 = 0;
-    message_ctrlboard(msgqid, MSGQ_ID_PROCESS, CMD_DESIRE_SPEED, CMD_TYPE_WRITE,
-                      2, &container);
+    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &container);
 
     // block until the obstacle is disappear.
-    while (state->input->stop_obstacle.value.pos_x != -1) {}
+    for (int i = 0; i < ONE_SHOT_COUNT; i++) {
+        if (state->input->stop_obstacle.value.pos_x != -1) i = 0;
+    }
 }
