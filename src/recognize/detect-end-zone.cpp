@@ -29,7 +29,9 @@ bool detectEndZone(unsigned char *cam_data, int cam_w, int cam_h,
                 cut_disp_img.at<Vec3b>(i, j);
         }
     }
-
+    //자동차 화면에 띄운다.
+    Mat car_disp_img(disp_h, disp_w, CV_8UC3, disp_data);
+    cut_full_disp_img.copyTo(car_disp_img);
     //자동차 화면에 띄우는 용으로 만든다
 
     //노란색으로 이미지 마스킹하기

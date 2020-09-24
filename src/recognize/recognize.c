@@ -20,6 +20,7 @@
 #include "recognize-lib.h"
 #include "recognize-update.h"
 #include "util.h"
+#include "detect-end-zone.h"
 
 /* include capture libraries */
 #include "display-kms.h"
@@ -42,6 +43,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     // printf("정지선 감지: %d \n", result->is_on_stop_line.value);
 
     // update is_on_end_point
+    result->is_on_end_point.enabled = true;
     if (result->is_on_end_point.enabled) {
         // TODO: write your update function
     }

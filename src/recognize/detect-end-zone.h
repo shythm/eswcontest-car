@@ -5,7 +5,10 @@
 extern "C" {
 #endif
 
-#ifdef __cpluscplus
+bool detectEndZone(unsigned char *cam_data, int cam_w, int cam_h,
+                   unsigned char *disp_data, int disp_w, int disp_h);
+
+#ifdef __cplusplus
 }
 #endif
 
