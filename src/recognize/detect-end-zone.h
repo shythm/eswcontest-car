@@ -1,12 +1,12 @@
 #ifndef DETECT_DETECT_END_ZONE_H_
 #define DETECT_DETECT_END_ZONE_H_
+#include "recognize-update.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-bool detectEndZone(unsigned char *cam_data, int cam_w, int cam_h,
-                   unsigned char *disp_data, int disp_w, int disp_h);
+bool detectEndZone(recog_arg *arg);
 
 #ifdef __cplusplus
 }

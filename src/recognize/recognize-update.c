@@ -79,8 +79,8 @@ bool get_is_on_stop_line(recog_arg *arg) {
 
 /* START OF get_is_on_end_point SECTION */
 #define RECOG_ID_IS_ON_END_POINT 103L
-
-bool get_is_on_end_point(recog_arg *arg) { return false; }
+#include "detect-end-zone.h"
+bool get_is_on_end_point(recog_arg *arg) { return detectEndZone(arg); }
 /* END OF get_is_on_end_point SECTION */
 
 /* START OF get_traffic_light SECTION */
