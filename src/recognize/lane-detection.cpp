@@ -29,7 +29,7 @@ double range     = 300; //
 double viewRange = 0.4; // Region of interest, higher, closer(crop reverse
                         // perspective transformed image)
 
-float detectLineRatio = 0.3;
+float detectLineRatio = 0.45;
 
 void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     // Vanish와 range가 주어질 때, y좌표에 따른 x좌표를 계산해보자.
