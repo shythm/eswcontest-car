@@ -36,7 +36,7 @@ unsigned char *get_sample(recog_arg *arg) {
 bool get_is_on_stop_line(recog_arg *arg) {
     static ctrlboard_byte_container container;
     static uint8_t                  stop_line =
-        0x81; //이진수로 0100 0001임. 가운데 다섯개가 흰색인지..
+        0x41; //이진수로 0100 0001임. 가운데 다섯개가 흰색인지..
 
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
@@ -117,13 +117,16 @@ vector_lane get_lane(recog_arg *arg) {
 
 recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
     static ctrlboard_byte_container container;
-    static uint8_t                  bitmask_left  = 0x7E; // 0111 1110 : left
-    static uint8_t                  bitmask_right = 0x3F; // 0011 1111 : right
+    static uint8_t                  bitmask_left  = 0x7C; // 0111 1100 : left
+    static uint8_t                  bitmask_right = 0x1F; // 0001 1111 : right
+    static uint8_t                  bitmask_left_inv = 0x03; // 0000 0011 : left
+    static uint8_t bitmask_right_inv = 0x60; // 0110 0000 : right
+
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_LANE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
-        if (container.c_uint8 == bitmask_left) {
+        if ((~container.c_uint8) & bitmask_left_inv) {
             return ON_LANE_LEFT;
-        } else if (container.c_uint8 == bitmask_right) {
+        } else if ((~container.c_uint8) & bitmask_right_inv) {
             return ON_LANE_RIGHT;
         } else {
             // printf("%d,%d\n", container.c_uint8, bitmask_right);
