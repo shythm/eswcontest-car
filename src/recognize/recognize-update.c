@@ -30,47 +30,26 @@ unsigned char *get_sample(recog_arg *arg) {
 
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
-
+#define IR_SENSOR_COUNT          7
+#define IR_ACTIVE_THRESHOLD      5
 // container.c_uint8의 LSB가 left, 검은색이 1 흰색이 0 마지막 안쓰는 MSB는 0으로
 // 고정
 bool get_is_on_stop_line(recog_arg *arg) {
     static ctrlboard_byte_container container;
-    static uint8_t                  stop_line =
-        0x41; //이진수로 0100 0001임. 가운데 다섯개가 흰색인지..
+    static uint8_t                  ir_active_cnt;
 
     if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
                        CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
-        if (container.c_uint8 == stop_line) {
+        ir_active_cnt = 0;
+        for (int i = 0; i < IR_SENSOR_COUNT; i++) {
+            if (!(container.c_uint8 & (0x01 << i))) ir_active_cnt++;
+        }
+
+        if (ir_active_cnt >= IR_ACTIVE_THRESHOLD) {
             return true;
         } else {
             return false;
         }
-        /*
-        printf("stop line raw data : ");
-        if (container.c_uint8 == stop_line) {
-            for (int i = 0; i < 8; i++) {
-                if (container.c_uint8 & 0x80) {
-                    printf("1 ");
-                } else {
-                    printf("0 ");
-                }
-                container.c_uint8 = container.c_uint8 << 1;
-            }
-            printf("\n");
-            return true;
-        } else {
-            for (int i = 0; i < 8; i++) {
-                if (container.c_uint8 & 0x80) {
-                    printf("1 ");
-                } else {
-                    printf("0 ");
-                }
-                container.c_uint8 = container.c_uint8 << 1;
-            }
-            printf("\n");
-            return false;
-        }
-    */
     } else {
         return false;
     }
