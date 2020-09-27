@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-bool detectTurnnel(recog_arg* arg);
+bool detectTurnnel(recog_arg *arg);
 
 #ifdef __cplusplus
 }

@@ -17,6 +17,7 @@
 
 /* include custom libraries */
 #include "ctrlboard-lib.h"
+#include "detect-turnnel.h"
 #include "recognize-lib.h"
 #include "recognize-update.h"
 #include "util.h"
@@ -73,6 +74,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update is_in_tunnel
     if (result->is_in_tunnel.enabled) {
+        result->is_in_tunnel.value = detectTurnnel(arg);
         // TODO: write your update function
     }
 
