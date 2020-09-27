@@ -97,7 +97,7 @@ typedef struct _recog_is_on_lane_data {
     bool               enabled;
     recog_is_on_lane_t value;
 } recog_is_on_lane_data;
-bool get_is_on_lane(recog_arg *arg);
+recog_is_on_lane_t get_is_on_lane(recog_arg *arg);
 
 // for is_on_slope data
 typedef struct _recog_is_on_slope_data {
