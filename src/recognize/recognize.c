@@ -36,46 +36,27 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_stop_line
-    // result->is_on_stop_line.enabled = true;
     if (result->is_on_stop_line.enabled) {
         result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
-    // printf("정지선 감지: %d \n", result->is_on_stop_line.value);
 
     // update is_on_end_point
-    // result->is_on_end_point.enabled = true;
     if (result->is_on_end_point.enabled) {
         result->is_on_end_point.value = get_is_on_end_point(arg);
     }
 
     // update traffic_light
     if (result->traffic_light.enabled) {
-        // TODO: write your update function
         result->traffic_light.value = get_traffic_light(arg);
     }
 
     // update lane
-    if (result->lane.enabled) {
-        // TODO: write your update function
-        result->lane.value = get_lane(arg);
-    }
+    if (result->lane.enabled) { result->lane.value = get_lane(arg); }
 
     // update is_on_lane
-    // result->is_on_lane.enabled = true;
     if (result->is_on_lane.enabled) {
         result->is_on_lane.value = get_is_on_lane(arg);
     }
-
-    /* test code
-    if (result->is_on_lane.value == ON_LANE_LEFT) {
-        printf("차선감지: Left\n");
-    } else if (result->is_on_lane.value == ON_LANE_RIGHT) {
-        printf("차선감지: Right\n");
-    } else {
-        printf("차선감지: None\n");
-    }
-    usleep(200000);
-    */
 
     // update is_on_slope
     if (result->is_on_slope.enabled) {
@@ -100,9 +81,6 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     // update stop_obstacle
     if (result->stop_obstacle.enabled) {
         result->stop_obstacle.value = get_stop_obstacle(arg);
-        // printf("%f %d %d\n", result->stop_obstacle.value.area,
-        //        result->stop_obstacle.value.pos_x,
-        //        result->stop_obstacle.value.pos_y);
     }
 
     // update is_there_car
@@ -359,9 +337,41 @@ void *update_psd_value(void *argv) {
     }
 }
 
+void *value_check(void *argv) {
+    /* get the shared memory from the pthread argument */
+    recog_result *shm      = (recog_result *)argv;
+    const int     delay_us = 100 * 1000;
+    char          str_buf[10];
+
+    /* Turn on recognition */
+    shm->is_on_stop_line.enabled = true;
+    shm->is_on_end_point.enabled = true;
+    shm->traffic_light.enabled   = true;
+    shm->lane.enabled            = true;
+    shm->is_on_lane.enabled      = true;
+    shm->stop_obstacle.enabled   = true;
+
+    /* Print the values */
+    for (;;) {
+        printf(" *** VALUE CHECK *** \n");
+        printf("is_on_stop_line: %d \n", shm->is_on_stop_line.value);
+        printf("is_on_end_point: %d \n", shm->is_on_end_point.value);
+        printf("traffic_light:   %d \n", shm->traffic_light.value);
+        printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f \n",
+               shm->lane.value.left_curv, shm->lane.value.left_pos,
+               shm->lane.value.right_curv, shm->lane.value.right_pos,
+               shm->lane.value.position);
+        printf("is_on_lane: %d \n", shm->is_on_lane.value);
+        printf("stop_obstacle: %d \n", shm->stop_obstacle.value);
+
+        usleep(delay_us);
+    }
+}
+
 int main(int argc, char **argv) {
     recog_result *shm_rr;
     pthread_t     thread_update_psd_value;
+    pthread_t     thread_value_check;
 
     /* Initialize a shared memory of recognition results */
     if (get_shm_recog_result(&shm_rr, 1) != 0) {
@@ -376,6 +386,13 @@ int main(int argc, char **argv) {
         return -1;
     }
     pthread_detach(thread_update_psd_value);
+
+    /* Thread for value check */
+    if (pthread_create(&thread_value_check, NULL, value_check, shm_rr)) {
+        ERROR("An error occurred while creating thread for value_check.");
+        return -1;
+    }
+    pthread_detach(thread_value_check);
 
     /* Do capture and recognize */
     recog_arg arg;
