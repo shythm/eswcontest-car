@@ -17,6 +17,7 @@
 
 /* include custom libraries */
 #include "ctrlboard-lib.h"
+#include "detect-end-zone.h"
 #include "recognize-lib.h"
 #include "recognize-update.h"
 #include "util.h"
@@ -35,13 +36,16 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_stop_line
+    // result->is_on_stop_line.enabled = true;
     if (result->is_on_stop_line.enabled) {
-        // TODO: write your update function
+        result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
+    // printf("정지선 감지: %d \n", result->is_on_stop_line.value);
 
     // update is_on_end_point
+    // result->is_on_end_point.enabled = true;
     if (result->is_on_end_point.enabled) {
-        // TODO: write your update function
+        result->is_on_end_point.value = get_is_on_end_point(arg);
     }
 
     // update traffic_light
@@ -57,9 +61,21 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_lane
+    // result->is_on_lane.enabled = true;
     if (result->is_on_lane.enabled) {
-        // TODO: write your update function
+        result->is_on_lane.value = get_is_on_lane(arg);
     }
+
+    /* test code
+    if (result->is_on_lane.value == ON_LANE_LEFT) {
+        printf("차선감지: Left\n");
+    } else if (result->is_on_lane.value == ON_LANE_RIGHT) {
+        printf("차선감지: Right\n");
+    } else {
+        printf("차선감지: None\n");
+    }
+    usleep(200000);
+    */
 
     // update is_on_slope
     if (result->is_on_slope.enabled) {
