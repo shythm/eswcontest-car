@@ -62,8 +62,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_slope
+    result->is_on_slope.enabled = true;
     if (result->is_on_slope.enabled) {
-        // TODO: write your update function
+        result->is_on_slope.value = get_is_on_slope(arg);
     }
 
     // update is_on_overpass
