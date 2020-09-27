@@ -17,6 +17,7 @@
 
 /* include custom libraries */
 #include "ctrlboard-lib.h"
+#include "detect-end-zone.h"
 #include "recognize-lib.h"
 #include "recognize-update.h"
 #include "util.h"
@@ -36,29 +37,25 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update is_on_stop_line
     if (result->is_on_stop_line.enabled) {
-        // TODO: write your update function
+        result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
 
     // update is_on_end_point
     if (result->is_on_end_point.enabled) {
-        // TODO: write your update function
+        result->is_on_end_point.value = get_is_on_end_point(arg);
     }
 
     // update traffic_light
     if (result->traffic_light.enabled) {
-        // TODO: write your update function
         result->traffic_light.value = get_traffic_light(arg);
     }
 
     // update lane
-    if (result->lane.enabled) {
-        // TODO: write your update function
-        result->lane.value = get_lane(arg);
-    }
+    if (result->lane.enabled) { result->lane.value = get_lane(arg); }
 
     // update is_on_lane
     if (result->is_on_lane.enabled) {
-        // TODO: write your update function
+        result->is_on_lane.value = get_is_on_lane(arg);
     }
 
     // update is_on_slope
@@ -84,9 +81,6 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     // update stop_obstacle
     if (result->stop_obstacle.enabled) {
         result->stop_obstacle.value = get_stop_obstacle(arg);
-        // printf("%f %d %d\n", result->stop_obstacle.value.area,
-        //        result->stop_obstacle.value.pos_x,
-        //        result->stop_obstacle.value.pos_y);
     }
 
     // update is_there_car
@@ -343,9 +337,43 @@ void *update_psd_value(void *argv) {
     }
 }
 
+void *value_check(void *argv) {
+    /* get the shared memory from the pthread argument */
+    recog_result *shm      = (recog_result *)argv;
+    const int     delay_us = 100 * 1000;
+    char          str_buf[10];
+
+    /* Turn on recognition */
+    shm->is_on_stop_line.enabled = true;
+    shm->is_on_end_point.enabled = true;
+    shm->traffic_light.enabled   = true;
+    shm->lane.enabled            = false;
+    shm->is_on_lane.enabled      = true;
+    shm->stop_obstacle.enabled   = true;
+
+    /* Print the values */
+    for (;;) {
+        printf(" *** VALUE CHECK *** \n");
+        printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
+        printf("is_on_end_point: %d \n", (int)(shm->is_on_end_point.value));
+        printf("traffic_light:   %d \n", shm->traffic_light.value);
+        printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f \n",
+               shm->lane.value.left_curv, shm->lane.value.left_pos,
+               shm->lane.value.right_curv, shm->lane.value.right_pos,
+               shm->lane.value.position);
+        printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
+        printf("stop_obstacle: a=%f x=%d y=%d \n",
+               shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
+               shm->stop_obstacle.value.pos_y);
+
+        usleep(delay_us);
+    }
+}
+
+// #define TURN_ON_VALUE_CHECK
+
 int main(int argc, char **argv) {
     recog_result *shm_rr;
-    pthread_t     thread_update_psd_value;
 
     /* Initialize a shared memory of recognition results */
     if (get_shm_recog_result(&shm_rr, 1) != 0) {
@@ -354,12 +382,23 @@ int main(int argc, char **argv) {
     }
 
     /* Get PSD data from I2C by thread */
+    pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
                        shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
         return -1;
     }
     pthread_detach(thread_update_psd_value);
+
+#ifdef TURN_ON_VALUE_CHECK
+    /* Thread for value check */
+    pthread_t thread_value_check;
+    if (pthread_create(&thread_value_check, NULL, value_check, shm_rr)) {
+        ERROR("An error occurred while creating thread for value_check.");
+        return -1;
+    }
+    pthread_detach(thread_value_check);
+#endif
 
     /* Do capture and recognize */
     recog_arg arg;
