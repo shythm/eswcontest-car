@@ -66,6 +66,7 @@ typedef enum _recog_traffic_light_t {
     TL_GREEN,
     TL_LEFT,
 } recog_traffic_light_t;
+
 typedef struct _recog_traffic_light_data {
     bool                  enabled;
     recog_traffic_light_t value;

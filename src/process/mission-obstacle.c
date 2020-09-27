@@ -22,6 +22,7 @@ void check_obstacle(State *state) {
     }
 }
 
+#define ONE_SHOT_COUNT 10
 void do_obstacle(State *state) {
     ctrlboard_byte_container container;
 
@@ -29,5 +30,7 @@ void do_obstacle(State *state) {
     send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &container);
 
     // block until the obstacle is disappear.
-    while (state->input->stop_obstacle.value.pos_x != -1) {}
+    for (int i = 0; i < ONE_SHOT_COUNT; i++) {
+        if (state->input->stop_obstacle.value.pos_x != -1) i = 0;
+    }
 }
