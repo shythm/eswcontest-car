@@ -347,31 +347,33 @@ void *value_check(void *argv) {
     shm->is_on_stop_line.enabled = true;
     shm->is_on_end_point.enabled = true;
     shm->traffic_light.enabled   = true;
-    shm->lane.enabled            = true;
+    shm->lane.enabled            = false;
     shm->is_on_lane.enabled      = true;
     shm->stop_obstacle.enabled   = true;
 
     /* Print the values */
     for (;;) {
         printf(" *** VALUE CHECK *** \n");
-        printf("is_on_stop_line: %d \n", shm->is_on_stop_line.value);
-        printf("is_on_end_point: %d \n", shm->is_on_end_point.value);
+        printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
+        printf("is_on_end_point: %d \n", (int)(shm->is_on_end_point.value));
         printf("traffic_light:   %d \n", shm->traffic_light.value);
         printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f \n",
                shm->lane.value.left_curv, shm->lane.value.left_pos,
                shm->lane.value.right_curv, shm->lane.value.right_pos,
                shm->lane.value.position);
-        printf("is_on_lane: %d \n", shm->is_on_lane.value);
-        printf("stop_obstacle: %d \n", shm->stop_obstacle.value);
+        printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
+        printf("stop_obstacle: a=%f x=%d y=%d \n",
+               shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
+               shm->stop_obstacle.value.pos_y);
 
         usleep(delay_us);
     }
 }
 
+// #define TURN_ON_VALUE_CHECK
+
 int main(int argc, char **argv) {
     recog_result *shm_rr;
-    pthread_t     thread_update_psd_value;
-    pthread_t     thread_value_check;
 
     /* Initialize a shared memory of recognition results */
     if (get_shm_recog_result(&shm_rr, 1) != 0) {
@@ -380,6 +382,7 @@ int main(int argc, char **argv) {
     }
 
     /* Get PSD data from I2C by thread */
+    pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
                        shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
@@ -387,12 +390,15 @@ int main(int argc, char **argv) {
     }
     pthread_detach(thread_update_psd_value);
 
+#ifdef TURN_ON_VALUE_CHECK
     /* Thread for value check */
+    pthread_t thread_value_check;
     if (pthread_create(&thread_value_check, NULL, value_check, shm_rr)) {
         ERROR("An error occurred while creating thread for value_check.");
         return -1;
     }
     pthread_detach(thread_value_check);
+#endif
 
     /* Do capture and recognize */
     recog_arg arg;
