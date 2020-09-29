@@ -41,7 +41,7 @@ void *control_thread(void *argv) {
     int                      ret;
     thread_data *            thr_data = (thread_data *)argv;
     ctrlboard_byte_container container;
-    short                    speed, steering;
+    short                    speed, steering, cam_servo_x, cam_servo_y;
     unsigned char            gain;
     int                      desire_encoder, key_code;
 
@@ -80,7 +80,7 @@ void *control_thread(void *argv) {
     }
 
     // PositionProportionPoint_Write(gain);
-    gain              = 10;
+    gain              = 7;
     container.c_uint8 = gain;
     if ((ret = comm_ctrlboard(thr_data->ctrl, msg_id,
                               CMD_POSITION_PROPORTION_POINT, CMD_TYPE_WRITE, 1,
@@ -103,6 +103,30 @@ void *control_thread(void *argv) {
         return NULL;
     }
 
+    // set camera servo x
+    cam_servo_x       = 1500;
+    container.c_int16 = cam_servo_x;
+    if ((ret = comm_ctrlboard(thr_data->ctrl, msg_id,
+                              CMD_CAMERA_X_SERVO_CONTROL, CMD_TYPE_WRITE, 2,
+                              &container) == MSG_STATE_SUCCESS)) {
+        printf("Set camera servo x: %d \n", cam_servo_x);
+    } else {
+        printf("Failed to set camera servo x (Errno: %d) \n", ret);
+        return NULL;
+    }
+
+    // set camera servo y
+    cam_servo_y       = 1500;
+    container.c_int16 = cam_servo_y;
+    if ((ret = comm_ctrlboard(thr_data->ctrl, msg_id,
+                              CMD_CAMERA_Y_SERVO_CONTROL, CMD_TYPE_WRITE, 2,
+                              &container) == MSG_STATE_SUCCESS)) {
+        printf("Set camera servo y: %d \n", cam_servo_y);
+    } else {
+        printf("Failed to set camera servo y (Errno: %d) \n", ret);
+        return NULL;
+    }
+
     printf("Initializing wasd process is success! \n");
 
     static long count = 0;
@@ -118,10 +142,10 @@ void *control_thread(void *argv) {
 
         switch (key_code) {
         case 'w': // w (go forward)
-            desire_encoder += 400;
+            desire_encoder += 200;
             break;
         case 's': // s (go back)
-            desire_encoder -= 400;
+            desire_encoder -= 200;
             break;
         case 'a': // a (left handling)
             steering += 100;
@@ -131,8 +155,23 @@ void *control_thread(void *argv) {
             steering -= 100;
             if (steering < 1000) steering = 1000;
             break;
+        case ';': // camera servo down
+            cam_servo_y += 50;
+            if (cam_servo_y > 1800) cam_servo_y = 1800;
+            break;
+        case 'p': // camera servo up
+            cam_servo_y -= 50;
+            if (cam_servo_y < 1200) cam_servo_y = 1200;
+            break;
+        case 'l': // camera servo left
+            cam_servo_x += 50;
+            if (cam_servo_x > 2400) cam_servo_x = 2400;
+            break;
+        case '\'': // camera servo right
+            cam_servo_x -= 50;
+            if (cam_servo_x < 600) cam_servo_x = 600;
+            break;
         }
-
         // Desire Encoder Count
         container.c_int32 = desire_encoder;
         send_ctrlboard(thr_data->ctrl, CMD_DESIRE_ENCODER_COUNT, 4, &container);
@@ -140,6 +179,16 @@ void *control_thread(void *argv) {
         // Steering Servo
         container.c_int16 = steering;
         send_ctrlboard(thr_data->ctrl, CMD_STEERING_SERVO_CONTROL, 2,
+                       &container);
+
+        // Set camera sevro x
+        container.c_int16 = cam_servo_x;
+        send_ctrlboard(thr_data->ctrl, CMD_CAMERA_X_SERVO_CONTROL, 2,
+                       &container);
+
+        // Set camera servo y
+        container.c_int16 = cam_servo_y;
+        send_ctrlboard(thr_data->ctrl, CMD_CAMERA_Y_SERVO_CONTROL, 2,
                        &container);
     }
 }

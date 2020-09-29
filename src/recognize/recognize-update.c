@@ -1,5 +1,7 @@
 #include "recognize-update.h"
 #include "ctrlboard-lib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /* START OF get_sample SECTION */
 #define RECOG_ID_GET_SAMPLE 101L
@@ -28,14 +30,36 @@ unsigned char *get_sample(recog_arg *arg) {
 
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
+#define IR_SENSOR_COUNT          7
+#define IR_ACTIVE_THRESHOLD      5
+// container.c_uint8의 LSB가 left, 검은색이 1 흰색이 0 마지막 안쓰는 MSB는 0으로
+// 고정
+bool get_is_on_stop_line(recog_arg *arg) {
+    static ctrlboard_byte_container container;
+    static uint8_t                  ir_active_cnt;
 
-bool get_is_on_stop_line(recog_arg *arg) { return false; }
+    if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_STOP_LINE, CMD_LINE_SENSOR,
+                       CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
+        ir_active_cnt = 0;
+        for (int i = 0; i < IR_SENSOR_COUNT; i++) {
+            if (!(container.c_uint8 & (0x01 << i))) ir_active_cnt++;
+        }
+
+        if (ir_active_cnt >= IR_ACTIVE_THRESHOLD) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
 /* END OF get_is_on_stop_line SECTION */
 
 /* START OF get_is_on_end_point SECTION */
 #define RECOG_ID_IS_ON_END_POINT 103L
-
-bool get_is_on_end_point(recog_arg *arg) { return false; }
+#include "detect-end-zone.h"
+bool get_is_on_end_point(recog_arg *arg) { return detectEndZone(arg); }
 /* END OF get_is_on_end_point SECTION */
 
 /* START OF get_traffic_light SECTION */
@@ -70,7 +94,27 @@ vector_lane get_lane(recog_arg *arg) {
 /* START OF is_on_lane SECTION */
 #define RECOG_ID_IS_ON_LANE 106L
 
-bool get_is_on_lane(recog_arg *arg) { return false; }
+recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
+    static ctrlboard_byte_container container;
+    static uint8_t                  bitmask_left  = 0x7C; // 0111 1100 : left
+    static uint8_t                  bitmask_right = 0x1F; // 0001 1111 : right
+    static uint8_t                  bitmask_left_inv = 0x03; // 0000 0011 : left
+    static uint8_t bitmask_right_inv = 0x60; // 0110 0000 : right
+
+    if (comm_ctrlboard(arg->ctrl, RECOG_ID_IS_ON_LANE, CMD_LINE_SENSOR,
+                       CMD_TYPE_READ, 1, &container) == MSG_STATE_SUCCESS) {
+        if ((~container.c_uint8) & bitmask_left_inv) {
+            return ON_LANE_LEFT;
+        } else if ((~container.c_uint8) & bitmask_right_inv) {
+            return ON_LANE_RIGHT;
+        } else {
+            // printf("%d,%d\n", container.c_uint8, bitmask_right);
+            return ON_LANE_NONE;
+        }
+    } else {
+        return ON_LANE_NONE;
+    }
+}
 /* END OF is_on_lane SECTION */
 
 /* START OF is_on_slope SECTION */
