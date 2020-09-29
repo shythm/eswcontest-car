@@ -89,7 +89,9 @@ bool get_is_on_overpass(recog_arg *arg) { return false; }
 #define RECOG_ID_IS_IN_TUNNEL 109L
 
 #include "detect-turnnel.h"
-bool get_is_in_tunnel(recog_arg *arg) { return detectTurnnel(arg); }
+bool get_is_in_tunnel(recog_arg *arg) {
+    comm_ctrlboard(arg->ctrl, RECOG_ID_IS_IN_TUNNEL, CMD_CAMERA_Y_SERVO_CONTROL, CMD_TYPE_WRITE, 2, 1500);
+    return detectTurnnel(arg); }
 /* END OF is_in_tunnel SECTION */
 
 /* START OF curr_velocity SECTION */

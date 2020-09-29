@@ -73,8 +73,10 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_in_tunnel
+    result->is_in_tunnel.enabled = true;
     if (result->is_in_tunnel.enabled) {
         result->is_in_tunnel.value = detectTurnnel(arg);
+
         // TODO: write your update function
     }
 
