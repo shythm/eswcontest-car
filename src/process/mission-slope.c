@@ -8,7 +8,7 @@ void climb_slope(State *state) {
 
 void check_slope(State *state) {
     if (state->input->is_on_slope.value) {
-        // state->missions.slope.priority = 1;
+        state->missions.slope.priority = 1;
         state->missions.slope.function = climb_slope;
     }
 }

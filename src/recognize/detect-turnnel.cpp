@@ -43,4 +43,5 @@ bool detectTurnnel(recog_arg *arg) {
     // total_mean_frame = (total_mean_frame + cur_mean_frame) / 2;
 
     //평균 값보다 일정 값 이상 어두워지면 터널 진입으로 판단.
+    return 1;
 }
