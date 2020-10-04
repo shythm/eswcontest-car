@@ -92,19 +92,30 @@ void lineY(Point p1, Point p2, Point2f *a) {
 
 Point dotY(float y, Point2f a) { return Point(y * a.x + a.y, y); }
 
-bool init     = true;
-int  laneL    = 0;
-int  laneR    = sizeSmall.width - 1;
-int  dist     = 24;
-int  ScoreMin = -16;
+typedef struct _LaneAnalysis {
+    bool init     = true;
+    int  laneL    = 0;
+    int  laneR    = sizeSmall.width - 1;
+    int  dist     = 24;
+    int  ScoreMin = -16;
+} LaneAnalysis;
 
-void update(vector<int> dots) {
+LaneAnalysis lAnalysis[2];
+
+enum LaneType {
+    ONLY_WITH_YELLOW = 0,
+    WITH_YELLOW_AND_WHITE = 1
+};
+
+void update(vector<int> dots, LaneType lType) {
+    LaneAnalysis& analy = lAnalysis[lType];
+
     int lScoreMax = -9999;
     int rScoreMax = -9999;
     int lScore, rScore, nl, nr;
     for (int dot : dots) {
-        lScore = -abs(dot - laneL);
-        rScore = -abs(dot - laneR);
+        lScore = -abs(dot - analy.laneL);
+        rScore = -abs(dot - analy.laneR);
         // cout << dot << "," << laneL << "," << laneR << endl;
         if (lScore > lScoreMax) {
             lScoreMax = lScore;
@@ -116,36 +127,92 @@ void update(vector<int> dots) {
         }
     }
 
-    bool detectL = lScoreMax > ScoreMin;
-    bool detectR = rScoreMax > ScoreMin;
+    bool detectL = lScoreMax > analy.ScoreMin;
+    bool detectR = rScoreMax > analy.ScoreMin;
 
-    if (init) {
-        if (detectL && detectR) { ScoreMin++; }
-        if (ScoreMin = -8) init = false;
+    if (analy.init) {
+        if (detectL && detectR) { analy.ScoreMin++; }
+        if (analy.ScoreMin = -8) analy.init = false;
     }
     if (!detectL && !detectR) {
-        nl = laneL;
-        nr = laneR;
+        nl = analy.laneL;
+        nr = analy.laneR;
     }
     if (!detectL || !detectR) {
-        if (detectR) { nl = nr - dist; }
-        if (detectL) { nr = nl + dist; }
+        if (detectR) { nl = nr - analy.dist; }
+        if (detectL) { nr = nl + analy.dist; }
     }
 
-    laneL = nl;
-    laneR = nr;
+    analy.laneL = nl;
+    analy.laneR = nr;
+}
+
+// If display is null, this function doesn't copy processed image to display.
+float getLanePosition(Mat& img, Mat& mask, unsigned char *display, int& detectLinePos, LaneType lType) {
+    Mat imgClone = img.clone();
+    Mat maskClone = mask.clone();
+    
+    cvtColor(maskClone, maskClone, COLOR_GRAY2BGR);
+    bitwise_and(imgClone, maskClone, imgClone);
+    threshold(imgClone, maskClone, 1, 255, THRESH_BINARY_INV);
+
+    cvtColor(imgClone, imgClone, COLOR_RGB2GRAY);
+
+    vector<int> dots;
+    uchar *     row = imgClone.ptr(detectLinePos);
+    for (int i = 0; i < sizeSmall.width; i++)
+        if (row[i]) { dots.push_back(i); }
+    update(dots, lType);
+    // cout << laneL << "," << laneR << endl;
+
+    // Restore colorspace
+    cvtColor(imgClone, imgClone, COLOR_GRAY2BGR);
+
+    row = imgClone.ptr(detectLinePos);
+    for (int i = 0; i < sizeSmall.width; i++) {
+        if (row[i * 3]) {
+            row[i * 3]     = 0;
+            row[i * 3 + 1] = 0;
+        } else {
+            row[i * 3] = 255;
+        }
+    }
+
+    LaneAnalysis& analy = lAnalysis[lType];
+
+    if (analy.laneL >= 0 || analy.laneL < sizeSmall.width) {
+        row[analy.laneL * 3 + 0] = 0;
+        row[analy.laneL * 3 + 1] = 255;
+        row[analy.laneL * 3 + 2] = 255;
+    }
+
+    if (analy.laneR >= 0 || analy.laneR < sizeSmall.width) {
+        row[analy.laneR * 3 + 0] = 255;
+        row[analy.laneR * 3 + 1] = 255;
+        row[analy.laneR * 3 + 2] = 0;
+    }
+
+    // Copy processed image to display
+    if (display) {
+        // Restore size
+        resize(imgClone, imgClone, sizeOrigin, INTER_NEAREST);
+        copy(imgClone.data, imgClone.data + W * H * 3, display);
+    }
+
+    return -(analy.laneL + analy.laneR - sizeSmall.width);
 }
 
 void detectLane(recog_arg *arg, vector_lane *result) {
     static bool init = true;
     static Mat  M, mask;
-    static int  detectLinePos;
+    static int  detectLinePos, detectLinePosWithWhite;
     if (init) {
         init = false;
         cout << sizeOrigin << "," << sizeSmall << endl;
         Point2f pts[4];
         getRoiPerspectiveTransform(&M, pts);
-        detectLinePos = sizeSmall.height * detectLineRatio;
+        detectLinePos           = sizeSmall.height * detectLineRatio;
+        detectLinePosWithWhite  = sizeSmall.height * detectLineRatio;
     }
 
     // Copy image and wrap raw data with Mat object
@@ -167,48 +234,13 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     bitwise_and(hsv[0] > hc - he, hsv[0] < hc + he, mask);
     bitwise_and(hsv[1] >= 50, mask, mask);
 
-    cvtColor(mask, mask, COLOR_GRAY2BGR);
-    bitwise_and(img, mask, img);
-    threshold(img, mask, 1, 255, THRESH_BINARY_INV);
+    // Detect white lanes
+    Mat whiteMask = hsv[0] >= 0;
+    bitwise_and(hsv[1] >= 0, hsv[1] <= 40, whiteMask);
+    bitwise_and(hsv[2] > 200, whiteMask, whiteMask);
+    bitwise_and(hsv[2] <= 255, whiteMask, whiteMask);
+    bitwise_or(whiteMask, mask, whiteMask);
 
-    cvtColor(img, img, COLOR_RGB2GRAY);
-
-    vector<int> dots;
-    uchar *     row = img.ptr(detectLinePos);
-    for (int i = 0; i < sizeSmall.width; i++)
-        if (row[i]) { dots.push_back(i); }
-    update(dots);
-    // cout << laneL << "," << laneR << endl;
-
-    // Restore colorspace
-    cvtColor(img, img, COLOR_GRAY2BGR);
-
-    row = img.ptr(detectLinePos);
-    for (int i = 0; i < sizeSmall.width; i++) {
-        if (row[i * 3]) {
-            row[i * 3]     = 0;
-            row[i * 3 + 1] = 0;
-        } else {
-            row[i * 3] = 255;
-        }
-    }
-    if (laneL >= 0 || laneL < sizeSmall.width) {
-        row[laneL * 3 + 0] = 0;
-        row[laneL * 3 + 1] = 255;
-        row[laneL * 3 + 2] = 255;
-    }
-
-    if (laneR >= 0 || laneR < sizeSmall.width) {
-        row[laneR * 3 + 0] = 255;
-        row[laneR * 3 + 1] = 255;
-        row[laneR * 3 + 2] = 0;
-    }
-
-    // Restore size
-    resize(img, img, sizeOrigin, INTER_NEAREST);
-
-    // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
-
-    result->position = -(laneL + laneR - sizeSmall.width);
+    result->position = getLanePosition(img, mask, nullptr, detectLinePos, ONLY_WITH_YELLOW);
+    result->position_with_white = getLanePosition(img, whiteMask, arg->display_input, detectLinePosWithWhite, WITH_YELLOW_AND_WHITE);
 }
