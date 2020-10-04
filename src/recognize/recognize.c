@@ -357,10 +357,10 @@ void *value_check(void *argv) {
         printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
         printf("is_on_end_point: %d \n", (int)(shm->is_on_end_point.value));
         printf("traffic_light:   %d \n", shm->traffic_light.value);
-        printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f \n",
+        printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f pos_with_white \n",
                shm->lane.value.left_curv, shm->lane.value.left_pos,
                shm->lane.value.right_curv, shm->lane.value.right_pos,
-               shm->lane.value.position);
+               shm->lane.value.position, shm->lane.value.position_with_white);
         printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,

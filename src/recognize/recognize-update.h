@@ -80,6 +80,7 @@ typedef struct _vector_lane {
     float right_pos;
     float right_curv;
     float position;
+    float position_with_white;
 } vector_lane;
 typedef struct _recog_lane_data {
     bool        enabled;
