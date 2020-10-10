@@ -1,6 +1,8 @@
 #ifndef _RECOGNIZE_UPDATE_H
 #define _RECOGNIZE_UPDATE_H
 
+#include "ctrlboard-lib.h"
+#include "recognize-lib.h"
 #include "util.h"
 #include <stdbool.h>
 
@@ -18,8 +20,6 @@
 #define OVERLAY_DISP_W     480
 #define OVERLAY_DISP_H     272
 
-#include "ctrlboard-lib.h"
-
 /*
  * This is source data for recognition. This is only for recognition
  * process.
@@ -28,6 +28,7 @@ typedef struct _recog_arg {
     mqid_ctrl      ctrl;
     unsigned char  camera_output[VPE_OUTPUT_IMG_SIZE];
     unsigned char *display_input;
+    recog_result * shm_rr;
 } recog_arg;
 
 /******************************************************/
