@@ -1,5 +1,5 @@
-#include "recognize-update.h"
 #include "ctrlboard-lib.h"
+#include "recognize-lib.h"
 
 /* START OF get_sample SECTION */
 #define RECOG_ID_GET_SAMPLE 101L
