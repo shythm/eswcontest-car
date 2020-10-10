@@ -1,6 +1,6 @@
 #ifndef _LANE_DETECTION
 #define _LANE_DETECTION
-#include "recognize-update.h"
+#include "recognize-lib.h"
 
 #ifdef __cplusplus
 extern "C" {

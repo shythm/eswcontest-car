@@ -24,7 +24,8 @@ void init_drive(State *state) {
     if (command(CMD_SPEED_PID_DIFFERENTAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    state->input->lane.enabled = true;
+    state->input->lane.enabled    = true;
+    state->input->lane.initialize = true;
 
     printf("Initialize finished.\n");
 
