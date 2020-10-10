@@ -51,7 +51,7 @@ void do_roundabout(State *state) {
     clock_t exitedCurve = -1;
 
     while (exitedCurve == -1 || (clock() - exitedCurve) / CLOCKS_PER_SEC < 1) {
-        if (state->input->psd.value[PSD_FRONT] < 29)
+        if (state->input->psd.value[PSD_FRONT] < 29 || state->input->psd.value[PSD_LEFT_1] < 29)
             command(CMD_DESIRE_SPEED, 0);
         else
             go_forward(state->input, &error_sum, &steering, &velocity);
@@ -69,7 +69,6 @@ void do_roundabout(State *state) {
         }
     }
 
-    printf("bye");
     fflush(stdout);
 }
 
