@@ -1,6 +1,6 @@
 #include "detect-end-zone.h"
 // #include "draw-txt.h"
-#include "recognize-update.h"
+#include "recognize-lib.h"
 #include <algorithm>
 #include <numeric>
 #include <opencv2/opencv.hpp>
@@ -30,9 +30,7 @@ bool detectEndZone(recog_arg *arg) {
     for (int i = 0; i < VPE_OUTPUT_H; i++) {
         if (CUT_START <= i && i <= CUT_END) continue;
         uchar *row = src_img.ptr<uchar>(i);
-        for (int j = 0; j < VPE_OUTPUT_W * 3; j++) {
-            row[j] = 0;
-        }
+        for (int j = 0; j < VPE_OUTPUT_W * 3; j++) { row[j] = 0; }
     }
 
     //노란색으로 이미지 마스킹하기

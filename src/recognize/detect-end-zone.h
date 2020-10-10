@@ -1,6 +1,6 @@
 #ifndef DETECT_DETECT_END_ZONE_H_
 #define DETECT_DETECT_END_ZONE_H_
-#include "recognize-update.h"
+#include "recognize-lib.h"
 // #include "draw-txt.h"
 
 #ifdef __cplusplus
