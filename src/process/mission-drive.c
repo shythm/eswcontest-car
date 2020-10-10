@@ -6,6 +6,7 @@ typedef ctrlboard_byte_container container;
 void do_drive(State *state);
 
 void init_drive(State *state) {
+    return;
     if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1700) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
@@ -63,7 +64,7 @@ void init_drive(State *state) {
 }
 
 void check_drive(State *state) {
-    state->missions.drive.priority = 1;
+    // state->missions.drive.priority = 1;
     state->missions.drive.function = do_drive;
 }
 

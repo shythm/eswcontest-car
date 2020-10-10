@@ -1,55 +1,74 @@
 #include "ctrlboard-lib.h"
 #include "process.h"
+#include "psd-driving.h"
+
 typedef ctrlboard_byte_container container;
-void                             do_overpass(State *state);
+
+void   do_overpass(State *state);
+int    callback();
+State *st; // for callback function
 
 void init_overpass(State *state) {
-    ctrlboard_byte_container container;
-#if 1
-    if (command(CMD_POSITION_CONTROL_ON_OFF, 0))
-        printf("Overpass Init Fail 1 \n");
+    state->input->is_on_overpass.enabled = true;
+    state->missions.overpass.function    = do_overpass;
 
-    if (command(CMD_SPEED_CONTROL_ON_OFF, 1)) printf("Overpass Init Fail 2 \n");
-
-    if (command(CMD_SPEED_PID_PROPORTIONAL, 20))
-        printf("Overpass Init Fail 3 \n");
-
-    if (command(CMD_SPEED_PID_INTEGRAL, 20)) printf("Overpass Init Fail 4 \n");
-
-    if (command(CMD_SPEED_PID_DIFFERENTAL, 20))
-        printf("Overpass Init Fail 4 \n");
-#endif
+    st = state; // for callback function
 }
 
 void check_overpass(State *state) {
-    state->missions.overpass.priority = 2;
-    state->missions.overpass.function = do_overpass;
+    if (state->input->is_on_overpass.value) {
+        state->missions.overpass.priority = 2;
+    }
 }
 
-#define GAIN_P          80.0f
-#define TARGET_STEERING 1500
+#define GAIN_P     40.0f
+#define VELO       120
+#define VELO_SLOPE 40
+
 void do_overpass(State *state) {
-    container  data;
-    psd_data_t fL, fR; // front Left and Right
-    short      position;
+    // drive with psd sensors and block until callback function returns true
+    psd_driving(state->ctrl, state->input, VELO, GAIN_P, callback);
+}
 
-    data.c_int16 = 100;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
+#define PSD_EXIT_THRESHOLD PSD_DISTANCE_MAX - 1.f
+int callback() {
+    static bool  init    = true;
+    static bool  init_sd = true;
+    static bool  slope   = false;
+    static float pL;
+    static float pR;
+    int          ret = 0;
 
-    for (;;) {
-        fL = state->input->psd.value[PSD_LEFT_1];
-        fR = state->input->psd.value[PSD_RIGHT_1];
-
-        position     = GAIN_P * (fL - fR);
-        data.c_int16 = TARGET_STEERING + (short)position;
-        if (data.c_int16 > 2000) {
-            data.c_int16 = 2000;
-        } else if (data.c_int16 < 1000) {
-            data.c_int16 = 1000;
-        }
-        send_ctrlboard(state->ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data);
-
-        usleep(10 * 1000);
-        // printf("%f %f \n", fL, fR);
+    if (init) {
+        st->input->is_on_slope.enabled = true;
+        command(CMD_CAMERA_X_SERVO_CONTROL, 1500);
+        command(CMD_CAMERA_Y_SERVO_CONTROL, 1725);
+        init = false;
     }
+    if (!slope) {
+        // When you detect the slope at least once.
+        slope = st->input->is_on_slope.value;
+    }
+
+    if (slope) {
+        if (init_sd) {
+            command(CMD_DESIRE_SPEED, VELO_SLOPE);
+            init_sd = false;
+        }
+
+        pL = st->input->psd.value[PSD_LEFT_1];
+        pR = st->input->psd.value[PSD_RIGHT_1];
+        if (pL > PSD_EXIT_THRESHOLD && pR > PSD_EXIT_THRESHOLD) {
+            st->input->is_on_slope.enabled = false;
+
+            // init variables
+            init    = true;
+            init_sd = true;
+            slope   = false;
+            // When both psds are not blocked
+            ret = 1;
+        }
+    }
+
+    return ret;
 }

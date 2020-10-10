@@ -41,7 +41,12 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r) {
     return true;
 }
 
-#define INTER_Y_THRES 60
+double getLineSlope(Point2f p1, Point2f p2) {
+    double w = p2.x - p1.x;
+    double h = p1.y - p2.y;
+
+    return h / w;
+}
 
 bool detectSlope(recog_arg *arg) {
     unsigned char *cam_out = new unsigned char[IMG_SIZE];
@@ -98,20 +103,31 @@ bool detectSlope(recog_arg *arg) {
         Point2f p2(line_r[2], line_r[3]);
         intersection(o1, p1, o2, p2, r);
 
-        // y 좌표의 절댓값이 일정 수준 이상이면 경사로로 판단
-        cout << r.y << endl;
-        if (r.y <= -INTER_Y_THRES) ret = true;
+        if (getLineSlope(o1, p1) * getLineSlope(o2, p2) < 0) {
+            // 두 직선의 기울기의 곱이 음수일 때 (커브길 판단 제외, 커브길에는
+            // 두 직선의 기울기의 곱이 양수임)
+            if (r.y > 0) {
+                // 교점 y 좌표의 절댓값이 0보다 크면 경사로로 판단
+                // (일반적인 차선에서는 교점 y좌표의 절댓값이 0보다 작음)
+                ret = true;
+            }
+        }
     }
 
     // 검출 정보 화면 출력
     cvtColor(frame, frame, COLOR_GRAY2BGR);
-#if 0
+#if 1
     if (r.dot(Point2f(1, 1))) {
         putText(frame, to_string(r.x), Point(25, 25), FONT_HERSHEY_SIMPLEX, 1,
                 Scalar(255, 255, 255), 2);
         putText(frame, to_string(r.y), Point(25, 60), FONT_HERSHEY_SIMPLEX, 1,
                 Scalar(255, 255, 255), 2);
         line(frame, r, r, Scalar(0, 0, 255), 10);
+    }
+
+    if (ret) {
+        putText(frame, "slope!", Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
+                Scalar(255, 255, 255), 2);
     }
 
     if (line_l.dot(Vec4i(1, 1, 1, 1))) {

@@ -66,10 +66,26 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->is_on_slope.enabled) {
         result->is_on_slope.value = get_is_on_slope(arg);
     }
+    // printf("slp: %d \n", result->is_on_slope.value);
 
     // update is_on_overpass
     if (result->is_on_overpass.enabled) {
-        // TODO: write your update function
+        static float pL, pR;
+        bool         ret;
+
+        if (result->psd.valid) {
+            pL = result->psd.value[PSD_LEFT_1];
+            pR = result->psd.value[PSD_RIGHT_1];
+            if (pL < 20.0f && pR < 20.0f) {
+                ret = true;
+            } else {
+                ret = false;
+            }
+        } else {
+            ret = false;
+        }
+
+        result->is_on_overpass.value = ret;
     }
 
     // update is_in_tunnel
@@ -231,7 +247,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 /* define I2C & PSD constants */
 #define PSD_I2C_DEVICE   "/dev/i2c-2"
 #define PSD_I2C_BUF_SIZE 8
-#define PSD_I2C_DELAY_US 2000
+#define PSD_I2C_DELAY_US 1000
 
 #define PSD_CMD_FRONT   0x8C
 #define PSD_CMD_RIGHT_1 0xCC
@@ -239,9 +255,6 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_CMD_BACK    0xDC
 #define PSD_CMD_LEFT_2  0xAC
 #define PSD_CMD_LEFT_1  0xEC
-
-#define PSD_DISTANCE_MIN 4.0f
-#define PSD_DISTANCE_MAX 30.0f
 
 #define PSD_MEDIAN_SAMPLE_SIZE 3
 
@@ -341,6 +354,7 @@ void *update_psd_value(void *argv) {
 
         // Third, update the psd value of the shared memory
         memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+        result->psd.valid = true;
     }
 }
 

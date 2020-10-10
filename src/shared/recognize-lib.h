@@ -18,8 +18,11 @@
 #define PSD_LEFT_2  4
 #define PSD_LEFT_1  5
 typedef float psd_data_t;
+#define PSD_DISTANCE_MIN 4.0f
+#define PSD_DISTANCE_MAX 30.0f
 typedef struct _recog_psd_data {
     psd_data_t value[PSD_COUNT];
+    bool       valid;
 } recog_psd_data;
 
 /*
