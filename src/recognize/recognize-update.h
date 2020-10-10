@@ -83,6 +83,7 @@ typedef struct _vector_lane {
 } vector_lane;
 typedef struct _recog_lane_data {
     bool        enabled;
+    bool        initialize;
     vector_lane value;
 } recog_lane_data;
 vector_lane get_lane(recog_arg *arg);
