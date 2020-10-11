@@ -4,6 +4,7 @@ void do_overtaking(State *state) {}
 
 void init_overtaking(State *state) {
     state->input->is_on_stop_line.enabled = true;
+    state->input->is_there_car.enabled    = true;
     state->missions.overtaking.function   = do_overtaking;
 }
 

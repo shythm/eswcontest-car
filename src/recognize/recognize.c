@@ -84,7 +84,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
 
     // update is_there_car
     if (result->is_there_car.enabled) {
-        // TODO: write your update function
+        result->is_there_car.data = get_is_there_car(arg);
     }
 }
 
@@ -384,7 +384,8 @@ int main(int argc, char **argv) {
     pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
                        shm_rr)) {
-        ERROR("An error occurred while creating thread for update_psd_value.");
+        ERROR("An error occurred while creating thread for "
+              "update_psd_value.");
         return -1;
     }
     pthread_detach(thread_update_psd_value);
