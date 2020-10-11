@@ -19,7 +19,6 @@
 #include "ctrlboard-lib.h"
 #include "detect-end-zone.h"
 #include "recognize-lib.h"
-#include "recognize-update.h"
 #include "util.h"
 
 /* include capture libraries */
@@ -402,6 +401,7 @@ int main(int argc, char **argv) {
 
     /* Do capture and recognize */
     recog_arg arg;
+    arg.shm_rr = shm_rr;
 
     // Get message queue id of ctrlboard process
     if (get_mqid_ctrl(&arg.ctrl) == -1) {
