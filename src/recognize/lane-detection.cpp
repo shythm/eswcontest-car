@@ -24,11 +24,10 @@ const Size sizeOrigin = Size(VPE_OUTPUT_W, VPE_OUTPUT_H);
 const Size sizeSmall  = Size(VPE_OUTPUT_W / 8, VPE_OUTPUT_H / 8);
 
 const double vanish    = 0;   // Y position of vanish point
-const double range     = 300; //
-const double viewRange = 0.4; // Region of interest, higher, closer(crop reverse
-                              // perspective transformed image)
-
-const float detectLineRatio = 0.45;
+const double range     = 300; // TEST
+const double viewRange = 0.4; // ROI, higher, closer(crop image)
+const float  detectLineRatio =
+    0.45; // Detection line position. If 0, top, if 1, bottom.
 
 void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     // Vanish와 range가 주어질 때, y좌표에 따른 x좌표를 계산해보자.
@@ -57,39 +56,6 @@ void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
 
     *M = getPerspectiveTransform(src, dst);
 }
-
-bool isInRange(Point x) { return x.x >= 0 && x.y >= 0 && x.x < W && x.y < H; }
-
-void extremum(vector<Point> *contour, int *size, Point *top, Point *bottom) {
-    int maxX = 0, maxY = 0, minX = W * H, minY = W * H;
-    for (Point p : *contour) {
-        maxX = max(maxX, p.x);
-        minX = min(minX, p.x);
-        if (p.y > maxY) {
-            maxY = p.y;
-            *top = p;
-        }
-        if (p.y < minY) {
-            minY    = p.y;
-            *bottom = p;
-        }
-    }
-    *size = (maxX - minX) * (maxY - minY);
-}
-
-void lineY(Point p1, Point p2, Point2f *a) {
-    // let a = dx/dy
-    // x-x1 = (y-y1)*a
-    // :. x = (y-y1)*a+x1
-    // :. x = a*y - y1*a + x1
-    // :. x = a*y x1 - y1*a
-    float dy = p2.y - p1.y;
-    float dx = p2.x - p1.x;
-    a->x     = dx / dy;
-    a->y     = p1.x - a->x * p1.y;
-}
-
-Point dotY(float y, Point2f a) { return Point(y * a.x + a.y, y); }
 
 const int dist               = 24;
 const int maxDetectThreshold = -8;
@@ -236,6 +202,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
             row[i * 3] = 255;
         }
     }
+
     if (detectionInfo.laneL >= 0 || detectionInfo.laneL < sizeSmall.width) {
         row[detectionInfo.laneL * 3 + 0] = 0;
         row[detectionInfo.laneL * 3 + 1] = 255;
