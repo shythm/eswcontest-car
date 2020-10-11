@@ -1,5 +1,6 @@
 #include "lane-detection.h"
 #include "mask-thresh.h"
+#include <math.h>
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
 
@@ -74,26 +75,28 @@ void init_detection_info(Detection_Info *di) {
     di->scoreThreshold = -16;
 }
 
-void update(vector<int> dots, Detection_Info *di) {
-    int lScoreMax = -9999;
-    int rScoreMax = -9999;
-    int lScore, rScore, posL, posR;
+void update(uchar *dots, Detection_Info *di) {
+    float lScoreMax = -9999;
+    float rScoreMax = -9999;
+    float lScore, rScore;
+    int   posL, posR;
 
     // Get left lane position and right lane position
-    for (int dot : dots) {
+    for (int i = 0; i < sizeSmall.width; i++) {
+        float dot = (dots[i] + 1) / 256.f;
 
         // -abs(dot - di.laneL) is a heuristic function.
-        lScore = -abs(dot - di->laneL);
-        rScore = -abs(dot - di->laneR);
+        lScore = -(abs(i - di->laneL) + 2) / dot;
+        rScore = -(abs(i - di->laneR) + 2) / dot;
 
         if (lScore > lScoreMax) {
             lScoreMax = lScore;
-            posL      = dot;
+            posL      = i;
         }
 
         if (rScore > rScoreMax) {
             rScoreMax = rScore;
-            posR      = dot;
+            posR      = i;
         }
     }
 
@@ -158,36 +161,32 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     resize(img, img, sizeSmall, INTER_NEAREST);
 
     // Now I can do complicated tasks because image is very small.
+    cvtColor(img, img, COLOR_BGR2GRAY);
 
-    // Convert color to hsv
-    cvtColor(img, img, COLOR_BGR2HSV);
+#define DIVIDER 32.f
+    float  cur, max;
+    uchar *row;
+    max = 0;
+    for (int i = 0; i < sizeSmall.height; i++) {
+        row = img.ptr(i);
+        for (int j = 0; j < sizeSmall.width; j++) {
+            cur = exp(row[j] / DIVIDER);
+            if (cur > max) max = cur;
+        }
+    }
 
-    // Split HSV image
-    vector<Mat> hsv;
-    split(img, hsv);
+    for (int i = 0; i < sizeSmall.height; i++) {
+        row = img.ptr(i);
+        for (int j = 0; j < sizeSmall.width; j++) {
+            cur    = exp(row[j] / DIVIDER) * 255 / max;
+            row[j] = (char)(cur);
+        }
+    }
 
-    // Filter with HSV
-    int hc = 30;
-    int he = 20;
-    bitwise_and(hsv[0] > hc - he, hsv[0] < hc + he, colorMask);
-    bitwise_and(hsv[1] >= 50, colorMask, colorMask);
-
-    // Find bright pixels
-    // ToDo : Simplify here. this process is only required to do logging.
-    // Suggestion : just threshold colorMask
-    cvtColor(colorMask, colorMask, COLOR_GRAY2BGR);
-    bitwise_and(img, colorMask, img);
-    threshold(img, colorMask, 1, 255, THRESH_BINARY_INV);
-    cvtColor(img, img, COLOR_RGB2GRAY);
-
-    // Get lane-possible dots
-    vector<int> dots;
-    uchar *     row = img.ptr(detectLinePos);
-    for (int i = 0; i < sizeSmall.width; i++)
-        if (row[i]) { dots.push_back(i); }
+    row = img.ptr(detectLinePos);
 
     // Update detectionInfo
-    update(dots, &detectionInfo);
+    update(row, &detectionInfo);
 
     // Restore colorspace
     cvtColor(img, img, COLOR_GRAY2BGR);
