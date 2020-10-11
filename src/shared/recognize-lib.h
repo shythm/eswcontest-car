@@ -143,11 +143,10 @@ typedef struct _recog_stop_obstacle_data {
 recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg);
 
 // for is_there_car data
-typedef enum _vector_car_pos {
-    CP_NONE,
-    CP_LEFT,
-    CP_CENTER,
-    CP_RIGHT,
+typedef struct _vector_car_pos {
+    bool left;
+    bool center;
+    bool right;
 } vector_car_pos;
 typedef struct _recog_is_there_car_data {
     bool           enabled;
