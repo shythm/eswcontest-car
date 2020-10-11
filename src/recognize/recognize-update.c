@@ -164,6 +164,9 @@ recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
 
 /* START OF is_there_car SECTION */
 #define RECOG_GET_IS_THERE_CAR 112L
+#include "detect-is-there-car.h"
 
-bool get_is_there_car(recog_arg *arg) { return false; }
+vector_car_pos get_is_there_car(recog_arg *arg) {
+    return detectIsThereCar(arg);
+}
 /* END OF is_there_car SECTION */
