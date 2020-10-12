@@ -76,6 +76,7 @@ int main() {
     INIT(overtaking);
 
     printf("Start process while loop\n");
+    fflush(stdout);
     Mission *       missions = (Mission *)(&state.missions);
     MissionFunction mission;
     while (1) {
