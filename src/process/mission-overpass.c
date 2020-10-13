@@ -9,15 +9,15 @@ int    callback();
 State *st; // for callback function
 
 void init_overpass(State *state) {
-    state->input->is_on_overpass.enabled = true;
-    state->missions.overpass.function    = do_overpass;
+    // state->input->is_on_overpass.enabled = true;
+    state->missions.overpass.function = do_overpass;
 
     st = state; // for callback function
 }
 
 void check_overpass(State *state) {
     if (state->input->is_on_overpass.value) {
-        state->missions.overpass.priority = 2;
+        state->missions.overpass.priority = 0;
     }
 }
 

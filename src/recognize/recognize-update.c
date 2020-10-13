@@ -1,4 +1,5 @@
 #include "ctrlboard-lib.h"
+#include "detect.h"
 #include "recognize-lib.h"
 
 /* START OF get_sample SECTION */
@@ -56,18 +57,15 @@ bool get_is_on_stop_line(recog_arg *arg) {
 
 /* START OF get_is_on_end_point SECTION */
 #define RECOG_ID_IS_ON_END_POINT 103L
-#include "detect-end-zone.h"
+
 bool get_is_on_end_point(recog_arg *arg) { return detectEndZone(arg); }
 /* END OF get_is_on_end_point SECTION */
 
 /* START OF get_traffic_light SECTION */
 #define RECOG_ID_GET_TRAFFIC_LIGHT 104L
-#include "detect-object.h"
 
 recog_traffic_light_t get_traffic_light(recog_arg *arg) {
-    struct TrafficLights detected =
-        detectLights(arg->camera_output, VPE_OUTPUT_W, VPE_OUTPUT_H,
-                     arg->display_input, VPE_OUTPUT_W, VPE_OUTPUT_H);
+    struct TrafficLights detected = detectLights(arg);
 
     if (detected.green) return TL_GREEN;
     if (detected.yellow) return TL_YELLOW;
@@ -80,7 +78,7 @@ recog_traffic_light_t get_traffic_light(recog_arg *arg) {
 
 /* START OF get_lane SECTION */
 #define RECOG_ID_GET_LANE 105L
-#include "lane-detection.h"
+
 vector_lane get_lane(recog_arg *arg) {
     static vector_lane              result;
     static ctrlboard_byte_container container;
@@ -117,7 +115,7 @@ recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
 
 /* START OF is_on_slope SECTION */
 #define RECOG_ID_IS_ON_SLOPE 107L
-#include "detect-slope.h"
+
 bool get_is_on_slope(recog_arg *arg) { return detectSlope(arg); }
 /* END OF is_on_slope SECTION */
 
@@ -139,9 +137,7 @@ float get_curr_velocity(recog_arg *arg) { return 0.0f; }
 recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
     static recog_stop_obstacle_t result;
 
-    struct StopObstacle detected =
-        detectStopObstacle(arg->camera_output, VPE_OUTPUT_W, VPE_OUTPUT_H,
-                           arg->display_input, VPE_OUTPUT_W, VPE_OUTPUT_H);
+    struct StopObstacle detected = detectStopObstacle(arg);
     if (detected.exist) {
         result.area  = detected.area;
         result.pos_x = detected.center.x;

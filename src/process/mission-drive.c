@@ -6,7 +6,6 @@ typedef ctrlboard_byte_container container;
 void do_drive(State *state);
 
 void init_drive(State *state) {
-    return;
     if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1700) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
@@ -65,7 +64,7 @@ void init_drive(State *state) {
 }
 
 void check_drive(State *state) {
-    // state->missions.drive.priority = 1;
+    state->missions.drive.priority = 1;
     state->missions.drive.function = do_drive;
 }
 
@@ -76,7 +75,7 @@ void do_drive(State *state) {
 #define GAIN_P      14.4  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    0     // Maximum velocity
+#define MAX_VELO    200   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
     int          pos    = state->input->lane.value.position;

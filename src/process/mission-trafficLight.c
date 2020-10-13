@@ -12,7 +12,7 @@ void init_trafficLight(State *state) {
 
 void check_trafficLight(State *state) {
     if (state->input->is_on_end_point.value) {
-        state->missions.trafficLight.priority = 2;
+        state->missions.trafficLight.priority = 0;
     }
 }
 

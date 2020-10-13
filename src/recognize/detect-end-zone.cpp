@@ -1,4 +1,4 @@
-#include "detect-end-zone.h"
+#include "detect.h"
 // #include "draw-txt.h"
 #include "recognize-lib.h"
 #include <algorithm>
@@ -21,8 +21,7 @@ bool detectEndZone(recog_arg *arg) {
     unsigned char *disp_data = arg->display_input;
 
     //이미지 받아와서 mat 클래스로 감싼다
-    unsigned char *cam_copied =
-        new unsigned char[VPE_OUTPUT_W * VPE_OUTPUT_H * 3];
+    static unsigned char cam_copied[VPE_OUTPUT_W * VPE_OUTPUT_H * 3];
     copy(cam_data, cam_data + VPE_OUTPUT_W * VPE_OUTPUT_H * 3, cam_copied);
     Mat src_img(VPE_OUTPUT_H, VPE_OUTPUT_W, CV_8UC3, cam_copied);
 

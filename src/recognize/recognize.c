@@ -17,7 +17,7 @@
 
 /* include custom libraries */
 #include "ctrlboard-lib.h"
-#include "detect-end-zone.h"
+#include "detect.h"
 #include "recognize-lib.h"
 #include "util.h"
 
@@ -58,7 +58,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
 
     // update is_on_slope
-    result->is_on_slope.enabled = true;
+    // result->is_on_slope.enabled = true;
     if (result->is_on_slope.enabled) {
         result->is_on_slope.value = get_is_on_slope(arg);
     }

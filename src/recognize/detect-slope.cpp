@@ -1,4 +1,4 @@
-#include "detect-slope.h"
+#include "detect.h"
 #include <algorithm>
 #include <opencv2/opencv.hpp>
 
@@ -49,7 +49,7 @@ double getLineSlope(Point2f p1, Point2f p2) {
 }
 
 bool detectSlope(recog_arg *arg) {
-    unsigned char *cam_out = new unsigned char[IMG_SIZE];
+    static unsigned char cam_out[IMG_SIZE];
     copy(arg->camera_output, arg->camera_output + IMG_SIZE, cam_out);
     Mat  frame(IMG_H, IMG_W, CV_8UC3, cam_out);
     Mat  disp(IMG_H, IMG_W, CV_8UC3, arg->display_input);
@@ -116,7 +116,7 @@ bool detectSlope(recog_arg *arg) {
 
     // 검출 정보 화면 출력
     cvtColor(frame, frame, COLOR_GRAY2BGR);
-#if 1
+#if 0
     if (r.dot(Point2f(1, 1))) {
         putText(frame, to_string(r.x), Point(25, 25), FONT_HERSHEY_SIMPLEX, 1,
                 Scalar(255, 255, 255), 2);
@@ -142,6 +142,5 @@ bool detectSlope(recog_arg *arg) {
 #endif
     frame.copyTo(disp);
 
-    delete[] cam_out;
     return ret;
 }
