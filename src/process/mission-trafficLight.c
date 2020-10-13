@@ -100,6 +100,7 @@ void do_trafficLight(State *state) {
     beep(mqid, 50);
     sleep(2);
 
+#if 0
     // come back
     move(mqid, -TL_SPEED, -read_encoder_counter(mqid));
     set_steering(mqid, (sig_left > sig_right) ? 2000 : 1000);
@@ -107,6 +108,7 @@ void do_trafficLight(State *state) {
     move(mqid, -TL_SPEED, -RADIUS * PI / 2.0f * TICK_PER_CM);
     set_steering(mqid, 1500);
     move(mqid, -TL_SPEED, -50.f * TICK_PER_CM);
+#endif
 
     while (1) sleep(1);
 }
