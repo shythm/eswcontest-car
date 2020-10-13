@@ -117,15 +117,9 @@ recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
 
 /* START OF is_on_slope SECTION */
 #define RECOG_ID_IS_ON_SLOPE 107L
-
-bool get_is_on_slope(recog_arg *arg) { return false; }
+#include "detect-slope.h"
+bool get_is_on_slope(recog_arg *arg) { return detectSlope(arg); }
 /* END OF is_on_slope SECTION */
-
-/* START OF is_on_overpass SECTION */
-#define RECOG_ID_IS_ON_OVERPASS 108L
-
-bool get_is_on_overpass(recog_arg *arg) { return false; }
-/* END OF is_on_overpass SECTION */
 
 /* START OF is_in_tunnel SECTION */
 #define RECOG_ID_IS_IN_TUNNEL 109L
