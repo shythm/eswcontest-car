@@ -1,6 +1,7 @@
 #include "car-header.h"
 #include "ctrlboard-lib.h"
 #include "process.h"
+#include <stdbool.h>
 
 #define PARK_SPEED 50     // 50~100
 #define PARK_SLEEP 500000 // 500ms = 0.5s
@@ -218,7 +219,7 @@ void do_parking_parallel(State *state) {
 }
 
 void rr_save_and_recover(char mode) {
-    static so_enable, tl_enable;
+    static bool so_enable, tl_enable;
     if (mode == 0) { // save rr enable data, and set enable false
         so_enable                 = rr->stop_obstacle.enabled;
         rr->stop_obstacle.enabled = false;
