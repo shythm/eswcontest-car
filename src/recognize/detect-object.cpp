@@ -48,11 +48,11 @@ Shape labelPolygon(Contour &c) {
     double  peri = cv::arcLength(c, true);
     Contour approx;
     cv::approxPolyDP(c, approx, 0.02 * peri, true);
+    bool isConvex = cv::isContourConvex(approx);
 
-    if ((int)approx.size() == 4 && cv::isContourConvex(approx))
-        return Rectangle;
+    if ((int)approx.size() == 4 && isConvex) return Rectangle;
 
-    if ((int)approx.size() == 7) {
+    if ((int)approx.size() == 7 && !isConvex) {
         int center =
             std::accumulate(approx.begin(), approx.end(), cv::Point(0, 0)).x /
             7;
@@ -70,7 +70,7 @@ Shape labelPolygon(Contour &c) {
             return Right;
     }
 
-    if (approx.size() > 7 && cv::isContourConvex(approx)) return Circle;
+    if (approx.size() > 7 && isConvex) return Circle;
 
     return Undefined;
 }
