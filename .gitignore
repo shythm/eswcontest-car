@@ -11,6 +11,7 @@ CrossCompiler/
 # Test
 screenshot/
 /test/
+imgs/
 
 # Personal setting
 .vscode/
