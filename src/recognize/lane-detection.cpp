@@ -156,6 +156,18 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     copy(arg->camera_output, arg->camera_output + W * H * 3, raw);
     Mat img(H, W, CV_8UC3, raw);
 
+#if 0
+    // Image save
+    static int frame = 0;
+    frame++;
+    if (frame % 3 == 0) {
+        string name =
+            "/home/root/imgs/screenshot2-" + to_string(frame) + ".jpg";
+        // cout << "Frame : " << name << endl;
+        imwrite(name, img);
+    }
+#endif
+
     // Convert to small perspective small size image
     warpPerspective(img, img, perspM, Size(W, H));
     resize(img, img, sizeSmall, INTER_NEAREST);
