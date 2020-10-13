@@ -1,3 +1,4 @@
+#include "car-header.h"
 #include "process.h"
 #include <stdio.h>
 
@@ -14,13 +15,12 @@ void waitT(int ms) {
 }
 
 void do_overtaking(State *state) {
-    command(CMD_DESIRE_SPEED, 0); // Stop
-    wait();
+    command(CMD_DESIRE_SPEED, 0);              // Stop
     command(CMD_STEERING_SERVO_CONTROL, 1500); // Align steer
-    waitT(TERM_SERVO);
-    command(CMD_DESIRE_SPEED, -50); // Go back
+    waitT(TERM_SERVO);                         // Wait...
+    command(CMD_DESIRE_SPEED, -50);            // Go back
     while (state->input->psd.value[PSD_FRONT] < 29) { waitT(10); }
-    waitT(1000);
+
     command(CMD_DESIRE_SPEED, 0); // Stop
     waitT(TERM_SERVO);
     if (state->input->is_there_car.data.left) {
@@ -33,7 +33,7 @@ void do_overtaking(State *state) {
         command(CMD_DESIRE_SPEED, 100);
         waitT(TERM_TURN * 3.3);
         command(CMD_STEERING_SERVO_CONTROL, 2000);
-        waitT(TERM_SERVO * 4.3);
+        waitT(TERM_SERVO * 3);
     } else if (state->input->is_there_car.data.right) {
         command(CMD_STEERING_SERVO_CONTROL, 1000);
         waitT(TERM_SERVO);
@@ -42,7 +42,7 @@ void do_overtaking(State *state) {
         command(CMD_STEERING_SERVO_CONTROL, 1800);
         waitT(TERM_SERVO);
         command(CMD_DESIRE_SPEED, 100);
-        waitT(TERM_TURN * 3.3);
+        waitT(TERM_TURN * 3.6);
         command(CMD_STEERING_SERVO_CONTROL, 1000);
         waitT(TERM_SERVO * 4.3);
     } else {
@@ -83,7 +83,6 @@ void do_overtaking(State *state) {
 
     command(CMD_DESIRE_SPEED, 0);
 
-    for (;;) { usleep(100000); }
 #endif
 
     state->input->lane.initialize = true;
@@ -99,7 +98,7 @@ void check_overtaking(State *state) {
     static int has_detected = 0;
     if (!has_detected) {
         if (state->input->psd.value[PSD_FRONT] < 20.0f) {
-            has_detected                        = 1;
+            // has_detected                        = 1;
             state->missions.overtaking.priority = 99;
         }
     }
