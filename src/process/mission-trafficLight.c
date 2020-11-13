@@ -3,8 +3,9 @@
 #include "process.h"
 #include "recognize-lib.h"
 
-#define TL_SPEED 75
+#define TL_SPEED 50
 #define TL_SLEEP 500000
+#define BAR_LEN  40
 
 void init_trafficLight(State *state);
 void check_trafficLight(State *state);
@@ -17,12 +18,15 @@ void init_trafficLight(State *state) {
     state->input->is_on_end_point.enabled = false;
     state->input->is_on_stop_line.enabled = true;
     state->input->traffic_light.enabled   = false;
+    state->input->tl_lane.enable          = false;
     state->missions.trafficLight.function = do_trafficLight;
 
     mqid = state->ctrl;
 }
 
 void check_trafficLight(State *state) {
+    state->input->is_on_stop_line.enabled = true;
+    // printf("%d\n", state->input->is_on_stop_line.value);
     if (discover_stop_line >= 2) return;
     if (state->input->is_on_stop_line.value == true) {
         if (discover_stop_line == 0) {
@@ -30,8 +34,11 @@ void check_trafficLight(State *state) {
         } else if (discover_stop_line == 1) {
             discover_stop_line++;
             state->missions.trafficLight.priority = 10;
+            printf("@@@@@@@@@@@ stop line @@@@@@@@@@@\n");
             set_desire_speed(mqid, 0); // stop on the stop line
             beep(mqid, 50);
+            state->input->is_on_stop_line.enabled = false;
+            // state->input->tl_lane.enable = true;
         }
     }
 }
@@ -62,11 +69,7 @@ void do_trafficLight(State *state) {
         usleep(1000);
     }
     set_desire_speed(mqid, 0);
-    usleep(TL_SLEEP);
-
-    // regress
-    move(mqid, -50, -13.f * TICK_PER_CM);
-    usleep(TL_SLEEP);
+    printf("end progress\n");
 
     // get traffic light signals
     int sig_left = 0, sig_right = 0;
@@ -75,27 +78,56 @@ void do_trafficLight(State *state) {
         if (tl == TL_LEFT) sig_left++, i++;
         else if (tl == TL_GREEN)
             sig_right++, i++;
-        usleep(10000);
+        usleep(1000);
     }
+    state->input->traffic_light.enabled = false;
+    state->input->tl_lane.enable        = true;
+    // regress
+    set_desire_speed(mqid, 0);
+    usleep(TL_SLEEP);
+    move(mqid, -50, -13.f * TICK_PER_CM);
+    usleep(TL_SLEEP);
 
+    static const float tangent = -(1000.f) / 53.3333f, y_intc = 1500.f;
     // tilt down camera
     set_camer_Yservo(mqid, 1700);
+    if (sig_left > sig_right) {
+        set_steering(mqid, 2000);
+        usleep(TL_SLEEP);
+        set_desire_speed(mqid, TL_SPEED);
+        while (!state->input->tl_lane.value.is_left_lane) usleep(1000);
+    } else {
+        set_steering(mqid, 1000);
+        usleep(TL_SLEEP);
+        set_desire_speed(mqid, TL_SPEED);
+        while (!state->input->tl_lane.value.is_right_lane) usleep(1000);
+    }
 
-    // turn left or right 90-degree
-    set_steering(mqid, (sig_left > sig_right) ? 2000 : 1000);
-    move(mqid, TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
+    while (!state->input->is_on_end_point.value)
+        set_steering(mqid,
+                     tangent * state->input->tl_lane.value.position + y_intc);
+    while (state->input->is_on_end_point.value)
+        set_steering(mqid,
+                     tangent * state->input->tl_lane.value.position + y_intc);
 
-    // progress into end-point
-    state->input->is_on_end_point.enabled = true;
-    set_steering(mqid, 1500);
-    set_desire_speed(mqid, TL_SPEED);
-    set_encoder_counter(mqid, 0);
-    usleep(TL_SLEEP);
-    // progress until I can see end point
-    while (!state->input->is_on_end_point.value) usleep(1000);
-    // progress until I can't see end point
-    while (state->input->is_on_end_point.value) usleep(1000);
     set_desire_speed(mqid, 0);
+    /*
+        // turn left or right 90-degree
+        set_steering(mqid, (sig_left > sig_right) ? 2000 : 1000);
+        move(mqid, TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
+
+        // progress into end-point
+        state->input->is_on_end_point.enabled = true;
+        set_steering(mqid, 1500);
+        set_desire_speed(mqid, TL_SPEED);
+        set_encoder_counter(mqid, 0);
+        usleep(TL_SLEEP);
+        // progress until I can see end point
+        while (!state->input->is_on_end_point.value) usleep(1000);
+        // progress until I can't see end point
+        while (state->input->is_on_end_point.value) usleep(1000);
+        set_desire_speed(mqid, 0);
+    */
 
     beep(mqid, 50);
     sleep(2);

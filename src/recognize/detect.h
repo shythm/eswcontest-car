@@ -27,6 +27,7 @@ struct StopObstacle  detectStopObstacle(recog_arg *arg);
 bool                 detectSlope(recog_arg *arg);
 void                 detectLane(recog_arg *arg, vector_lane *result);
 bool                 detectEndZone(recog_arg *arg);
+recog_tl_lane_t      get_tl_lane_t(recog_arg *arg);
 
 #ifdef __cplusplus
 }

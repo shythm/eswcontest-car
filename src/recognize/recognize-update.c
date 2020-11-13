@@ -30,7 +30,7 @@ unsigned char *get_sample(recog_arg *arg) {
 /* START OF get_is_on_stop_line SECTION */
 #define RECOG_ID_IS_ON_STOP_LINE 102L
 #define IR_SENSOR_COUNT          7
-#define IR_ACTIVE_THRESHOLD      5
+#define IR_ACTIVE_THRESHOLD      4
 // container.c_uint8의 LSB가 left, 검은색이 1 흰색이 0 마지막 안쓰는 MSB는 0으로
 // 고정
 bool get_is_on_stop_line(recog_arg *arg) {
@@ -157,3 +157,6 @@ recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
 
 bool get_is_there_car(recog_arg *arg) { return false; }
 /* END OF is_there_car SECTION */
+
+#define RECOG_GET_TL_LANE 113L
+recog_tl_lane_t get_tl_lane(recog_arg *arg) { return get_tl_lane_t(arg); }
