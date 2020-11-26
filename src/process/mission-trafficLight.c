@@ -71,6 +71,12 @@ void do_trafficLight(State *state) {
     set_desire_speed(mqid, 0);
     printf("end progress\n");
 
+    // regress
+    set_desire_speed(mqid, 0);
+    usleep(TL_SLEEP);
+    move(mqid, -50, -13.f * TICK_PER_CM);
+    usleep(TL_SLEEP);
+
     // get traffic light signals
     int sig_left = 0, sig_right = 0;
     for (int i = 0; i < 100;) {
@@ -82,11 +88,6 @@ void do_trafficLight(State *state) {
     }
     state->input->traffic_light.enabled = false;
     state->input->tl_lane.enable        = true;
-    // regress
-    set_desire_speed(mqid, 0);
-    usleep(TL_SLEEP);
-    move(mqid, -50, -13.f * TICK_PER_CM);
-    usleep(TL_SLEEP);
 
     static const float tangent = -(1000.f) / 53.3333f, y_intc = 1500.f;
     // tilt down camera
@@ -94,25 +95,24 @@ void do_trafficLight(State *state) {
     if (sig_left > sig_right) {
         set_steering(mqid, 2000);
         usleep(TL_SLEEP);
-        set_desire_speed(mqid, TL_SPEED);
-        while (!state->input->tl_lane.value.is_left_lane) usleep(1000);
     } else {
         set_steering(mqid, 1000);
         usleep(TL_SLEEP);
-        set_desire_speed(mqid, TL_SPEED);
-        while (!state->input->tl_lane.value.is_right_lane) usleep(1000);
     }
 
-    while (!state->input->is_on_end_point.value)
+    move(mqid, TL_SPEED, PI / 2.0f * RADIUS * TICK_PER_CM);
+
+    set_desire_speed(mqid, TL_SPEED);
+    while (state->input->is_on_end_point.value) {
         set_steering(mqid,
                      tangent * state->input->tl_lane.value.position + y_intc);
-    while (state->input->is_on_end_point.value)
-        set_steering(mqid,
-                     tangent * state->input->tl_lane.value.position + y_intc);
+        printf("end_zone: %d\n", state->input->is_on_end_point.value);
+    }
+    set_steering(mqid, 1500);
 
     set_desire_speed(mqid, 0);
     /*
-        // turn left or right 90-degree
+        // turn left or right 90-degrees
         set_steering(mqid, (sig_left > sig_right) ? 2000 : 1000);
         move(mqid, TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
 

@@ -50,10 +50,11 @@ void getRoiPerspectiveTransform(Mat *M) {
 int bar_height = sizeSmall.height / 10;
 
 recog_tl_lane_t cal_tl_lane(Mat img, recog_arg *arg) {
-    uchar  min, max, thresh;
-    uchar *bar        = img.ptr(bar_height);
-    int    bar_len    = img.size().width;
-    int    left_first = -1, right_last = bar_len;
+    uchar       min, max, thresh;
+    const uchar thresh_abs = 170;
+    uchar *     bar        = img.ptr(bar_height);
+    int         bar_len    = img.size().width;
+    int         left_first = -1, right_last = bar_len;
 
     int i = 0;
     for (; i < bar_len; i++) {
@@ -71,12 +72,12 @@ recog_tl_lane_t cal_tl_lane(Mat img, recog_arg *arg) {
     thresh = (min + 3 * max) / 4;
 
     for (i = 0; i < bar_len / 2; i++)
-        if (bar[i] > thresh) {
+        if (bar[i] > thresh || bar[i] > thresh_abs) {
             left_first = i;
             break;
         }
     for (i = bar_len - 1; i >= bar_len / 2; i--)
-        if (bar[i] > thresh) {
+        if (bar[i] > thresh || bar[i] > thresh_abs) {
             right_last = i;
             break;
         }
@@ -87,11 +88,11 @@ recog_tl_lane_t cal_tl_lane(Mat img, recog_arg *arg) {
     ret_val.position =
         left_first + right_last - bar_len; //(left-len/2)+(right-len/2)
 
-    printf("hello %d:%d \n", left_first, right_last);
+    // printf("hello %d:%d \n", left_first, right_last);
 #if 1
     // FOR DISPLAY
     cvtColor(img, img, COLOR_GRAY2BGR);
-    printf("bye %d:%d \n", left_first, right_last);
+    // printf("bye %d:%d \n", left_first, right_last);
     for (int i = 0; i < bar_len; i++) {
         if (i == left_first || i == right_last) { // (B,G,R) = (0,0,255)
             img.at<Vec3b>(bar_height, i)[0] = 0;
