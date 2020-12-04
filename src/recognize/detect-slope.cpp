@@ -1,4 +1,4 @@
-#include "detect.h"
+#include "recognize-lib.h"
 #include <algorithm>
 #include <opencv2/opencv.hpp>
 
@@ -144,3 +144,8 @@ bool detectSlope(recog_arg *arg) {
 
     return ret;
 }
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" bool get_is_on_slope(recog_arg *arg) { return detectSlope(arg); }

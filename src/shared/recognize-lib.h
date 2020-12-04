@@ -38,116 +38,86 @@ typedef struct _recog_arg {
 /* RESULT VALUES                                      */
 /******************************************************/
 
-// for sample data
-#define SAMPLE_COUNT 2
-typedef struct _recog_sample_data {
-    bool          enabled;
-    unsigned char value[SAMPLE_COUNT];
-} recog_sample_data;
-unsigned char *get_sample(recog_arg *arg);
-
 // for is_on_stop_line data
-typedef struct _recog_is_on_stop_line_data {
+typedef struct {
     bool enabled;
     bool value;
 } recog_is_on_stop_line_data;
-bool get_is_on_stop_line(recog_arg *arg);
 
-// for is_on_end_point data
-typedef struct _recog_is_on_end_point_data {
+// for is_on_end_zone data
+typedef struct {
     bool enabled;
     bool value;
-} recog_is_on_end_point_data;
-bool get_is_on_end_point(recog_arg *arg);
+} recog_is_on_end_zone_data;
 
 // for traffic_light data
-typedef enum _recog_traffic_light_t {
+typedef enum {
     TL_NONE,
     TL_RED,
     TL_YELLOW,
     TL_GREEN,
     TL_LEFT,
 } recog_traffic_light_t;
-
-typedef struct _recog_traffic_light_data {
+typedef struct {
     bool                  enabled;
     recog_traffic_light_t value;
 } recog_traffic_light_data;
-recog_traffic_light_t get_traffic_light(recog_arg *arg);
 
 // for lane data
-typedef struct _vector_lane {
-    float left_pos;
-    float left_curv;
-    float right_pos;
-    float right_curv;
-    float position;
+typedef struct {
+    float pos_y;   // position of yellow lane
+    float pos_yaw; // position of yellow and white lane
 } vector_lane;
-typedef struct _recog_lane_data {
+typedef struct {
     bool        enabled;
-    bool        initialize;
     vector_lane value;
 } recog_lane_data;
-vector_lane get_lane(recog_arg *arg);
 
 // for is_on_lane data
-typedef enum _recog_is_on_lane_t {
+typedef enum {
     ON_LANE_NONE,
     ON_LANE_LEFT,
     ON_LANE_RIGHT,
 } recog_is_on_lane_t;
-typedef struct _recog_is_on_lane_data {
+typedef struct {
     bool               enabled;
     recog_is_on_lane_t value;
 } recog_is_on_lane_data;
-recog_is_on_lane_t get_is_on_lane(recog_arg *arg);
 
 // for is_on_slope data
-typedef struct _recog_is_on_slope_data {
+typedef struct {
     bool enabled;
     bool value;
 } recog_is_on_slope_data;
-bool get_is_on_slope(recog_arg *arg);
-
-// for is_on_overpass data
-typedef struct _recog_is_on_overpass_data {
-    bool enabled;
-    bool value;
-} recog_is_on_overpass_data;
-bool get_is_on_overpass(recog_arg *arg);
 
 // for is_in_tunnel data
-typedef struct _recog_is_in_tunnel_data {
+typedef struct {
     bool enabled;
     bool value;
 } recog_is_in_tunnel_data;
-bool get_is_in_tunnel(recog_arg *arg);
-
-// for curr_velocity data
-typedef struct _recog_curr_velocity_data {
-    bool  enabled;
-    float value;
-} recog_curr_velocity_data;
-float get_curr_velocity(recog_arg *arg);
 
 // for stop_obstacle data
-typedef struct _recog_stop_obstacle_t {
+typedef struct {
     int   pos_x;
     int   pos_y;
     float area;
 } recog_stop_obstacle_t;
-typedef struct _recog_stop_obstacle_data {
+typedef struct {
     bool                  enabled;
     recog_stop_obstacle_t value;
 } recog_stop_obstacle_data;
-recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg);
 
 // for is_there_car data
-typedef struct _recog_is_there_car_data {
-    bool enabled;
-    bool value;
+typedef enum {
+    TC_NONE,
+    TC_LEFT,
+    TC_CENTER,
+    TC_RIGHT,
+} recog_is_there_car_t;
+typedef struct {
+    bool                 enabled;
+    recog_is_there_car_t value;
 } recog_is_there_car_data;
-bool get_is_there_car(recog_arg *arg);
 
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
@@ -179,16 +149,13 @@ typedef struct _recog_psd_data {
  * made.
  */
 typedef struct _recog_result {
-    recog_sample_data          sample;
     recog_is_on_stop_line_data is_on_stop_line;
-    recog_is_on_end_point_data is_on_end_point;
+    recog_is_on_end_zone_data  is_on_end_zone;
     recog_traffic_light_data   traffic_light;
     recog_lane_data            lane;
     recog_is_on_lane_data      is_on_lane;
     recog_is_on_slope_data     is_on_slope;
-    recog_is_on_overpass_data  is_on_overpass;
     recog_is_in_tunnel_data    is_in_tunnel;
-    recog_curr_velocity_data   curr_velocity;
     recog_stop_obstacle_data   stop_obstacle;
     recog_is_there_car_data    is_there_car;
     recog_psd_data             psd;
