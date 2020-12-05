@@ -19,8 +19,6 @@ void init_obstacle(State *state) {
 }
 
 void check_obstacle(State *state) {
-    return;
-
     static int is_checked = false;
 
     if (!is_checked) {

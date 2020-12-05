@@ -73,7 +73,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->traffic_light.enabled) { // update traffic_light
         result->traffic_light.value = get_traffic_light(arg);
     }
-    if (result->lane.enabled = true) { // update lane
+    if (result->lane.enabled) { // update lane
         result->lane.value = get_lane(arg);
     }
     if (result->is_on_lane.enabled) { // update_is_on_lane
