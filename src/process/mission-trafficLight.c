@@ -13,6 +13,7 @@
 void init_trafficLight(State *state);
 void check_trafficLight(State *state);
 void do_trafficLight(State *state);
+void dive_into_end_point(State *state);
 
 int discover_stop_line = 1; // 1:practice, 0: real
 
@@ -81,8 +82,9 @@ void do_trafficLight(State *state) {
     // regress
     set_desire_speed(0);
     usleep(TL_SLEEP);
-    if (tl == TL_LEFT) move(-TL_SPEED, -10.f * TICK_PER_CM);
-    else
+    if (tl == TL_LEFT) // left: regress more
+        move(-TL_SPEED, -10.f * TICK_PER_CM);
+    else // right: regress less
         move(-TL_SPEED, -5.f * TICK_PER_CM);
     /*
    // get traffic light signals
@@ -103,13 +105,10 @@ void do_trafficLight(State *state) {
     // tilt down camera
     set_camer_Yservo(1700);
 
-    if (tl == TL_LEFT) {
-        set_steering(2000);
-        usleep(TL_SLEEP);
-    } else if (tl == TL_GREEN) {
+    if (tl == TL_LEFT) set_steering(2000);
+    else if (tl == TL_GREEN)
         set_steering(1000);
-        usleep(TL_SLEEP);
-    }
+    usleep(TL_SLEEP);
 
     // turn xx-degree
     move(TL_SPEED, LAST_TURN_TICK);
@@ -121,26 +120,12 @@ void do_trafficLight(State *state) {
         set_steering(  state->input->tl_lane.value.position * -50 + 1500);
     }
 #else
-    while (!state->input->is_on_end_point.value) {
-        int steering =
-            state->input->tl_lane.value.position * -GAIN_POSITION + 1500;
-        if (steering > 2000) steering = 2000;
-        else if (steering < 1000)
-            steering = 1000;
-        set_steering((short)steering);
-    }
-    while (state->input->is_on_end_point.value) {
-        int steering =
-            state->input->tl_lane.value.position * -GAIN_POSITION + 1500;
-        if (steering > 2000) steering = 2000;
-        else if (steering < 1000)
-            steering = 1000;
-        set_steering((short)steering);
-    }
+    while (!state->input->is_on_end_point.value) dive_into_end_point(state);
+    while (state->input->is_on_end_point.value) dive_into_end_point(state);
+
 #endif
     set_desire_speed(0);
 
-    // end trafficLight
     /*
         // turn left or right 90-degrees
         set_steering(  (sig_left > sig_right) ? 2000 : 1000);
@@ -159,18 +144,14 @@ void do_trafficLight(State *state) {
         set_desire_speed(  0);
     */
 
+    // end trafficLight
     beep(50);
-    sleep(2);
-
-#if 0
-    // come back
-    move(  -TL_SPEED, -read_encoder_counter(mqid));
-    set_steering(  (sig_left > sig_right) ? 2000 : 1000);
-    usleep(TL_SLEEP);
-    move(  -TL_SPEED, -RADIUS * PI / 2.0f * TICK_PER_CM);
-    set_steering(  1500);
-    move(  -TL_SPEED, -50.f * TICK_PER_CM);
-#endif
-
     while (1) sleep(1);
+}
+void dive_into_end_point(State *state) {
+    int steering = state->input->tl_lane.value * -GAIN_POSITION + 1500;
+    if (steering > 2000) steering = 2000;
+    else if (steering < 1000)
+        steering = 1000;
+    set_steering((short)steering);
 }

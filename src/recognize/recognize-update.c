@@ -159,4 +159,4 @@ bool get_is_there_car(recog_arg *arg) { return false; }
 /* END OF is_there_car SECTION */
 
 #define RECOG_GET_TL_LANE 113L
-recog_tl_lane_t get_tl_lane(recog_arg *arg) { return get_tl_lane_t(arg); }
+float get_tl_lane(recog_arg *arg) { return get_tl_lane_t(arg); }

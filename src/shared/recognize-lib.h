@@ -149,15 +149,11 @@ typedef struct _recog_is_there_car_data {
 } recog_is_there_car_data;
 bool get_is_there_car(recog_arg *arg);
 
-typedef struct _recog_tl_lane_t {
-    bool is_left_lane, is_right_lane;
-    int  position;
-} recog_tl_lane_t;
 typedef struct _recog_tl_lane_data {
-    bool            enable;
-    recog_tl_lane_t value;
+    bool  enable;
+    float value;
 } recog_tl_lane_data;
-recog_tl_lane_t get_tl_lane(recog_arg *arg);
+float get_tl_lane(recog_arg *arg);
 
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
