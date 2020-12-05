@@ -1,7 +1,20 @@
-#include "detect.h"
+#include "recognize-lib.h"
 #include <algorithm>
 #include <numeric>
 #include <opencv2/opencv.hpp>
+
+struct TrafficLights {
+    bool red, yellow, green, left, right;
+};
+struct Point {
+    int x;
+    int y;
+};
+struct StopObstacle {
+    bool         exist;
+    struct Point center;
+    float        area;
+};
 
 enum Shape : int {
     Circle    = 0b1,
@@ -131,8 +144,8 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
     cv::Mat redMasked    = maskImage(frame, 0, 15, 90, 60);
     cv::Mat yellowMasked = maskImage(frame, 30, 20, 120, 60);
-    cv::Mat greenMasked  = maskImage(frame, 60, 15, 90, 60);
-    cv::Mat greenInverse = 255 - greenMasked;
+    cv::Mat greenMasked  = maskImage(frame, 60, 20, 90, 40);
+    // cv::Mat greenInverse = 255 - greenMasked;
 
     const static std::string captions[] = {"Red Light!", "Yellow Light!",
                                            "Green Light!", "Left Direction!",
@@ -145,11 +158,12 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
         findShapes(Circle, redMasked, minArea, maxArea),
         findShapes(Circle, yellowMasked, minArea, maxArea),
         findShapes(Circle, greenMasked, minArea, maxArea),
-        findShapes(Left, greenInverse, minArea, maxArea),
-        findShapes(Right, greenInverse, minArea, maxArea)};
+        // findShapes(Left, greenInverse, minArea, maxArea),
+        // findShapes(Right, greenInverse, minArea, maxArea)
+    };
 
     if (drawBoard) {
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 3; ++i) {
             if (!found[i].empty()) {
                 cv::drawContours(*drawBoard, found[i], -1, colors[i], 2);
                 putTextAtCenter(*drawBoard, captions[i], colors[i]);
@@ -266,4 +280,34 @@ struct StopObstacle detectStopObstacle(recog_arg *arg) {
         result = detectStopObstacle(srcRGB, NULL, 100, 100000);
 
     return result;
+}
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
+    static recog_stop_obstacle_t result;
+
+    struct StopObstacle detected = detectStopObstacle(arg);
+    if (detected.exist) {
+        result.area  = detected.area;
+        result.pos_x = detected.center.x;
+        result.pos_y = detected.center.y;
+    } else {
+        result.area  = 0;
+        result.pos_x = -1;
+        result.pos_y = -1;
+    }
+
+    return result;
+}
+extern "C" recog_traffic_light_t get_traffic_light(recog_arg *arg) {
+    struct TrafficLights detected = detectLights(arg);
+
+    if (detected.green) return TL_GREEN;
+    if (detected.yellow) return TL_YELLOW;
+    if (detected.left) return TL_LEFT;
+    if (detected.red) return TL_RED;
+
+    return TL_NONE;
 }

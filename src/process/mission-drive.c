@@ -6,7 +6,7 @@ typedef ctrlboard_byte_container container;
 void do_drive(State *state);
 
 void init_drive(State *state) {
-    if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1700) != MSG_STATE_SUCCESS)
+    if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1650) != MSG_STATE_SUCCESS)
         printf("fail 1\n");
 
     if (command(CMD_POSITION_CONTROL_ON_OFF, 0) != MSG_STATE_SUCCESS)
@@ -24,10 +24,9 @@ void init_drive(State *state) {
     if (command(CMD_SPEED_PID_DIFFERENTAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    state->input->lane.enabled    = true;
-    state->input->lane.initialize = true;
+    state->input->lane.enabled = true;
 
-    printf("Initialize finished.\n");
+    printf("Initialize for mission-drive has been finished.\n");
 
 #if 0
 #define TERM_DRIVE 1200
@@ -72,13 +71,13 @@ void check_drive(State *state) {
 void do_drive(State *state) {
     int steering_val = 1500;
 
-#define GAIN_P      14.4  // P gain of PID control
+#define GAIN_P      12.0  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    200   // Maximum velocity
+#define MAX_VELO    250   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
-    int          pos    = state->input->lane.value.position;
+    int          pos    = state->input->lane.value.pos_yl;
     static float errSum = 0;
     errSum += pos * GAIN_I;
 

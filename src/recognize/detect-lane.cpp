@@ -1,5 +1,4 @@
-#include "detect.h"
-#include "mask-thresh.h"
+#include "recognize-lib.h"
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
@@ -10,27 +9,89 @@
 using namespace cv;
 using namespace std;
 
-// Color constants
-const Scalar blue(255, 0, 0);
-const Scalar red(0, 0, 255);
-const Scalar green(0, 255, 0);
-const Scalar yellow(0, 255, 255);
+// 입력 이미지 사이즈 정보
+const Size sizeOrigin = Size(W, H);
+const Size sizeSmall  = Size(W / 8, H / 8);
 
-// This is possible because W(=VPE_OUT_W) and H(=VPE_OUTPUT_H) are actually
-// constants defined with preprocessor. Therefore, dynamic memory allocation is
-// not requried.
-unsigned char raw[W * H * 3];
+// 차선 정보를 업데이트하기 위한 멤버 변수들
+typedef struct _lane_info {
+    bool init;
+    int  posL;
+    int  posR;
+    int  threshScore;
+} LaneInfo;
 
-const Size sizeOrigin = Size(VPE_OUTPUT_W, VPE_OUTPUT_H);
-const Size sizeSmall  = Size(VPE_OUTPUT_W / 8, VPE_OUTPUT_H / 8);
+// LaneInfo 구조체 초기화
+void initLaneInfo(LaneInfo &li) {
+    li.init        = true;
+    li.posL        = 0;
+    li.posR        = sizeSmall.width - 1;
+    li.threshScore = -16;
+}
 
-const double vanish    = 0;   // Y position of vanish point
-const double range     = 300; // TEST
-const double viewRange = 0.4; // ROI, higher, closer(crop image)
-const float  detectLineRatio =
-    0.45; // Detection line position. If 0, top, if 1, bottom.
+// LaneInfo 구조체 업데이트
+void updateLaneInfo(vector<int> positions, LaneInfo &li) {
+    // constants
+    static const int dist           = 20;
+    static const int threshScoreMax = -8;
 
-void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
+    float lScoreMax = -9999;
+    float rScoreMax = -9999;
+    int   lScore, rScore, posL, posR;
+
+    // Get left lane position and right lane position
+    for (int pos : positions) {
+        lScore = -abs(pos - li.posL);
+        rScore = -abs(pos - li.posR);
+
+        if (lScore > lScoreMax) {
+            lScoreMax = lScore;
+            posL      = pos;
+        }
+        if (rScore > rScoreMax) {
+            rScoreMax = rScore;
+            posR      = pos;
+        }
+    }
+
+    // Check whether lane is detected.
+    // For first frame, threshScore is quiet low(-16). Therefore, it easily
+    // detects lane.
+    bool detectL = lScoreMax > li.threshScore;
+    bool detectR = rScoreMax > li.threshScore;
+
+    if (li.init) {
+        // If we detect both left and right lane, gradually increase threshold.
+        if (detectL && detectR) { li.threshScore++; }
+        // If threshold reached at some level, stop increasing.
+        if (li.threshScore == threshScoreMax) li.init = false;
+    }
+
+    // If no line detected, use position of previous frame.
+    if (!detectL && !detectR) {
+        posL = li.posL;
+        posR = li.posR;
+    }
+
+    // If only one lane is detected, get the lane position from another lane
+    // Actually, the condition !detectL || !detectR is not detectR^detectL.
+    // But eventaully it works identically.
+    if (!detectL || !detectR) {
+        if (detectL) { posR = posL + dist; }
+        if (detectR) { posL = posR - dist; }
+    }
+
+    // Update position
+    li.posL = posL;
+    li.posR = posR;
+}
+
+// 항공뷰를 위한 행렬 계산
+void getRoiPerspectiveTransform(Mat &perspM) {
+    static const double vanish    = 16;  // Y position of vanish point
+    static const double range     = 300; // TEST
+    static const double viewRange = 0.4; // ROI, higher, closer(crop image)
+
     // Vanish와 range가 주어질 때, y좌표에 따른 x좌표를 계산해보자.
     // 자명히 (y,x)=(vanish,W/2)와 (y,x)=(H,W+range)를 지난다.
     // 그러므로 dy = H-vanish, dx = W+range-W/2 = W/2+range이다.
@@ -38,12 +99,11 @@ void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     // x1 = (W/2+range)*(y-vanish)/(H-vanish)+W/2
     // x2 = W/2-(W/2+range)*(y-vanish)/(H-vanish)
 
-    // I don't know why but getPerspeciveTransform does not work properly when
-    // all Point2f positions are integer.
     double wHalf  = W / 2 + 0.0001;
     double roiY   = viewRange * H;
     double xDelta = (wHalf + range) * (roiY - vanish) / (H - vanish);
 
+    Point2f src[4];
     src[0] = Point2f(wHalf - xDelta, roiY);
     src[1] = Point2f(wHalf + xDelta, roiY);
     src[2] = Point2f(W + range, H);
@@ -52,104 +112,51 @@ void getRoiPerspectiveTransform(Mat *M, Point2f *src) {
     Point2f dst[4];
     dst[0] = Point2f(0, 0);
     dst[1] = Point2f(W, 0);
-    dst[2] = Point2d(W, H);
+    dst[2] = Point2f(W, H);
     dst[3] = Point2f(0, H);
 
-    *M = getPerspectiveTransform(src, dst);
+    perspM = getPerspectiveTransform(src, dst);
 }
 
-const int dist               = 24;
-const int maxDetectThreshold = -8;
+void getValidPositions(Mat &img, vector<int> &out, int bl, Scalar l, Scalar u) {
+    uchar *row = img.ptr(bl);
+    bool   isValid;
 
-typedef struct {
-    bool initState;
-    int  laneL;
-    int  laneR;
-    int  scoreThreshold;
-} Detection_Info;
+    for (int i = 0; i < img.size().width; i++) {
+        isValid = true;
+        isValid &= (l[0] <= row[i * 3 + 0]) && (row[i * 3 + 0] <= u[0]);
+        isValid &= (l[1] <= row[i * 3 + 1]) && (row[i * 3 + 1] <= u[1]);
+        isValid &= (l[2] <= row[i * 3 + 2]) && (row[i * 3 + 2] <= u[2]);
 
-void init_detection_info(Detection_Info *di) {
-    di->initState      = true;
-    di->laneL          = 0;
-    di->laneR          = sizeSmall.width - 1;
-    di->scoreThreshold = -16;
+        if (isValid) { out.push_back(i); }
+    }
 }
 
-void update(uchar *dots, Detection_Info *di) {
-    float lScoreMax = -9999;
-    float rScoreMax = -9999;
-    float lScore, rScore;
-    int   posL, posR;
-
-    // Get left lane position and right lane position
-    for (int i = 0; i < sizeSmall.width; i++) {
-        float dot = (dots[i] + 1) / 256.f;
-
-        // -abs(dot - di.laneL) is a heuristic function.
-        lScore = -(abs(i - di->laneL) + 2) / dot;
-        rScore = -(abs(i - di->laneR) + 2) / dot;
-
-        if (lScore > lScoreMax) {
-            lScoreMax = lScore;
-            posL      = i;
-        }
-
-        if (rScore > rScoreMax) {
-            rScoreMax = rScore;
-            posR      = i;
-        }
-    }
-
-    // Check whether lane is detected.
-    // For first frame, scoreThreshold is quiet low(-16). Therefore, it easily
-    // detects lane.
-    bool detectL = lScoreMax > di->scoreThreshold;
-    bool detectR = rScoreMax > di->scoreThreshold;
-
-    // If we detect both left and right lane, gradually increase threshold.
-    if (di->initState) {
-        if (detectL && detectR) { di->scoreThreshold++; }
-        // If threshold reached at some level, stop increasing.
-        if (di->scoreThreshold == maxDetectThreshold) di->initState = false;
-    }
-
-    // If no line detected, use position of previous frame.
-    if (!detectL && !detectR) {
-        posL = di->laneL;
-        posR = di->laneR;
-    }
-
-    // If only one lane is detected, get the lane position from another lane
-    // Actually, the condition !detectL || !detectR is not detectR^detectL.
-    // But eventaully it works identically.
-    if (!detectL || !detectR) {
-        if (detectR) { posL = posR - dist; }
-        if (detectL) { posR = posL + dist; }
-    }
-
-    // Update position
-    di->laneL = posL;
-    di->laneR = posR;
-}
+#define BASE_LINE_RATIO 0.60
+#define DISPLAY_RESULT
 
 void detectLane(recog_arg *arg, vector_lane *result) {
-    static Mat perspM;        // Matirx for perspective transform
-    static Mat colorMask;     // Matrix used for mask(for yellow detection)
-    static int detectLinePos; // Line detection position
-    static Detection_Info detectionInfo; //
+    static uchar raw[W * H * 3]; // dynamic memory allocation is not required.
+    static Mat   perspM;         // Matirx for perspective transform
+    static int   baseline;
 
+    static LaneInfo liY;   // line information of yellow lane
+    static LaneInfo liYAW; // line information of white and yellow lane
+
+    // Initialization
     static bool init = true;
     if (init) {
-        Point2f pts[4];
-        getRoiPerspectiveTransform(&perspM, pts);
-        init                         = false;
-        detectLinePos                = sizeSmall.height * detectLineRatio;
-        arg->shm_rr->lane.initialize = true;
+        getRoiPerspectiveTransform(perspM);
+        arg->pext_data->call_init_lane_info =
+            true; // 외부에서 LaneInfo 초기화하는 용도로 사용됨
+        baseline = sizeSmall.height * BASE_LINE_RATIO;
+        init     = false;
     }
 
-    if (arg->shm_rr->lane.initialize) {
-        init_detection_info(&detectionInfo);
-        arg->shm_rr->lane.initialize = false;
+    if (arg->pext_data->call_init_lane_info) {
+        initLaneInfo(liY);
+        initLaneInfo(liYAW);
+        arg->pext_data->call_init_lane_info = false;
     }
 
     // Copy image and wrap raw data with Mat object
@@ -169,73 +176,73 @@ void detectLane(recog_arg *arg, vector_lane *result) {
 #endif
 
     // Convert to small perspective small size image
-    warpPerspective(img, img, perspM, Size(W, H));
+    warpPerspective(img, img, perspM, sizeOrigin);
     resize(img, img, sizeSmall, INTER_NEAREST);
+    cvtColor(img, img, CV_BGR2HSV);
 
-    // Now I can do complicated tasks because image is very small.
-    cvtColor(img, img, COLOR_BGR2GRAY);
+    // yellow lane
+    const static Scalar lowerY(20, 70, 0);
+    const static Scalar upperY(40, 255, 255);
+    vector<int>         vpOfY; // valid positions of yellow
+    getValidPositions(img, vpOfY, baseline, lowerY, upperY);
+    updateLaneInfo(vpOfY, liY);
 
-#define DIVIDER 32.f
-    float  cur, max;
-    uchar *row;
-    max = 0;
-    for (int i = 0; i < sizeSmall.height; i++) {
-        row = img.ptr(i);
-        for (int j = 0; j < sizeSmall.width; j++) {
-            cur = exp(row[j] / DIVIDER);
-            if (cur > max) max = cur;
-        }
+    // yellow and white lane
+    const static Scalar lowerW(0, 0, 200);
+    const static Scalar upperW(255, 40, 255);
+    vector<int>         vpOfYAW;
+    for (int vp : vpOfY) { // push back valid positions of yellow
+        vpOfYAW.push_back(vp);
     }
-
-    for (int i = 0; i < sizeSmall.height; i++) {
-        row = img.ptr(i);
-        for (int j = 0; j < sizeSmall.width; j++) {
-            cur    = exp(row[j] / DIVIDER) * 255 / max;
-            row[j] = (char)(cur);
-        }
-    }
-
-    row = img.ptr(detectLinePos);
-
-    // Update detectionInfo
-    update(row, &detectionInfo);
+    getValidPositions(img, vpOfYAW, baseline, lowerW, upperW);
+    updateLaneInfo(vpOfYAW, liYAW);
 
     // Restore colorspace
-    cvtColor(img, img, COLOR_GRAY2BGR);
+    cvtColor(img, img, COLOR_HSV2BGR);
 
+#ifdef DISPLAY_RESULT
     // Display result. You must remove here at release version
-    row = img.ptr(detectLinePos);
+
+    // inRange(img, lowerY, upperY, img);
+    // cvtColor(img, img, COLOR_GRAY2BGR);
+
+    uchar *row = img.ptr(baseline);
     for (int i = 0; i < sizeSmall.width; i++) {
-        if (row[i * 3]) {
-            row[i * 3]     = 0;
-            row[i * 3 + 1] = 0;
-        } else {
-            row[i * 3] = 255;
-        }
+        // make color of baseline to white
+        row[i * 3 + 0] = 255;
+        row[i * 3 + 1] = 255;
+        row[i * 3 + 2] = 255;
     }
-
-    if (detectionInfo.laneL >= 0 || detectionInfo.laneL < sizeSmall.width) {
-        row[detectionInfo.laneL * 3 + 0] = 0;
-        row[detectionInfo.laneL * 3 + 1] = 255;
-        row[detectionInfo.laneL * 3 + 2] = 255;
+    if (liYAW.posL >= 0 || liYAW.posL < sizeSmall.width) {
+        row[liYAW.posL * 3 + 0] = 0;
+        row[liYAW.posL * 3 + 1] = 0;
+        row[liYAW.posL * 3 + 2] = 255;
     }
-
-    if (detectionInfo.laneR >= 0 || detectionInfo.laneR < sizeSmall.width) {
-        row[detectionInfo.laneR * 3 + 0] = 255;
-        row[detectionInfo.laneR * 3 + 1] = 255;
-        row[detectionInfo.laneR * 3 + 2] = 0;
+    if (liYAW.posR >= 0 || liYAW.posR < sizeSmall.width) {
+        row[liYAW.posR * 3 + 0] = 255;
+        row[liYAW.posR * 3 + 1] = 0;
+        row[liYAW.posR * 3 + 2] = 0;
     }
 
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
-
-    // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
+#endif
+    // // Copy processed image to display
+    // copy(img.data, img.data + W * H * 3, arg->display_input);
 
     // center position = (left+width)/2 - imgWidth/2;
     //                 = (left+width-imgWidth)/2
     // Because we use gain in process, constant is not required.
     // And to reverse direction, multiply -1.
-    result->position =
-        -(detectionInfo.laneL + detectionInfo.laneR - sizeSmall.width);
+    result->pos_yl   = -(liY.posL + liY.posR - sizeSmall.width);
+    result->pos_yawl = -(liYAW.posL + liYAW.posR - sizeSmall.width);
+}
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" vector_lane get_lane(recog_arg *arg) {
+    static vector_lane result;
+    detectLane(arg, &result);
+    return result;
 }

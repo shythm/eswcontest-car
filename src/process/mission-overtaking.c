@@ -7,6 +7,6 @@ void init_overtaking(State *state) {
     state->missions.overtaking.function = do_overtaking;
 }
 
-void check_overtaking(State *state) {}
+void check_overtaking(State *state) { return; }
 
 void do_overtaking(State *state) {}
