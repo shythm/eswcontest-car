@@ -36,7 +36,7 @@ void do_obstacle(State *state) {
     container.c_int16 = 0;
     send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &container);
 
-    beep(state->ctrl, 50);
+    beep(50);
 
     // block until the obstacle is disappear.
     for (int i = 0; i < ONE_SHOT_COUNT; i++) {
