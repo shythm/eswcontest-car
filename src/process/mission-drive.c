@@ -24,10 +24,9 @@ void init_drive(State *state) {
     if (command(CMD_SPEED_PID_DIFFERENTAL, 20) != MSG_STATE_SUCCESS)
         printf("fail 6\n");
 
-    state->input->lane.enabled    = true;
-    state->input->lane.initialize = true;
+    state->input->lane.enabled = true;
 
-    printf("Initialize finished.\n");
+    printf("Initialize for mission-drive has been finished.\n");
 
 #if 0
 #define TERM_DRIVE 1200
@@ -75,10 +74,10 @@ void do_drive(State *state) {
 #define GAIN_P      14.4  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    200   // Maximum velocity
+#define MAX_VELO    40    // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
-    int          pos    = state->input->lane.value.position;
+    int          pos    = state->input->lane.value.pos_yawl;
     static float errSum = 0;
     errSum += pos * GAIN_I;
 

@@ -88,7 +88,6 @@ int main() {
         CHECK(slope);
         CHECK(parking);
         CHECK(overtaking);
-
         // Functions are executed in the order of highest priority.
         // Among the same priorities, they are executed in the order of checking
         // first. For example, if priority of the overpass is 1 and drive is 0,

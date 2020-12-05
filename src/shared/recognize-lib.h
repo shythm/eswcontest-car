@@ -24,12 +24,16 @@
  * This is source data for recognition. This is only for recognition
  * process.
  */
-struct _recog_result;
-typedef struct _recog_arg {
-    mqid_ctrl             ctrl;
-    unsigned char         camera_output[VPE_OUTPUT_IMG_SIZE];
-    unsigned char *       display_input;
-    struct _recog_result *shm_rr;
+
+typedef struct {
+    bool call_init_lane_info;
+} external_data;
+
+typedef struct { // only for recognize process
+    mqid_ctrl      ctrl;
+    external_data *pext_data;
+    unsigned char  camera_output[VPE_OUTPUT_IMG_SIZE];
+    unsigned char *display_input;
 } recog_arg;
 
 /******************************************************/
@@ -65,8 +69,8 @@ typedef struct {
 
 // for lane data
 typedef struct {
-    float pos_y;   // position of yellow lane
-    float pos_yaw; // position of yellow and white lane
+    float pos_yl;   // position of yellow lane
+    float pos_yawl; // position of yellow and white lane
 } vector_lane;
 typedef struct {
     bool        enabled;
@@ -119,6 +123,22 @@ typedef struct {
     recog_is_there_car_t value;
 } recog_is_there_car_data;
 
+// these are for psd data
+#define PSD_COUNT        6
+#define PSD_FRONT        0
+#define PSD_RIGHT_1      1
+#define PSD_RIGHT_2      2
+#define PSD_BACK         3
+#define PSD_LEFT_2       4
+#define PSD_LEFT_1       5
+#define PSD_DISTANCE_MIN 4.0f
+#define PSD_DISTANCE_MAX 30.0f
+typedef float psd_data_t;
+typedef struct {
+    psd_data_t value[PSD_COUNT];
+    bool       valid;
+} recog_psd_data;
+
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
 /******************************************************/
@@ -127,28 +147,12 @@ typedef struct {
 /* <START SECTION OF SHARED MEMORY>                   */
 /******************************************************/
 
-// these are for psd data
-#define PSD_COUNT   6
-#define PSD_FRONT   0
-#define PSD_RIGHT_1 1
-#define PSD_RIGHT_2 2
-#define PSD_BACK    3
-#define PSD_LEFT_2  4
-#define PSD_LEFT_1  5
-typedef float psd_data_t;
-#define PSD_DISTANCE_MIN 4.0f
-#define PSD_DISTANCE_MAX 30.0f
-typedef struct _recog_psd_data {
-    psd_data_t value[PSD_COUNT];
-    bool       valid;
-} recog_psd_data;
-
 /*
  * This is shared memory structure for the results of recognition processing.
  * You can add some fields to share the output of the method which you have been
  * made.
  */
-typedef struct _recog_result {
+typedef struct {
     recog_is_on_stop_line_data is_on_stop_line;
     recog_is_on_end_zone_data  is_on_end_zone;
     recog_traffic_light_data   traffic_light;
@@ -159,6 +163,7 @@ typedef struct _recog_result {
     recog_stop_obstacle_data   stop_obstacle;
     recog_is_there_car_data    is_there_car;
     recog_psd_data             psd;
+    external_data              ext_data;
 } recog_result;
 
 /******************************************************/

@@ -132,9 +132,6 @@ void getValidPositions(Mat &img, vector<int> &out, int bl, Scalar l, Scalar u) {
     }
 }
 
-// 외부에서 LaneInfo 초기화할 수 있도록 선언한 전역 변수
-bool callInitLaneInfo = true;
-
 #define BASE_LINE_RATIO 0.45
 #define DISPLAY_RESULT
 
@@ -150,14 +147,16 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     static bool init = true;
     if (init) {
         getRoiPerspectiveTransform(perspM);
+        arg->pext_data->call_init_lane_info =
+            true; // 외부에서 LaneInfo 초기화하는 용도로 사용됨
         baseline = sizeSmall.height * BASE_LINE_RATIO;
         init     = false;
     }
 
-    if (callInitLaneInfo) {
+    if (arg->pext_data->call_init_lane_info) {
         initLaneInfo(liY);
         initLaneInfo(liYAW);
-        callInitLaneInfo = false;
+        arg->pext_data->call_init_lane_info = false;
     }
 
     // Copy image and wrap raw data with Mat object
@@ -182,20 +181,20 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     cvtColor(img, img, CV_BGR2HSV);
 
     // yellow lane
-    const static Scalar lowerY(10, 50, 0);
-    const static Scalar upperY(50, 255, 255);
+    const static Scalar lowerY(20, 70, 0);
+    const static Scalar upperY(40, 255, 255);
     vector<int>         vpOfY; // valid positions of yellow
     getValidPositions(img, vpOfY, baseline, lowerY, upperY);
     updateLaneInfo(vpOfY, liY);
 
     // yellow and white lane
-    const static Scalar lowerYAW(0, 0, 200);
-    const static Scalar upperYAW(255, 40, 255);
+    const static Scalar lowerW(0, 0, 200);
+    const static Scalar upperW(255, 40, 255);
     vector<int>         vpOfYAW;
     for (int vp : vpOfY) { // push back valid positions of yellow
         vpOfYAW.push_back(vp);
     }
-    getValidPositions(img, vpOfYAW, baseline, lowerYAW, upperYAW);
+    getValidPositions(img, vpOfYAW, baseline, lowerW, upperW);
     updateLaneInfo(vpOfYAW, liYAW);
 
     // Restore colorspace
@@ -214,15 +213,15 @@ void detectLane(recog_arg *arg, vector_lane *result) {
         row[i * 3 + 1] = 255;
         row[i * 3 + 2] = 255;
     }
-    if (liY.posL >= 0 || liY.posL < sizeSmall.width) {
-        row[liY.posL * 3 + 0] = 0;
-        row[liY.posL * 3 + 1] = 0;
-        row[liY.posL * 3 + 2] = 255;
+    if (liYAW.posL >= 0 || liYAW.posL < sizeSmall.width) {
+        row[liYAW.posL * 3 + 0] = 0;
+        row[liYAW.posL * 3 + 1] = 0;
+        row[liYAW.posL * 3 + 2] = 255;
     }
-    if (liY.posR >= 0 || liY.posR < sizeSmall.width) {
-        row[liY.posR * 3 + 0] = 255;
-        row[liY.posR * 3 + 1] = 0;
-        row[liY.posR * 3 + 2] = 0;
+    if (liYAW.posR >= 0 || liYAW.posR < sizeSmall.width) {
+        row[liYAW.posR * 3 + 0] = 255;
+        row[liYAW.posR * 3 + 1] = 0;
+        row[liYAW.posR * 3 + 2] = 0;
     }
 
     // Restore size
@@ -236,9 +235,8 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     //                 = (left+width-imgWidth)/2
     // Because we use gain in process, constant is not required.
     // And to reverse direction, multiply -1.
-    result->pos_y = -(liY.posL + liY.posR - sizeSmall.width);
-    cout << "posL: " << liY.posL << ", posR: " << liY.posR << ", pos: " << result->pos_y << endl;
-    result->pos_yaw = -(liYAW.posL + liYAW.posR - sizeSmall.width);
+    result->pos_yl   = -(liY.posL + liY.posR - sizeSmall.width);
+    result->pos_yawl = -(liYAW.posL + liYAW.posR - sizeSmall.width);
 }
 
 // *********************************************************

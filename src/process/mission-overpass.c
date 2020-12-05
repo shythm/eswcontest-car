@@ -16,8 +16,20 @@ void init_overpass(State *state) {
 }
 
 void check_overpass(State *state) {
-    if (state->input->is_on_overpass.value) {
-        state->missions.overpass.priority = 0;
+    return;
+
+    static float pL, pR;
+    bool         ret = false;
+
+    if (state->input->psd.valid) {
+        pL = state->input->psd.value[PSD_LEFT_1];
+        pR = state->input->psd.value[PSD_RIGHT_1];
+
+        if (pL < 20.0f && pR < 20.0f) { ret = true; }
+    }
+
+    if (ret) {
+        state->missions.overpass.priority = 0; // 일단 0으로
     }
 }
 

@@ -48,6 +48,7 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
     return TC_NONE;
 }
 
+/* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
     // < recognize >
     // - is_on_stop_line    (o)
@@ -358,8 +359,8 @@ void *value_check(void *argv) {
         printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
         printf("is_on_end_zone: %d \n", (int)(shm->is_on_end_zone.value));
         printf("traffic_light:   %d \n", shm->traffic_light.value);
-        printf("lane: pos=%f pos_with_white=%f \n", shm->lane.value.pos_y,
-               shm->lane.value.pos_yaw);
+        printf("lane: pos=%f pos_with_white=%f \n", shm->lane.value.pos_yl,
+               shm->lane.value.pos_yawl);
         printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
@@ -401,7 +402,7 @@ int main(int argc, char **argv) {
 
     /* Do capture and recognize */
     recog_arg arg;
-    arg.shm_rr = shm_rr;
+    arg.pext_data = &shm_rr->ext_data;
 
     // Get message queue id of ctrlboard process
     if (get_mqid_ctrl(&arg.ctrl) == -1) {
@@ -411,11 +412,6 @@ int main(int argc, char **argv) {
     }
 
     printf("RECOGNIZE\n");
-
-    ctrlboard_byte_container cont;
-    cont.c_int16 = 1670;
-    send_ctrlboard(arg.ctrl, CMD_CAMERA_Y_SERVO_CONTROL, 2, &cont);
-
     for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;

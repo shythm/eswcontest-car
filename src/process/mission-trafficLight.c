@@ -14,7 +14,7 @@ int       discover_stop_line = 1; // 1:practice, 0: real
 mqid_ctrl mqid;
 
 void init_trafficLight(State *state) {
-    state->input->is_on_end_point.enabled = false;
+    state->input->is_on_end_zone.enabled  = false;
     state->input->is_on_stop_line.enabled = true;
     state->input->traffic_light.enabled   = false;
     state->missions.trafficLight.function = do_trafficLight;
@@ -23,6 +23,8 @@ void init_trafficLight(State *state) {
 }
 
 void check_trafficLight(State *state) {
+    return;
+
     if (discover_stop_line >= 2) return;
     if (state->input->is_on_stop_line.value == true) {
         if (discover_stop_line == 0) {
@@ -86,15 +88,15 @@ void do_trafficLight(State *state) {
     move(mqid, TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
 
     // progress into end-point
-    state->input->is_on_end_point.enabled = true;
+    state->input->is_on_end_zone.enabled = true;
     set_steering(mqid, 1500);
     set_desire_speed(mqid, TL_SPEED);
     set_encoder_counter(mqid, 0);
     usleep(TL_SLEEP);
     // progress until I can see end point
-    while (!state->input->is_on_end_point.value) usleep(1000);
+    while (!state->input->is_on_end_zone.value) usleep(1000);
     // progress until I can't see end point
-    while (state->input->is_on_end_point.value) usleep(1000);
+    while (state->input->is_on_end_zone.value) usleep(1000);
     set_desire_speed(mqid, 0);
 
     beep(mqid, 50);

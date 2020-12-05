@@ -17,6 +17,7 @@ set +e
 
 echo "Execute the programs on the remote device"
 ssh -t root@10.10.70.4 "bin/ctrlboard & bin/recognize & bin/process"
+# ssh -t root@10.10.70.4 "bin/ctrlboard & bin/recognize"
 
 echo "Clean the programs on the remote device."
 ssh -t root@10.10.70.4 "bin/clean-car"

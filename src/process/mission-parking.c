@@ -37,6 +37,7 @@ __________|    parking    |__________
 */
 
 void check_parking(State *state) {
+    return;
     // printf("psd: %3.1f\n", rr->psd.value[PSD_RIGHT_1]);
 
     static enum { NONE, READY, DECISION } parking_state = 0;
