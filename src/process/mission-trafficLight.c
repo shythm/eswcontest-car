@@ -98,9 +98,9 @@ void do_trafficLight(State *state) {
     }
     */
 
-    state->input->traffic_light.enabled   = false;
-    state->input->tl_lane.enable          = true;
-    state->input->is_on_end_point.enabled = true;
+    state->input->traffic_light.enabled  = false;
+    state->input->tl_lane.enable         = true;
+    state->input->is_on_end_zone.enabled = true;
 
     // tilt down camera
     set_camer_Yservo(1700);
@@ -116,12 +116,12 @@ void do_trafficLight(State *state) {
     // progress toward end point
     set_desire_speed(TL_SPEED);
 #if 0
-    while (state->input->is_on_end_point.value) {
+    while (state->input->is_on_end_zone.value) {
         set_steering(  state->input->tl_lane.value.position * -50 + 1500);
     }
 #else
-    while (!state->input->is_on_end_point.value) dive_into_end_point(state);
-    while (state->input->is_on_end_point.value) dive_into_end_point(state);
+    while (!state->input->is_on_end_zone.value) dive_into_end_point(state);
+    while (state->input->is_on_end_zone.value) dive_into_end_point(state);
 
 #endif
     set_desire_speed(0);
@@ -132,15 +132,15 @@ void do_trafficLight(State *state) {
         move(  TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
 
         // progress into end-point
-        state->input->is_on_end_point.enabled = true;
+        state->input->is_on_end_zone.enabled = true;
         set_steering(  1500);
         set_desire_speed(  TL_SPEED);
         set_encoder_counter(  0);
         usleep(TL_SLEEP);
         // progress until I can see end point
-        while (!state->input->is_on_end_point.value) usleep(1000);
+        while (!state->input->is_on_end_zone.value) usleep(1000);
         // progress until I can't see end point
-        while (state->input->is_on_end_point.value) usleep(1000);
+        while (state->input->is_on_end_zone.value) usleep(1000);
         set_desire_speed(  0);
     */
 

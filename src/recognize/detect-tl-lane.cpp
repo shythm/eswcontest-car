@@ -1,5 +1,3 @@
-#include "detect.h"
-#include "mask-thresh.h"
 #include "recognize-lib.h"
 #include <math.h>
 #include <opencv2/opencv.hpp>
@@ -197,3 +195,8 @@ float get_tl_lane_t(recog_arg *arg) {
     // }
     // recog_tl_lane_t ret_val = cal_tl_lane(img, arg);
 }
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" float get_tl_lane(recog_arg *arg) { return get_tl_lane_t(arg); }

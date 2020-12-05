@@ -143,7 +143,6 @@ typedef struct _recog_tl_lane_data {
     bool  enable;
     float value;
 } recog_tl_lane_data;
-float get_tl_lane(recog_arg *arg);
 
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
