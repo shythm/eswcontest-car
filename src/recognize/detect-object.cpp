@@ -1,7 +1,20 @@
-#include "detect.h"
+#include "recognize-lib.h"
 #include <algorithm>
 #include <numeric>
 #include <opencv2/opencv.hpp>
+
+struct TrafficLights {
+    bool red, yellow, green, left, right;
+};
+struct Point {
+    int x;
+    int y;
+};
+struct StopObstacle {
+    bool         exist;
+    struct Point center;
+    float        area;
+};
 
 enum Shape : int {
     Circle    = 0b1,
@@ -249,4 +262,34 @@ struct StopObstacle detectStopObstacle(recog_arg *arg) {
         result = detectStopObstacle(srcRGB, NULL, 50, 100000);
 
     return result;
+}
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
+    static recog_stop_obstacle_t result;
+
+    struct StopObstacle detected = detectStopObstacle(arg);
+    if (detected.exist) {
+        result.area  = detected.area;
+        result.pos_x = detected.center.x;
+        result.pos_y = detected.center.y;
+    } else {
+        result.area  = 0;
+        result.pos_x = -1;
+        result.pos_y = -1;
+    }
+
+    return result;
+}
+extern "C" recog_traffic_light_t get_traffic_light(recog_arg *arg) {
+    struct TrafficLights detected = detectLights(arg);
+
+    if (detected.green) return TL_GREEN;
+    if (detected.yellow) return TL_YELLOW;
+    if (detected.left) return TL_LEFT;
+    if (detected.red) return TL_RED;
+
+    return TL_NONE;
 }
