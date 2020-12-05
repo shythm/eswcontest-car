@@ -18,7 +18,7 @@ void dive_into_end_point(State *state);
 int discover_stop_line = 1; // 1:practice, 0: real
 
 void init_trafficLight(State *state) {
-    state->input->is_on_end_point.enabled = false;
+    state->input->is_on_end_zone.enabled  = false;
     state->input->is_on_stop_line.enabled = true;
     state->input->traffic_light.enabled   = false;
     state->input->tl_lane.enable          = false;
@@ -29,7 +29,7 @@ void init_trafficLight(State *state) {
 
 void check_trafficLight(State *state) {
     // state->missions.trafficLight.priority = 10;
-    // return;
+    return;
     state->input->is_on_stop_line.enabled = true;
     // printf("%d\n", state->input->is_on_stop_line.value);
     if (discover_stop_line >= 2) return;

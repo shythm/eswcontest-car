@@ -1,4 +1,3 @@
-#include "detect.h"
 // #include "draw-txt.h"
 #include "recognize-lib.h"
 #include <algorithm>
@@ -84,4 +83,11 @@ bool detectEndZone(recog_arg *arg) {
 
     drawTxt(edge, disp_data, 10, 50, VPE_OUTPUT_W, VPE_OUTPUT_H);
     */
+}
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" bool get_is_on_end_zone(recog_arg *arg) {
+    return detectEndZone(arg);
 }
