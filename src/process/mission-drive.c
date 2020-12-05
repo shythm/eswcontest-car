@@ -77,7 +77,7 @@ void do_drive(State *state) {
 #define MAX_VELO    250   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
-    int          pos    = state->input->lane.value.pos_yawl;
+    int          pos    = state->input->lane.value.pos_yl;
     static float errSum = 0;
     errSum += pos * GAIN_I;
 
