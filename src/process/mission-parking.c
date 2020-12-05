@@ -33,8 +33,8 @@ __________|    parking    |__________
 */
 
 void check_parking(State *state) {
-    return;
-    // printf("psd: %3.1f\n", rr->psd.value[PSD_RIGHT_1]);
+
+    printf("psd: %3.1f\n", state->input->psd.value[PSD_RIGHT_1]);
     static enum { NONE, READY, DECISION } parking_state = 0;
 
     static int encoder_count1 = 0;
@@ -80,6 +80,7 @@ void check_parking(State *state) {
 }
 
 void do_parking_vertical(State *state) {
+    beep(50);
     // rr_save_and_recover(0);
     short previous_steering = read_steering();
 
