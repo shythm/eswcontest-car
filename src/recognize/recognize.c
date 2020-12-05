@@ -91,6 +91,7 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->is_there_car.enabled) { // update is_there_car
         result->is_there_car.value = get_is_there_car(arg);
     }
+    if (result->tl_lane.enable) { result->tl_lane.value = get_tl_lane(arg); }
 }
 
 int capture_recognize(recog_result *result, recog_arg *arg) {

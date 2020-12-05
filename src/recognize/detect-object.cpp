@@ -144,7 +144,7 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
     cv::Mat redMasked    = maskImage(frame, 0, 15, 90, 60);
     cv::Mat yellowMasked = maskImage(frame, 30, 20, 120, 60);
-    cv::Mat greenMasked  = maskImage(frame, 60, 15, 90, 60);
+    cv::Mat greenMasked  = maskImage(frame, 100, 45, 90, 40);
     cv::Mat greenInverse = 255 - greenMasked;
 
     const static std::string captions[] = {"Red Light!", "Yellow Light!",

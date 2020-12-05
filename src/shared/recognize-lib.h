@@ -139,6 +139,12 @@ typedef struct {
     bool       valid;
 } recog_psd_data;
 
+typedef struct _recog_tl_lane_data {
+    bool  enable;
+    float value;
+} recog_tl_lane_data;
+float get_tl_lane(recog_arg *arg);
+
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
 /******************************************************/
@@ -163,6 +169,7 @@ typedef struct {
     recog_stop_obstacle_data   stop_obstacle;
     recog_is_there_car_data    is_there_car;
     recog_psd_data             psd;
+    recog_tl_lane_data         tl_lane;
     external_data              ext_data;
 } recog_result;
 

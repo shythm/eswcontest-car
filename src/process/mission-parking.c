@@ -14,8 +14,7 @@ void do_parking_parallel(State *);
 
 typedef ctrlboard_byte_container container;
 
-mqid_ctrl mqid;
-int       parking_complete = 0;
+int parking_complete = 0;
 
 void init_parking(State *state) { container data; }
 
@@ -49,7 +48,7 @@ void check_parking(State *state) {
     }
     case READY: { // first obstacle sensed
         if (state->input->psd.value[PSD_RIGHT_1] > 29.f) {
-            encoder_count1 = read_encoder_counter(mqid); // parking area start
+            encoder_count1 = read_encoder_counter(); // parking area start
             parking_state  = DECISION;
         }
         break;
@@ -57,16 +56,15 @@ void check_parking(State *state) {
     case DECISION: { // parking area sensed
         if (state->input->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
             int distance =
-                (float)(read_encoder_counter(mqid) - encoder_count1) /
-                TICK_PER_CM;
+                (float)(read_encoder_counter() - encoder_count1) / TICK_PER_CM;
             printf("@@@@distance : %d [cm]\n", distance);
             if (25 < distance && distance < 45) { // parking vertical
-                set_desire_speed(mqid, 0);
+                set_desire_speed(0);
                 state->missions.parking.priority = 10;
                 state->missions.parking.function = do_parking_vertical;
 
             } else if (45 < distance && distance < 65) { // parking parallel
-                // set_desire_speed(mqid, 0);
+                // set_desire_speed( 0);
                 state->missions.parking.priority = 10;
                 state->missions.parking.function = do_parking_parallel;
             }
@@ -83,55 +81,55 @@ void check_parking(State *state) {
 
 void do_parking_vertical(State *state) {
     // rr_save_and_recover(0);
-    short previous_steering = read_steering(mqid);
+    short previous_steering = read_steering();
 
     // set steering at center
-    set_steering(mqid, 1500);
+    set_steering(1500);
     usleep(SLEEP_VERTICAL);
 
     // regress : until psd_right_1 is near by end of the 2nd obstacle
-    set_desire_speed(mqid, -SPEED_VERTICAL);
+    set_desire_speed(-SPEED_VERTICAL);
     while (state->input->psd.value[PSD_RIGHT_1] > 29.f) usleep(1000);
-    set_desire_speed(mqid, 0);
+    set_desire_speed(0);
     usleep(SLEEP_VERTICAL);
 
     // progress : move to proper position to park
-    move(mqid, SPEED_VERTICAL, 20.f * TICK_PER_CM);
+    move(SPEED_VERTICAL, 20.f * TICK_PER_CM);
 
     // steering to 1000
-    set_steering(mqid, 1000);
+    set_steering(1000);
     usleep(SLEEP_VERTICAL);
 
     // turn 90-degree backward
-    move(mqid, -SPEED_VERTICAL, -(RADIUS * PI / 2 * TICK_PER_CM));
+    move(-SPEED_VERTICAL, -(RADIUS * PI / 2 * TICK_PER_CM));
 
     // steering to 1500
-    set_steering(mqid, 1500);
+    set_steering(1500);
     usleep(SLEEP_VERTICAL);
 
     // regress until the distance from the wall is 18cm
-    set_encoder_counter(mqid, 0);
-    set_desire_speed(mqid, -SPEED_VERTICAL);
+    set_encoder_counter(0);
+    set_desire_speed(-SPEED_VERTICAL);
     while (state->input->psd.value[PSD_BACK] > 15.f) usleep(1000);
-    set_desire_speed(mqid, 0);
+    set_desire_speed(0);
     int regressed_ticks = read_encoder_counter(mqid); // [tick]
 
     // beep
-    beep(mqid, 50);
+    beep(50);
     sleep(1);
 
     // go straight as the car regressed
-    move(mqid, SPEED_VERTICAL, -regressed_ticks);
+    move(SPEED_VERTICAL, -regressed_ticks);
 
     // steering to 1000
-    set_steering(mqid, 1000);
+    set_steering(1000);
     usleep(SLEEP_VERTICAL);
 
     // turn 90-degree forward
-    move(mqid, SPEED_VERTICAL, (RADIUS * PI / 2 * TICK_PER_CM));
+    move(SPEED_VERTICAL, (RADIUS * PI / 2 * TICK_PER_CM));
 
     // recover steering as previous steering before parking
-    set_steering(mqid, previous_steering);
+    set_steering(previous_steering);
     usleep(SLEEP_VERTICAL);
 
     parking_complete++;
@@ -148,10 +146,10 @@ void do_parking_parallel(State *state) {
     float     tangent       = -(float)(initial_speed) / (float)(braking_time);
 
     for (int time = time_step; time <= braking_time; time += time_step) {
-        set_desire_speed(mqid, (tangent * time + initial_speed));
+        set_desire_speed((tangent * time + initial_speed));
         usleep(time_step - 10);
     }
-    set_desire_speed(mqid, 0);
+    set_desire_speed(0);
 
     short       previous_steering = read_steering(mqid);
     const float turn_radian       = PI / 3.f;
@@ -159,66 +157,66 @@ void do_parking_parallel(State *state) {
 
     usleep(SLEEP_PARALLEL);
     // set steering at center
-    set_steering(mqid, 1500);
+    set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
     // regress: until psd_right_1 is near by end of the 2nd obstacle
-    set_desire_speed(mqid, -SPEED_PARALLEL);
+    set_desire_speed(-SPEED_PARALLEL);
     while (state->input->psd.value[PSD_RIGHT_1] < 26.f) usleep(1000);
-    set_desire_speed(mqid, 0);
+    set_desire_speed(0);
     usleep(SLEEP_PARALLEL);
 
     // progress: move to proper position to park
-    move(mqid, SPEED_PARALLEL, 35.f * TICK_PER_CM);
+    move(SPEED_PARALLEL, 35.f * TICK_PER_CM);
 
     // steering to 1000
-    set_steering(mqid, 1000);
+    set_steering(1000);
     usleep(SLEEP_PARALLEL);
 
     // turn ??-degree backward
-    move(mqid, -SPEED_PARALLEL, -(RADIUS * turn_radian * TICK_PER_CM));
+    move(-SPEED_PARALLEL, -(RADIUS * turn_radian * TICK_PER_CM));
 
     // steering to 1500
-    set_steering(mqid, 1500);
+    set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
     // regress: move to proper position
-    move(mqid, -SPEED_PARALLEL, -straight_cm * TICK_PER_CM);
+    move(-SPEED_PARALLEL, -straight_cm * TICK_PER_CM);
 
     // steering to 2000
-    set_steering(mqid, 2000);
+    set_steering(2000);
     usleep(SLEEP_PARALLEL);
 
     // turn until the distance from the wall is 5cm backward
-    set_encoder_counter(mqid, 0);
-    set_desire_speed(mqid, -SPEED_PARALLEL);
+    set_encoder_counter(0);
+    set_desire_speed(-SPEED_PARALLEL);
     while (state->input->psd.value[PSD_BACK] > 6.f) usleep(1000);
-    set_desire_speed(mqid, 0);
+    set_desire_speed(0);
     int regressed_ticks = read_encoder_counter(mqid); // [tick]
 
     // beep
-    beep(mqid, 50);
+    beep(50);
     sleep(1);
 
     // turn forward as the car regressed
-    move(mqid, SPEED_PARALLEL, -regressed_ticks);
+    move(SPEED_PARALLEL, -regressed_ticks);
 
     // steering to 1500
-    set_steering(mqid, 1500);
+    set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
     // progress: move to proper position
-    move(mqid, SPEED_PARALLEL, straight_cm * TICK_PER_CM);
+    move(SPEED_PARALLEL, straight_cm * TICK_PER_CM);
 
     // steering to 1000
-    set_steering(mqid, 1000);
+    set_steering(1000);
     usleep(SLEEP_PARALLEL);
 
     // turn ??-degree forward
-    move(mqid, SPEED_PARALLEL, (RADIUS * turn_radian * TICK_PER_CM));
+    move(SPEED_PARALLEL, (RADIUS * turn_radian * TICK_PER_CM));
 
     // set steering as previous steering before parking
-    set_steering(mqid, previous_steering);
+    set_steering(previous_steering);
     usleep(SLEEP_PARALLEL);
 
     parking_complete++;
