@@ -9,6 +9,13 @@ int read_encoder_counter(mqid_ctrl mqid) {
         printf("fail to read encoder count, mission-parking\n");
     return data.c_int32;
 }
+short read_desire_speed(mqid_ctrl mqid) {
+    container data;
+    if (comm_ctrlboard(mqid, MSG_ID_PROCESS, CMD_DESIRE_SPEED, CMD_TYPE_READ, 2,
+                       &data) != MSG_STATE_SUCCESS)
+        printf("fail to read encoder count, mission-parking\n");
+    return data.c_int16;
+}
 short read_steering(mqid_ctrl mqid) {
     container data;
     if (comm_ctrlboard(mqid, MSG_ID_PROCESS, CMD_STEERING_SERVO_CONTROL,

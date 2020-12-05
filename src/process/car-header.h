@@ -10,6 +10,7 @@
 typedef ctrlboard_byte_container container;
 
 int   read_encoder_counter(mqid_ctrl mqid);
+short read_desire_speed(mqid_ctrl mqid);
 short read_steering(mqid_ctrl mqid);
 void  set_encoder_counter(mqid_ctrl mqid, int encoder_counter);
 void  set_steering(mqid_ctrl mqid, short steering);
