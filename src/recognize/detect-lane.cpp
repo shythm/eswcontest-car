@@ -229,8 +229,8 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
 
-    // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
+    // // Copy processed image to display
+    // copy(img.data, img.data + W * H * 3, arg->display_input);
 
     // center position = (left+width)/2 - imgWidth/2;
     //                 = (left+width-imgWidth)/2

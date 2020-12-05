@@ -131,8 +131,8 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
     cv::Mat redMasked    = maskImage(frame, 0, 15, 90, 60);
     cv::Mat yellowMasked = maskImage(frame, 30, 20, 120, 60);
-    cv::Mat greenMasked  = maskImage(frame, 100, 45, 90, 40);
-    cv::Mat greenInverse = 255 - greenMasked;
+    cv::Mat greenMasked  = maskImage(frame, 60, 20, 90, 40);
+    // cv::Mat greenInverse = 255 - greenMasked;
 
     const static std::string captions[] = {"Red Light!", "Yellow Light!",
                                            "Green Light!", "Left Direction!",
@@ -145,11 +145,12 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
         findShapes(Circle, redMasked, minArea, maxArea),
         findShapes(Circle, yellowMasked, minArea, maxArea),
         findShapes(Circle, greenMasked, minArea, maxArea),
-        findShapes(Left, greenInverse, minArea, maxArea),
-        findShapes(Right, greenInverse, minArea, maxArea)};
+        // findShapes(Left, greenInverse, minArea, maxArea),
+        // findShapes(Right, greenInverse, minArea, maxArea)
+    };
 
     if (drawBoard) {
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 3; ++i) {
             if (!found[i].empty()) {
                 cv::drawContours(*drawBoard, found[i], -1, colors[i], 2);
                 putTextAtCenter(*drawBoard, captions[i], colors[i]);
