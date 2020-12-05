@@ -62,7 +62,7 @@ void move(mqid_ctrl mqid, short speed, int desire_encoder) {
         while (desire_encoder < read_encoder_counter(mqid)) usleep(1000);
     }
     set_desire_speed(mqid, 0);
-    usleep(500000);
+    usleep(100000);
 }
 
 void set_camer_Yservo(mqid_ctrl mqid, short y_servo) {
