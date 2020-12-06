@@ -27,13 +27,10 @@ void init_parking(State *state) { container data; }
  __________|    parking    |__________
  |         |     area      |         |
  |_________|               |_________|
-           ^               ^
-           |               |
-           |               encoder_count1
-           encoder_count2
-^
-|
-|
+^          ^               ^
+|          |               |
+|          |               encoder_count1
+|          encoder_count2
 (progress point)
 
 <------- progress direction of car
