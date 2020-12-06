@@ -15,11 +15,7 @@ void do_parking_vertical(State *);
 void do_parking_parallel(State *);
 void stop_slowly();
 
-typedef ctrlboard_byte_container container;
-
-int parking_complete = 0;
-
-void init_parking(State *state) { container data; }
+void init_parking(State *state) {}
 
 /*
            ________________
@@ -40,16 +36,16 @@ void check_parking(State *state) {
     // printf("psd: %3.1f\n", state->input->psd.value[PSD_RIGHT_1]);
     static enum { NONE, READY, DECISION } parking_state = 0;
     static int encoder_count1                           = 0;
+    static int parking_complete                         = 0;
 
+    if (parking_complete >= 2) return;
     switch (parking_state) {
     case NONE: { // no obstacle sensed
         state->missions.parking.priority = 0;
-        if (parking_complete >= 2) break;
         if (state->input->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
         break;
     }
     case READY: { // first obstacle sensed
-
         if (state->input->psd.value[PSD_RIGHT_1] > 29.f) {
             encoder_count1 = read_encoder_counter(); // parking area start
             parking_state  = DECISION;
@@ -65,10 +61,12 @@ void check_parking(State *state) {
             if (25 < distance && distance < 40) { // parking vertical
                 state->missions.parking.priority = 10;
                 state->missions.parking.function = do_parking_vertical;
+                parking_complete++;
 
             } else if (45 < distance && distance < 60) { // parking parallel
                 state->missions.parking.priority = 10;
                 state->missions.parking.function = do_parking_parallel;
+                parking_complete++;
             }
             parking_state = NONE;
         }
@@ -143,7 +141,6 @@ void do_parking_vertical(State *state) {
     set_steering(previous_steering);
     usleep(SLEEP_VERTICAL);
 
-    parking_complete++;
     while (1) sleep(1);
     // rr_save_and_recover(1);
     return;
@@ -234,7 +231,6 @@ void do_parking_parallel(State *state) {
     set_steering(previous_steering);
     usleep(SLEEP_PARALLEL);
 
-    parking_complete++;
     // rr_save_and_recover(1);
     while (1) sleep(1);
     return;
