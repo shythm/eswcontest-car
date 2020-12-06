@@ -140,8 +140,6 @@ void do_parking_vertical(State *state) {
     // recover steering as previous steering before parking
     set_steering(previous_steering);
     usleep(SLEEP_VERTICAL);
-
-    while (1) sleep(1);
     // rr_save_and_recover(1);
     return;
 }
@@ -232,7 +230,6 @@ void do_parking_parallel(State *state) {
     usleep(SLEEP_PARALLEL);
 
     // rr_save_and_recover(1);
-    while (1) sleep(1);
     return;
 }
 void stop_slowly() {
