@@ -1,6 +1,7 @@
 #include "process.h"
 #include "ctrlboard-lib.h"
 #include "recognize-lib.h"
+#include "start_exe.h"
 #include <sys/msg.h>
 
 #define CHECK(name)                                                            \
@@ -65,6 +66,9 @@ int main() {
         return -1;
     }
 
+    // wait for psdsignal
+    start_with_PSD(&input);
+
     INIT(drive);
     INIT(overpass);
     INIT(roundabout);
@@ -78,6 +82,7 @@ int main() {
     printf("Start process while loop\n");
     Mission *       missions = (Mission *)(&state.missions);
     MissionFunction mission;
+
     while (1) {
         CHECK(drive);
         CHECK(overpass);
