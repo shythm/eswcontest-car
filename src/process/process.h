@@ -1,5 +1,6 @@
 #ifndef _PROCESS_H_
 #define _PROCESS_H_
+#include "config-car.h"
 #include "ctrlboard-lib.h"
 #include "recognize-lib.h"
 
@@ -17,8 +18,6 @@
     - parking
     - overtaking
 */
-
-#define MSG_ID_PROCESS 299
 
 typedef void (*MissionFunction)();
 
