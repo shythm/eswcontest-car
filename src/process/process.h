@@ -3,6 +3,7 @@
 #include "config-car.h"
 #include "ctrlboard-lib.h"
 #include "recognize-lib.h"
+#include <stdbool.h>
 
 /*
 
@@ -24,6 +25,7 @@ typedef void (*MissionFunction)();
 typedef struct {
     int             priority;
     MissionFunction function;
+    bool            enabled;
 } Mission;
 
 typedef struct {
@@ -43,6 +45,8 @@ typedef struct {
 
     // Some custom variables
 } State;
+
+void do_start(State *state);
 
 #define MISSION_FUNC_NAME(name)      check_##name
 #define MISSION_INIT_FUNC_NAME(name) init_##name

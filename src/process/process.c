@@ -1,7 +1,6 @@
 #include "process.h"
 #include "ctrlboard-lib.h"
 #include "recognize-lib.h"
-#include "start_exe.h"
 #include <sys/msg.h>
 
 #define CHECK(name)                                                            \
@@ -67,7 +66,8 @@ int main() {
     }
 
     // wait for psdsignal
-    start_with_PSD(&input);
+    printf("Wait for start signal ... \n");
+    do_start(&state);
 
     INIT(drive);
     INIT(overpass);

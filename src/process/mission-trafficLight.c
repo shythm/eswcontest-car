@@ -23,8 +23,6 @@ void init_trafficLight(State *state) {
     state->input->traffic_light.enabled   = false;
     state->input->tl_lane.enable          = false;
     state->missions.trafficLight.function = do_trafficLight;
-
-    mqid = state->ctrl;
 }
 
 void check_trafficLight(State *state) {

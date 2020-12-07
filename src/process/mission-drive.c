@@ -74,7 +74,7 @@ void do_drive(State *state) {
 #define GAIN_P      12.0  // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    250   // Maximum velocity
+#define MAX_VELO    100   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
     int          pos    = state->input->lane.value.pos_yl;
