@@ -9,7 +9,7 @@
 
 typedef ctrlboard_byte_container container;
 
-mqid_ctrl mqid;
+extern mqid_ctrl ctrl;
 
 int   read_encoder_counter();
 short read_desire_speed();
