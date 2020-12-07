@@ -1,15 +1,12 @@
 #ifndef _CAR_HEADER_H_
 #define _CAR_HEADER_H_
 #include "process.h"
-#include "recognize-lib.h"
 
 #define TICK_PER_CM 19.7628f
 #define RADIUS      37.00f
 #define PI          3.141592f
 
 typedef ctrlboard_byte_container container;
-
-extern mqid_ctrl ctrl;
 
 int   read_encoder_counter();
 short read_desire_speed();

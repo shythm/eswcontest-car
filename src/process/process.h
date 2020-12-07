@@ -3,75 +3,27 @@
 #include "config-car.h"
 #include "ctrlboard-lib.h"
 #include "recognize-lib.h"
+#include "util.h"
 #include <stdbool.h>
 
-/*
+#define MODE_PRACTICE
 
-    Missions
+typedef void (*fnClean_t)(void);
+typedef void (*fnRun_t)(fnClean_t *);
+typedef bool (*fnCheck_t)(fnRun_t *);
+typedef void (*fnInit_t)(fnCheck_t *);
 
-    - drive
-    - overpass
-    - roundabout
-    - trafficLight
-    - obstacle
-    - tunnel
-    - slope
-    - parking
-    - overtaking
-*/
+void init_drive();
+void do_drive();
 
-typedef void (*MissionFunction)();
+/* `recog' is global variable that is externed by process.h and initialized by
+ * process.c. It stores the reocgnition results. */
+extern recog_result *recog;
 
-typedef struct {
-    int             priority;
-    MissionFunction function;
-    bool            enabled;
-} Mission;
-
-typedef struct {
-    recog_result *input;
-    mqid_ctrl     ctrl;
-    struct {
-        Mission drive;
-        Mission overpass;
-        Mission roundabout;
-        Mission trafficLight;
-        Mission obstacle;
-        Mission tunnel;
-        Mission slope;
-        Mission parking;
-        Mission overtaking;
-    } missions;
-
-    // Some custom variables
-} State;
-
-void do_start(State *state);
-
-#define MISSION_FUNC_NAME(name)      check_##name
-#define MISSION_INIT_FUNC_NAME(name) init_##name
-#define MISSION_CONDITION_DEF(name)  void MISSION_FUNC_NAME(name)(State * state)
-#define MISSION_INIT_DEF(name)       void MISSION_INIT_FUNC_NAME(name)(State * state)
-
-MISSION_CONDITION_DEF(drive);
-MISSION_CONDITION_DEF(overpass);
-MISSION_CONDITION_DEF(roundabout);
-MISSION_CONDITION_DEF(trafficLight);
-MISSION_CONDITION_DEF(obstacle);
-MISSION_CONDITION_DEF(tunnel);
-MISSION_CONDITION_DEF(slope);
-MISSION_CONDITION_DEF(parking);
-MISSION_CONDITION_DEF(overtaking);
-
-MISSION_INIT_DEF(drive);
-MISSION_INIT_DEF(overpass);
-MISSION_INIT_DEF(roundabout);
-MISSION_INIT_DEF(trafficLight);
-MISSION_INIT_DEF(obstacle);
-MISSION_INIT_DEF(tunnel);
-MISSION_INIT_DEF(slope);
-MISSION_INIT_DEF(parking);
-MISSION_INIT_DEF(overtaking);
+/* `ctrl' is global variable that is externed by process.h and initialized by
+ * process.c. It stores message queue ids of ctrlboard process to communicate
+ * with control board hardware. */
+extern mqid_ctrl ctrl;
 
 ctrlboard_msg_state_t command(ctrlboard_cmd_code cmd, int data);
 

@@ -6,29 +6,31 @@
 #define BACK_PSD_SAFE_DIST  6.f
 #define BACK_PSD_SAFE_STEER 40
 
-void do_tunnel(State *state);
+bool check_tunnel(fnRun_t *fnRun);
+void do_tunnel(fnClean_t *fnClean);
 
 static recog_psd_data *psd;
 
-void init_tunnel(State *state) {
-    psd                             = &(state->input->psd);
-    state->missions.tunnel.function = do_tunnel;
+void init_tunnel(fnCheck_t *fnCheck) {
+    psd = &recog->psd;
+
+    MSG("UPCOMING MISSION => tunnel");
+    *fnCheck = check_tunnel;
 }
 
-void check_tunnel(State *state) {
-    static int is_checked = false;
-
-    if (is_checked == true) return;
-    else {
-        if (psd->value[PSD_LEFT_1] < 20.f && psd->value[PSD_RIGHT_1] < 20.f) {
-            is_checked                      = true;
-            state->missions.tunnel.priority = 10;
-            beep(50);
-        }
+bool check_tunnel(fnRun_t *fnRun) {
+    if (psd->value[PSD_LEFT_1] < 20.f && psd->value[PSD_RIGHT_1] < 20.f) {
+        // 전조등 켜는 함수 넣으면 좋을 듯
+        beep(50);
+        MSG("START MISSION => tunnel");
+        *fnRun = do_tunnel;
+        return true;
     }
+
+    return false;
 }
 
-void do_tunnel(State *state) {
+void do_tunnel(fnClean_t *fnClean) {
     psd_data_t fL, fR;
     short      position = 0;
     set_desire_speed(TUNN_SPEED);

@@ -1,32 +1,28 @@
-#include "ctrlboard-lib.h"
 #include "process.h"
 
-typedef ctrlboard_byte_container container;
-
-void do_drive(State *state);
-
-void init_drive(State *state) {
+void init_drive() {
     if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1650) != MSG_STATE_SUCCESS)
-        printf("fail 1\n");
+        ERROR("CMD_CAMERA_Y_SERVO_CONTROL fail.");
 
     if (command(CMD_POSITION_CONTROL_ON_OFF, 0) != MSG_STATE_SUCCESS)
-        printf("fail 2\n");
+        ERROR("CMD_POSITION_CONTROL_ON_OFF fail.");
 
     if (command(CMD_SPEED_CONTROL_ON_OFF, 1) != MSG_STATE_SUCCESS)
-        printf("fail 3\n");
+        ERROR("CMD_SPEED_CONTROL_ON_OFF fail.");
 
     if (command(CMD_SPEED_PID_PROPORTIONAL, 20) != MSG_STATE_SUCCESS)
-        printf("fail 4\n");
+        ERROR("CMD_SPEED_PID_PROPORTIONAL fail.");
 
     if (command(CMD_SPEED_PID_INTEGRAL, 20) != MSG_STATE_SUCCESS)
-        printf("fail 5\n");
+        ERROR("CMD_SPEED_PID_INTEGRAL fail.");
 
     if (command(CMD_SPEED_PID_DIFFERENTAL, 20) != MSG_STATE_SUCCESS)
-        printf("fail 6\n");
+        ERROR("CMD_SPEED_PID_DIFFERENTAL fail.");
 
-    state->input->lane.enabled = true;
+    recog->lane.enabled                 = true;
+    recog->ext_data.call_init_lane_info = true;
 
-    printf("Initialize for mission-drive has been finished.\n");
+    MSG("Initialize drive mission!");
 
 #if 0
 #define TERM_DRIVE 1200
@@ -62,22 +58,16 @@ void init_drive(State *state) {
 #endif
 }
 
-void check_drive(State *state) {
-    state->missions.drive.priority = 1;
-    state->missions.drive.function = do_drive;
-}
-
-#define GAIN_IRR 0.5f
-void do_drive(State *state) {
-    int steering_val = 1500;
-
-#define GAIN_P      12.0  // P gain of PID control
+#define GAIN_P      12.0f // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
 #define MAX_VELO    100   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
-    int          pos    = state->input->lane.value.pos_yl;
+void do_drive() {
+    int steering_val = 1500;
+
+    float        pos    = recog->lane.value.pos_yl;
     static float errSum = 0;
     errSum += pos * GAIN_I;
 

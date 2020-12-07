@@ -1,7 +1,5 @@
 #include "car-header.h"
-#include "ctrlboard-lib.h"
 #include "process.h"
-#include <stdbool.h>
 
 #define SPEED_VERTICAL 85     // 50~100
 #define SPEED_PARALLEL 50     // 50~100
@@ -11,11 +9,18 @@
 #define TIME_STEP      1000
 
 // void rr_save_and_recover(char);
-void do_parking_vertical(State *);
-void do_parking_parallel(State *);
+bool check_parking(fnRun_t *);
+void do_parking_vertical(fnClean_t *);
+void do_parking_parallel(fnClean_t *);
 void stop_slowly();
 
-void init_parking(State *state) {}
+void init_parking(fnCheck_t *fnCheck) {
+    // wait until psd is valid
+    while (!recog->psd.valid) {}
+
+    MSG("UPCOMING MISSION => parking");
+    *fnCheck = check_parking;
+}
 
 /*
            ________________
@@ -32,54 +37,57 @@ void init_parking(State *state) {}
 <------- progress direction of car
 */
 
-void check_parking(State *state) {
-    // printf("psd: %3.1f\n", state->input->psd.value[PSD_RIGHT_1]);
+bool check_parking(fnRun_t *fnRun) {
+    // printf("psd: %3.1f\n", recog->psd.value[PSD_RIGHT_1]);
     static enum { NONE, READY, DECISION } parking_state = 0;
     static int encoder_count1                           = 0;
-    static int parking_complete                         = 0;
 
-    if (parking_complete >= 2) return;
     switch (parking_state) {
     case NONE: { // no obstacle sensed
-        state->missions.parking.priority = 0;
-        if (state->input->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
+        if (recog->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
         break;
     }
     case READY: { // first obstacle sensed
-        if (state->input->psd.value[PSD_RIGHT_1] > 29.f) {
+        if (recog->psd.value[PSD_RIGHT_1] > 29.f) {
             encoder_count1 = read_encoder_counter(); // parking area start
             parking_state  = DECISION;
         }
         break;
     }
-    case DECISION: { // parking area sensed
-        if (state->input->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
+    case DECISION: {                                // parking area sensed
+        if (recog->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
             int distance =
                 (float)(read_encoder_counter() - encoder_count1) / TICK_PER_CM;
             printf("@@@@distance : %d [cm]\n", distance);
 
-            if (25 < distance && distance < 40) { // parking vertical
-                state->missions.parking.priority = 10;
-                state->missions.parking.function = do_parking_vertical;
-                parking_complete++;
+            bool p_vertical = 25 < distance && distance < 40;
+            bool p_parallel = 45 < distance && distance < 60;
 
-            } else if (45 < distance && distance < 60) { // parking parallel
-                state->missions.parking.priority = 10;
-                state->missions.parking.function = do_parking_parallel;
-                parking_complete++;
+            if (p_vertical || p_parallel) {
+                if (p_vertical) {
+                    MSG("START MISSION => parking vertical");
+                    *fnRun = do_parking_vertical;
+                }
+                if (p_parallel) {
+                    MSG("START MISSION => parking parallel");
+                    *fnRun = do_parking_parallel;
+                }
+
+                parking_state = NONE;
+                return true;
             }
-            parking_state = NONE;
         }
         break;
     }
     default:
-        state->missions.parking.priority = 0;
-        parking_state                    = NONE;
+        parking_state = NONE;
         break;
     }
+
+    return false;
 }
 
-void do_parking_vertical(State *state) {
+void do_parking_vertical(fnClean_t *fnClean) {
     short previous_steering = read_steering();
     stop_slowly();
     // set_desire_speed(0);
@@ -88,14 +96,14 @@ void do_parking_vertical(State *state) {
     set_steering(1500);
     usleep(SLEEP_VERTICAL);
 
-    if (state->input->psd.value[PSD_RIGHT_1] < 26.0f) {
+    if (recog->psd.value[PSD_RIGHT_1] < 26.0f) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_VERTICAL / 2);
-        while (state->input->psd.value[PSD_RIGHT_1] < 29.f) {}
+        while (recog->psd.value[PSD_RIGHT_1] < 29.f) {}
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_VERTICAL / 2);
-        while (state->input->psd.value[PSD_RIGHT_1] > 29.f) {}
+        while (recog->psd.value[PSD_RIGHT_1] > 29.f) {}
     }
 
     set_desire_speed(0);
@@ -118,7 +126,7 @@ void do_parking_vertical(State *state) {
     // regress until the distance from the wall is 15cm
     set_encoder_counter(0);
     set_desire_speed(-SPEED_VERTICAL);
-    while (state->input->psd.value[PSD_BACK] > 15.f)
+    while (recog->psd.value[PSD_BACK] > 15.f)
         ;
     set_desire_speed(0);
     int regressed_ticks = read_encoder_counter(); // [tick]
@@ -144,7 +152,7 @@ void do_parking_vertical(State *state) {
     return;
 }
 
-void do_parking_parallel(State *state) {
+void do_parking_parallel(fnClean_t *fnClean) {
     //_save_and_recover(0);
     // stop slowly
     stop_slowly();
@@ -157,10 +165,10 @@ void do_parking_parallel(State *state) {
     set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
-    if (state->input->psd.value[PSD_RIGHT_1] < 26.0f) {
+    if (recog->psd.value[PSD_RIGHT_1] < 26.0f) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_PARALLEL);
-        while (state->input->psd.value[PSD_RIGHT_1] < 29.f) {}
+        while (recog->psd.value[PSD_RIGHT_1] < 29.f) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
         // progress: move to proper position to park
@@ -168,7 +176,7 @@ void do_parking_parallel(State *state) {
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_PARALLEL);
-        while (state->input->psd.value[PSD_RIGHT_1] > 29.f) {}
+        while (recog->psd.value[PSD_RIGHT_1] > 29.f) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
         // progress: move to proper position to park
@@ -197,8 +205,8 @@ void do_parking_parallel(State *state) {
     set_steering(2000);
     set_encoder_counter(0);
     set_desire_speed(-SPEED_PARALLEL);
-    while (state->input->psd.value[PSD_BACK] > 7.3f &&
-           state->input->psd.value[PSD_RIGHT_2] > 6.f)
+    while (recog->psd.value[PSD_BACK] > 7.3f &&
+           recog->psd.value[PSD_RIGHT_2] > 6.f)
         ;
     set_desire_speed(0);
     int regressed_ticks = read_encoder_counter(); // [tick]
@@ -248,13 +256,13 @@ void stop_slowly() {
 // void rr_save_and_recover(char mode) {
 //     static bool so_enable, tl_enable;
 //     if (mode == 0) { // save rr enable data, and set enable false
-//         so_enable                 = state->input->stop_obstacle.enabled;
-//         state->input->stop_obstacle.enabled = false;
+//         so_enable                 = recog->stop_obstacle.enabled;
+//         recog->stop_obstacle.enabled = false;
 
-//         tl_enable                 = state->input->traffic_light.enabled;
-//         state->input->traffic_light.enabled = false;
+//         tl_enable                 = recog->traffic_light.enabled;
+//         recog->traffic_light.enabled = false;
 //     } else if (mode == 1) { // recover enable data
-//         state->input->stop_obstacle.enabled = so_enable;
-//         state->input->traffic_light.enabled = tl_enable;
+//         recog->stop_obstacle.enabled = so_enable;
+//         recog->traffic_light.enabled = tl_enable;
 //     }
 // }

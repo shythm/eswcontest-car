@@ -1,16 +1,17 @@
 #include "car-header.h"
 #include "process.h"
 
-void start_with_PSD(recog_result *input) {
+void start_with_PSD(fnClean_t *fnClean) {
     int cnt = 0;
 
     // wait until psd is ready.
-    while (!input->psd.valid) { usleep(1000); }
+    while (!recog->psd.valid) { usleep(1000); }
+    MSG("Wait for start signal ...");
 
     // wait until obstacle appear in front of car
     cnt = 0;
     while (1) {
-        if (input->psd.value[PSD_FRONT] < 20.f) {
+        if (recog->psd.value[PSD_FRONT] < 20.f) {
             cnt++;
             if (cnt > 1000) break;
         } else
@@ -20,7 +21,7 @@ void start_with_PSD(recog_result *input) {
     // wait until obstacle disappear in front of car
     cnt = 0;
     while (1) {
-        if (input->psd.value[PSD_FRONT] > 20.f) {
+        if (recog->psd.value[PSD_FRONT] > 20.f) {
             cnt++;
             if (cnt > 1000) break;
         } else
@@ -28,7 +29,15 @@ void start_with_PSD(recog_result *input) {
     }
 
     beep(50);
-    sleep(1);
+    MSG("Start mission !!!");
 }
 
-void do_start(State *state) { start_with_PSD(state->input); }
+bool check_start(fnRun_t *fnRun) {
+    *fnRun = start_with_PSD; // regist the run function
+    return true;
+}
+
+void init_start(fnCheck_t *fnCheck) {
+    set_desire_speed(0);
+    *fnCheck = check_start;
+}

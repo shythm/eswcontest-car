@@ -1,6 +1,4 @@
-#include "ctrlboard-lib.h"
 #include "process.h"
-#include "recognize-lib.h"
 #include <time.h>
 
 // 회전교차로를 주행하는데 필요한 상수.
@@ -17,36 +15,35 @@
        // 이상이다가, 다시 이 값보다 작은 상태가 일정 시간 이상 유지될 경우,
        // 회전 교차로가 끝난 것으로 인식하고 미션을 종료함.
 
-typedef ctrlboard_byte_container container;
-
-void init_roundabout(State *state);
-void check_roundabout(State *state);
-void do_roundabout(State *state);
+bool check_roundabout(fnRun_t *fnRun);
+void do_roundabout(fnClean_t *fnClean);
+void clean_roundabout();
 void go_forward(recog_result *input, float *error_sum, int *steering_result,
                 short *velocity_result);
 
-void init_roundabout(State *state) {
-    state->input->is_on_stop_line.enabled = true;
+void init_roundabout(fnCheck_t *fnCheck) {
+    recog->is_on_stop_line.enabled = true;
+
+    MSG("UPCOMING MISSION => roundabout");
+    *fnCheck = check_roundabout;
 }
 
-void check_roundabout(State *state) {
-    return;
-    container data;
+void clean_roundabout() { recog->is_on_stop_line.enabled = false; }
 
-    if (state->input->is_on_stop_line.value) {
-        data.c_int16 = 0;
-        send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &data);
-        state->missions.roundabout.priority = 2;
-        state->missions.roundabout.function = do_roundabout;
-    } else {
-        state->missions.roundabout.priority = 0;
-        state->missions.roundabout.function = NULL;
+bool check_roundabout(fnRun_t *fnRun) {
+    if (recog->is_on_stop_line.value) {
+        command(CMD_DESIRE_SPEED, 0);
+        MSG("START MISSION => roundabout");
+        *fnRun = do_roundabout;
+        return true;
     }
+
+    return false;
 }
 
-void do_roundabout(State *state) {
+void do_roundabout(fnClean_t *fnClean) {
     command(CMD_DESIRE_SPEED, 0);
-    while (state->input->psd.value[PSD_FRONT] > 29) usleep(1000 * 500);
+    while (recog->psd.value[PSD_FRONT] > 29) usleep(1000 * 500);
 
     int     steering;
     short   velocity;
@@ -55,11 +52,11 @@ void do_roundabout(State *state) {
     clock_t exitedCurve = -1;
 
     while (exitedCurve == -1 || (clock() - exitedCurve) / CLOCKS_PER_SEC < 1) {
-        if (state->input->psd.value[PSD_FRONT] < 29 ||
-            state->input->psd.value[PSD_LEFT_1] < 8)
+        if (recog->psd.value[PSD_FRONT] < 29 ||
+            recog->psd.value[PSD_LEFT_1] < 8)
             command(CMD_DESIRE_SPEED, 0);
         else
-            go_forward(state->input, &error_sum, &steering, &velocity);
+            go_forward(recog, &error_sum, &steering, &velocity);
 
         if (steering < CURVE_THRESHOLD) { // 직선 주행 중이라면
             if (inCurve && exitedCurve == -1) {
