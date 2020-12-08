@@ -40,6 +40,7 @@ int main() {
         clean();        // Clear the mission.
     }
 
+    MSG("All missions are completed!");
     return 0;
 }
 

@@ -29,6 +29,8 @@ fnInit_t mlist_practice[] = {
      * missions sequentially. You must add NULL at the end element.
      */
     init_start,
-    init_parking,
+    // init_overtaking,
+    init_obstacle,
+    // init_parking,
     NULL,
 };
