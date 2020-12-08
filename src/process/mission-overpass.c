@@ -1,65 +1,62 @@
-#include "ctrlboard-lib.h"
 #include "process.h"
 #include "psd-driving.h"
 
-typedef ctrlboard_byte_container container;
+bool check_overpass(fnRun_t *fnRun);
+void run_overpass(fnClean_t *fnClean);
+void clean_overpass();
+int  callback();
 
-void   do_overpass(State *state);
-int    callback();
-State *st; // for callback function
+void init_overpass(fnCheck_t *fnCheck) {
+    // settings for slope detection
+    recog->is_on_slope.enabled = true;
+    command(CMD_CAMERA_X_SERVO_CONTROL, 1500);
+    command(CMD_CAMERA_Y_SERVO_CONTROL, 1725);
 
-void init_overpass(State *state) {
-    // state->input->is_on_overpass.enabled = true;
-    state->missions.overpass.function = do_overpass;
-
-    st = state; // for callback function
+    MSG("UPCOMING MISSION => overpass & slope");
+    *fnCheck = check_overpass;
 }
 
-void check_overpass(State *state) {
-    return;
+void clean_overpass() { recog->is_on_slope.enabled = false; }
 
+bool check_overpass(fnRun_t *fnRun) {
     static float pL, pR;
     bool         ret = false;
 
-    if (state->input->psd.valid) {
-        pL = state->input->psd.value[PSD_LEFT_1];
-        pR = state->input->psd.value[PSD_RIGHT_1];
+    if (recog->psd.valid) {
+        pL = recog->psd.value[PSD_LEFT_1];
+        pR = recog->psd.value[PSD_RIGHT_1];
 
-        if (pL < 20.0f && pR < 20.0f) { ret = true; }
+        if (pL < 20.0f && pR < 20.0f) {
+            MSG("START MISSION => overpass & slope");
+            *fnRun = run_overpass;
+            return true;
+        }
     }
 
-    if (ret) {
-        state->missions.overpass.priority = 0; // 일단 0으로
-    }
+    return false;
 }
 
-#define GAIN_P     40.0f
-#define VELO       120
-#define VELO_SLOPE 40
-
-void do_overpass(State *state) {
-    // drive with psd sensors and block until callback function returns true
-    psd_driving(state->ctrl, state->input, VELO, GAIN_P, callback);
-}
-
+#define GAIN_P             40.0f
+#define VELO               100
+#define VELO_SLOPE         40
 #define PSD_EXIT_THRESHOLD PSD_DISTANCE_MAX - 1.f
+
+void run_overpass(fnClean_t *fnClean) {
+    // drive with psd sensors and block until callback function returns true
+    psd_driving(ctrl, recog, VELO, GAIN_P, callback);
+
+    *fnClean = clean_overpass;
+}
+
 int callback() {
-    static bool  init    = true;
     static bool  init_sd = true;
     static bool  slope   = false;
     static float pL;
     static float pR;
-    int          ret = 0;
 
-    if (init) {
-        st->input->is_on_slope.enabled = true;
-        command(CMD_CAMERA_X_SERVO_CONTROL, 1500);
-        command(CMD_CAMERA_Y_SERVO_CONTROL, 1725);
-        init = false;
-    }
     if (!slope) {
         // When you detect the slope at least once.
-        slope = st->input->is_on_slope.value;
+        slope = recog->is_on_slope.value;
     }
 
     if (slope) {
@@ -68,19 +65,16 @@ int callback() {
             init_sd = false;
         }
 
-        pL = st->input->psd.value[PSD_LEFT_1];
-        pR = st->input->psd.value[PSD_RIGHT_1];
+        pL = recog->psd.value[PSD_LEFT_1];
+        pR = recog->psd.value[PSD_RIGHT_1];
         if (pL > PSD_EXIT_THRESHOLD && pR > PSD_EXIT_THRESHOLD) {
-            st->input->is_on_slope.enabled = false;
-
             // init variables
-            init    = true;
             init_sd = true;
             slope   = false;
-            // When both psds are not blocked
-            ret = 1;
+
+            return 1;
         }
     }
 
-    return ret;
+    return 0;
 }
