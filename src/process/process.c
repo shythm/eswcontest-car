@@ -25,7 +25,7 @@ int main() {
 #ifdef MODE_PRACTICE
     mlist = mlist_practice;
 #endif
-    for (int i = 0; mlist + i; i++) {
+    for (int i = 0; mlist[i]; i++) {
         init_drive(); // Init drive mission
 
         fnInit_t  init  = mlist[i];        // mission init function
