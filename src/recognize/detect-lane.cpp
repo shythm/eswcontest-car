@@ -32,7 +32,7 @@ void initLaneInfo(LaneInfo &li) {
 // LaneInfo 구조체 업데이트
 void updateLaneInfo(vector<int> positions, LaneInfo &li) {
     // constants
-    static const int dist           = 20;
+    static const int dist           = 24;
     static const int threshScoreMax = -8;
 
     float lScoreMax = -9999;
@@ -88,7 +88,7 @@ void updateLaneInfo(vector<int> positions, LaneInfo &li) {
 
 // 항공뷰를 위한 행렬 계산
 void getRoiPerspectiveTransform(Mat &perspM) {
-    static const double vanish    = 16;  // Y position of vanish point
+    static const double vanish    = 0;   // Y position of vanish point
     static const double range     = 300; // TEST
     static const double viewRange = 0.4; // ROI, higher, closer(crop image)
 
@@ -132,7 +132,7 @@ void getValidPositions(Mat &img, vector<int> &out, int bl, Scalar l, Scalar u) {
     }
 }
 
-#define BASE_LINE_RATIO 0.60
+#define BASE_LINE_RATIO 0.45f
 #define DISPLAY_RESULT
 
 void detectLane(recog_arg *arg, vector_lane *result) {
@@ -181,8 +181,8 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     cvtColor(img, img, CV_BGR2HSV);
 
     // yellow lane
-    const static Scalar lowerY(20, 70, 0);
-    const static Scalar upperY(40, 255, 255);
+    const static Scalar lowerY(20, 20, 0);
+    const static Scalar upperY(48, 255, 255);
     vector<int>         vpOfY; // valid positions of yellow
     getValidPositions(img, vpOfY, baseline, lowerY, upperY);
     updateLaneInfo(vpOfY, liY);
@@ -197,14 +197,10 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     getValidPositions(img, vpOfYAW, baseline, lowerW, upperW);
     updateLaneInfo(vpOfYAW, liYAW);
 
-    // Restore colorspace
-    cvtColor(img, img, COLOR_HSV2BGR);
-
 #ifdef DISPLAY_RESULT
     // Display result. You must remove here at release version
-
-    // inRange(img, lowerY, upperY, img);
-    // cvtColor(img, img, COLOR_GRAY2BGR);
+    inRange(img, lowerY, upperY, img);
+    cvtColor(img, img, COLOR_GRAY2BGR);
 
     uchar *row = img.ptr(baseline);
     for (int i = 0; i < sizeSmall.width; i++) {
@@ -226,6 +222,9 @@ void detectLane(recog_arg *arg, vector_lane *result) {
 
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
+
+    // Copy processed image to display
+    copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
     // // Copy processed image to display
     // copy(img.data, img.data + W * H * 3, arg->display_input);

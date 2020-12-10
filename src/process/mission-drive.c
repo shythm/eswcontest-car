@@ -1,7 +1,7 @@
 #include "process.h"
 
 void init_drive() {
-    if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1650) != MSG_STATE_SUCCESS)
+    if (command(CMD_CAMERA_Y_SERVO_CONTROL, 1700) != MSG_STATE_SUCCESS)
         ERROR("CMD_CAMERA_Y_SERVO_CONTROL fail.");
 
     if (command(CMD_POSITION_CONTROL_ON_OFF, 0) != MSG_STATE_SUCCESS)
@@ -61,7 +61,7 @@ void init_drive() {
 #define GAIN_P      12.0f // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    100   // Maximum velocity
+#define MAX_VELO    200   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
 void do_drive() {
