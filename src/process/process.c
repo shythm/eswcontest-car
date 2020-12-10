@@ -3,13 +3,7 @@
 recog_result *recog;
 mqid_ctrl     ctrl;
 
-// default functions
-bool default_fnCheck() { return true; }
-void default_fnRun() { return; }
-void default_fnClean() { return; }
-
-extern fnInit_t mlist_contest[];  // mission list for contest  (in missions.c)
-extern fnInit_t mlist_practice[]; // mission list for practice (in missions.c)
+extern fnInit_t mission_list[]; // mission list for contest  (in missions.c)
 
 // main function
 int main() {
@@ -20,24 +14,21 @@ int main() {
     get_mqid_ctrl(&ctrl);
     MSG("Process has been ready!");
 
-    fnInit_t *mlist; // mission list
-    mlist = mlist_contest;
-#ifdef MODE_PRACTICE
-    mlist = mlist_practice;
-#endif
-    for (int i = 0; mlist[i]; i++) {
+    for (int i = 0; mission_list[i]; i++) {
         init_drive(); // Init drive mission
 
-        fnInit_t  init  = mlist[i];        // mission init function
-        fnCheck_t check = default_fnCheck; // mission check function
-        fnRun_t   run   = default_fnRun;   // mission run function
-        fnClean_t clean = default_fnClean; // mission clear function
+        fnInit_t  init  = mission_list[i]; // mission init function
+        fnCheck_t check = NULL;            // mission check function
+        fnRun_t   run   = NULL;            // mission run function
+        fnClean_t clean = NULL;            // mission clear function
 
         init(&check); // Initialize and get check functions.
-        while (!check(&run))
-            do_drive(); // Do drive until the mission is detected.
-        run(&clean);    // Run the mission.
-        clean();        // Clear the mission.
+
+        if (!check) continue;
+        while (check(&run))
+            do_drive();       // Do drive until the mission is detected.
+        if (run) run(&clean); // Run the mission.
+        if (clean) clean();   // Clear the mission.
     }
 
     MSG("All missions are completed!");
