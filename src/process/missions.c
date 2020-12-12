@@ -39,7 +39,9 @@ fnInit_t mission_list[] = {
      * Write the initializing functions here array to run the
      * missions sequentially. You must add NULL at the end element.
      */
-    init_start, init_parking_vertical, init_parking_parallel, init_tunnel, NULL,
+    init_start,
+    init_trafficLight,
+    NULL,
 };
 
 #endif
