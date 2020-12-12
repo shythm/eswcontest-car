@@ -343,7 +343,7 @@ void *update_psd_value(void *argv) {
     }
 }
 
-#define TURN_ON_VALUE_CHECK
+// #define TURN_ON_VALUE_CHECK
 void *value_check(void *argv) {
     /* get the shared memory from the pthread argument */
     recog_result *shm      = (recog_result *)argv;
