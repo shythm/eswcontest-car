@@ -33,9 +33,6 @@ fnInit_t mission_list[] = {
      * missions sequentially. You must add NULL at the end element.
      */
     init_start,
-    // init_overtaking,
-    init_obstacle,
-    // init_parking,
     NULL,
 };
 

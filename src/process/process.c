@@ -25,7 +25,7 @@ int main() {
         init(&check); // Initialize and get check functions.
 
         if (!check) continue;
-        while (check(&run))
+        while (!check(&run))
             do_drive();       // Do drive until the mission is detected.
         if (run) run(&clean); // Run the mission.
         if (clean) clean();   // Clear the mission.
