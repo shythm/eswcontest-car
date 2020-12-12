@@ -343,6 +343,7 @@ void *update_psd_value(void *argv) {
     }
 }
 
+#define TURN_ON_VALUE_CHECK
 void *value_check(void *argv) {
     /* get the shared memory from the pthread argument */
     recog_result *shm      = (recog_result *)argv;
@@ -353,10 +354,10 @@ void *value_check(void *argv) {
     shm->is_on_stop_line.enabled = false;
     shm->is_on_end_zone.enabled  = false;
     shm->traffic_light.enabled   = false;
-    shm->lane.enabled            = true;
+    shm->lane.enabled            = false;
     shm->is_on_lane.enabled      = false;
     shm->stop_obstacle.enabled   = false;
-    shm->is_on_slope.enabled     = true;
+    shm->is_on_slope.enabled     = false;
 
     /* Print the values */
     for (;;) {
@@ -375,8 +376,6 @@ void *value_check(void *argv) {
         usleep(delay_us);
     }
 }
-
-// #define TURN_ON_VALUE_CHECK
 
 int main(int argc, char **argv) {
     recog_result *shm_rr;
