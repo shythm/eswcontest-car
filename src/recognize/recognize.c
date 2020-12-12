@@ -355,7 +355,8 @@ void *value_check(void *argv) {
     shm->traffic_light.enabled   = false;
     shm->lane.enabled            = true;
     shm->is_on_lane.enabled      = false;
-    shm->stop_obstacle.enabled   = true;
+    shm->stop_obstacle.enabled   = false;
+    shm->is_on_slope.enabled     = true;
 
     /* Print the values */
     for (;;) {
@@ -369,6 +370,7 @@ void *value_check(void *argv) {
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
                shm->stop_obstacle.value.pos_y);
+        printf("is_on_slope: %d \n", (int)shm->is_on_slope.value);
 
         usleep(delay_us);
     }
