@@ -72,3 +72,34 @@ void set_camer_Yservo(short y_servo) {
         MSG_STATE_SUCCESS)
         printf("fail to set camera Y servo\n");
 }
+
+void set_position_control(unsigned char onoff) {
+    container data;
+
+    if (onoff == 1) { // position control on
+        data.c_uint8 = 1;
+        if (send_ctrlboard(ctrl, CMD_SPEED_CONTROL_ON_OFF, 1, &data) !=
+            MSG_STATE_SUCCESS)
+            printf("fail to speed control on : car-header\n");
+
+        set_desire_speed(0);
+
+        data.c_uint8 = 1;
+        if (send_ctrlboard(ctrl, CMD_POSITION_CONTROL_ON_OFF, 1, &data) !=
+            MSG_STATE_SUCCESS)
+            printf("fail to position control on : car-header\n");
+
+        data.c_uint8 = 30;
+        if (send_ctrlboard(ctrl, CMD_POSITION_PROPORTION_POINT, 1, &data) !=
+            MSG_STATE_SUCCESS)
+            printf("fail to set position proportion point %d : car-header\n",
+                   (int)data.c_uint8);
+
+        set_encoder_counter(0);
+    } else { // position control off
+        data.c_uint8 = 0;
+        if (send_ctrlboard(ctrl, CMD_POSITION_CONTROL_ON_OFF, 1, &data) !=
+            MSG_STATE_SUCCESS)
+            printf("fail to position control on : car-header\n");
+    }
+}
