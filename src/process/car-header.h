@@ -17,5 +17,5 @@ void  set_desire_speed(short speed);
 void  beep(unsigned char time);
 void  move(short speed, int desire_encoder);
 void  set_camer_Yservo(short y_servo);
-
+void  set_position_control(unsigned char onoff);
 #endif

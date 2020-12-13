@@ -41,6 +41,7 @@ fnInit_t mission_list[] = {
      */
     init_start,
     init_trafficLight,
+    init_overtaking,
     NULL,
 };
 
