@@ -56,10 +56,10 @@ int get_cmd_bytec(ctrl_cmdc cmdc) {
 }
 
 void ctrld_write(ctrl_cmdc code, int value) {
-    int bytec = get_cmd_bytec(code);
-    int cur_buf_i;
+    static int           bytec, i, cur_buf_i;
+    static unsigned char buf[UART_BUF_SIZE];
 
-    unsigned char buf[UART_BUF_SIZE];
+    bytec = get_cmd_bytec(code);
 
     buf[0] = code;      // 1st byte: cmd code
     buf[1] = 2 + bytec; // 2nd byte: 2(default length) + cmd byte count
@@ -67,23 +67,17 @@ void ctrld_write(ctrl_cmdc code, int value) {
 
     // next byte(s): cmd arguments
     cur_buf_i = 3;
-    for (int i = 0; i < bytec; i++) {
+    for (i = 0; i < bytec; i++) {
         buf[cur_buf_i] = 0xFF & (value >> (8 * i));
         cur_buf_i++;
     }
 
     // last byte: checksum
     buf[cur_buf_i] = 0;
-    for (int i = 0; i < cur_buf_i; i++) {
+    for (i = 0; i < cur_buf_i; i++) {
         // sum all of the bytes except for checksum byte
         buf[cur_buf_i] += buf[i];
     }
-
-    // printf("%d -> ", cur_buf_i + 1);
-    // for (int i = 0; i < cur_buf_i + 1; i++) { // for debugging
-    //     printf("0x%2X ", buf[i]);
-    // }
-    // printf("\n");
 
     // write to the uart device (byte count: cur_buf_i + 1)
     write(uart_fd, buf, cur_buf_i + 1);

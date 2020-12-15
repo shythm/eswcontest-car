@@ -18,6 +18,6 @@ void do_drive();
 
 /* `recog' is global variable that is externed by process.h and initialized by
  * process.c. It stores the reocgnition results. */
-extern recog_result *recog;
+extern volatile recog_result *recog;
 
 #endif

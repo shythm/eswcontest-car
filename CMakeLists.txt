@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 
+# Set build type
+set(CMAKE_BUILD_TYPE Release)
+
+# Set optimzation level
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 # Set compilor path and root filesystem path
 SET(CP_PATH ${CMAKE_SOURCE_DIR}/CrossCompiler)
 SET(ROOTFS ${CP_PATH}/sysroots/cortexa15t2hf-vfp-neon-linux-gnueabi)

@@ -1,5 +1,4 @@
 #include "process.h"
-#include "time.h"
 
 void init_drive() {
     ctrld_write(CMDC_CAMERA_Y_SERVO_CONTROL, 1700);
