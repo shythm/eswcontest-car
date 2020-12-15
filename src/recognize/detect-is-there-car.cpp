@@ -55,8 +55,6 @@ vector_car_pos detectIsThereCar(recog_arg *arg) {
     }
     printf("L: %ld, C: %ld, R: %ld\n", boa_l, boa_c, boa_r);
 
-    vector_car_pos ret;
-
     // Car position
     vector_car_pos ret;
     ret.left   = false;
