@@ -354,7 +354,7 @@ void *value_check(void *argv) {
     shm->is_on_stop_line.enabled = false;
     shm->is_on_end_zone.enabled  = false;
     shm->traffic_light.enabled   = false;
-    shm->lane.enabled            = false;
+    shm->lane.enabled            = true;
     shm->is_on_lane.enabled      = false;
     shm->stop_obstacle.enabled   = false;
     shm->is_on_slope.enabled     = false;
@@ -409,14 +409,7 @@ int main(int argc, char **argv) {
     recog_arg arg;
     arg.pext_data = &shm_rr->ext_data;
 
-    // Get message queue id of ctrlboard process
-    if (get_mqid_ctrl(&arg.ctrl) == -1) {
-        ERROR("An error occurred while getting the message queue id. Check "
-              "that the ctrlboard process is running");
-        return -1;
-    }
-
-    printf("RECOGNIZE\n");
+    MSG(" recognizing ... ");
     for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;

@@ -32,7 +32,7 @@ void clean_roundabout() { recog->is_on_stop_line.enabled = false; }
 
 bool check_roundabout(fnRun_t *fnRun) {
     if (recog->is_on_stop_line.value) {
-        command(CMD_DESIRE_SPEED, 0);
+        ctrld_write(CMD_DESIRE_SPEED, 0);
         MSG("START MISSION => roundabout");
         *fnRun = do_roundabout;
         return true;
@@ -42,7 +42,7 @@ bool check_roundabout(fnRun_t *fnRun) {
 }
 
 void do_roundabout(fnClean_t *fnClean) {
-    command(CMD_DESIRE_SPEED, 0);
+    ctrld_write(CMD_DESIRE_SPEED, 0);
     while (recog->psd.value[PSD_FRONT] > 29) usleep(1000 * 500);
 
     int     steering;
@@ -54,7 +54,7 @@ void do_roundabout(fnClean_t *fnClean) {
     while (exitedCurve == -1 || (clock() - exitedCurve) / CLOCKS_PER_SEC < 1) {
         if (recog->psd.value[PSD_FRONT] < 29 ||
             recog->psd.value[PSD_LEFT_1] < 8)
-            command(CMD_DESIRE_SPEED, 0);
+            ctrld_write(CMD_DESIRE_SPEED, 0);
         else
             go_forward(recog, &error_sum, &steering, &velocity);
 
@@ -98,9 +98,9 @@ void go_forward(recog_result *input, float *error_sum, int *steering_result,
     steering_val = MAX(steering_val, 1000);
 
     // Send steering value to hardware
-    command(CMD_STEERING_SERVO_CONTROL, steering_val);
+    ctrld_write(CMD_STEERING_SERVO_CONTROL, steering_val);
     // Send velocity to hardware
-    command(CMD_DESIRE_SPEED, velocity);
+    ctrld_write(CMD_DESIRE_SPEED, velocity);
 
     *steering_result = steering_val;
     *velocity_result = velocity;

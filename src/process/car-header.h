@@ -1,12 +1,13 @@
 #ifndef _CAR_HEADER_H_
 #define _CAR_HEADER_H_
+
+#include "ctrlboard-direct.h"
 #include "process.h"
+#include <stdbool.h>
 
 #define TICK_PER_CM 19.7628f
 #define RADIUS      37.00f
 #define PI          3.141592f
-
-typedef ctrlboard_byte_container container;
 
 int   read_encoder_counter();
 short read_desire_speed();
@@ -17,5 +18,6 @@ void  set_desire_speed(short speed);
 void  beep(unsigned char time);
 void  move(short speed, int desire_encoder);
 void  set_camer_Yservo(short y_servo);
+bool  get_is_on_stop_line();
 
 #endif

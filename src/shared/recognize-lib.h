@@ -30,7 +30,7 @@ typedef struct {
 } external_data;
 
 typedef struct { // only for recognize process
-    mqid_ctrl      ctrl;
+    // mqid_ctrl      ctrl;
     external_data *pext_data;
     unsigned char  camera_output[VPE_OUTPUT_IMG_SIZE];
     unsigned char *display_input;
