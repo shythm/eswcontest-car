@@ -3,9 +3,8 @@
 #include <limits.h>
 
 #define TL_SPEED       70
-#define TL_SLEEP       100000
-#define BAR_LEN        40
-#define GAIN_POSITION  50
+#define TL_SLEEP       100000 // 0.1s
+#define GAIN_POSITION  40
 #define LAST_TURN_TICK PI * 8.0 / 18.0 * RADIUS *TICK_PER_CM // 80-degree
 
 bool check_trafficLight(fnRun_t *);
@@ -34,14 +33,10 @@ void clean_trafficLight() {
 
 bool check_trafficLight(fnRun_t *fnRun) {
     recog->is_on_stop_line.enabled = true;
-    // printf("%d\n", recog->is_on_stop_line.value);
 
     if (recog->is_on_stop_line.value == true) {
         set_desire_speed(0); // stop on the stop line
         beep(50);
-        recog->is_on_stop_line.enabled = false;
-        // recog->tl_lane.enable = true;
-
         MSG("START MISSION => trafficLight & end-zone");
         *fnRun = do_trafficLight;
         return true;
@@ -53,24 +48,29 @@ bool check_trafficLight(fnRun_t *fnRun) {
 void do_trafficLight(fnClean_t *fnClean) {
     recog->lane.enabled            = false;
     recog->is_on_stop_line.enabled = false;
-    // sleep(1);
-    // set_desire_speed(  35);
-    // while (1) {
-    //     set_steering(  -(recog->tl_lane.value.position) * 50 +
-    //     1500);
-    // }
-
+    recog->traffic_light.enabled   = true;
     // stop on the stop line
     set_desire_speed(0);
 
     // tilt up camera to see trafficLight
-    set_camer_Yservo(1500);
-    recog->traffic_light.enabled = true;
+    set_camera_Yservo(1500);
     usleep(TL_SLEEP);
 
     // wait for signal
-    recog_traffic_light_t tl = recog->traffic_light.value;
-    while (tl != TL_LEFT && tl != TL_GREEN) tl = recog->traffic_light.value;
+    volatile recog_traffic_light_t tl = recog->traffic_light.value;
+    unsigned char                  left, right;
+    while (left != right) {
+        left = 0, right = 0;
+        for (int i = 0; i < 100; i++, tl = recog->traffic_light.value) {
+            if (tl == TL_LEFT) left++;
+            else if (tl == TL_GREEN)
+                right++;
+            usleep(100);
+        }
+    }
+    recog->traffic_light.enabled = false;
+    // tilt down camera
+    set_camera_Yservo(1700);
 
     // progress
     set_steering(1500);
@@ -79,36 +79,18 @@ void do_trafficLight(fnClean_t *fnClean) {
         // printf("PSD FRONT: %3.1f\n", recog->psd.value[PSD_FRONT]);
     }
     set_desire_speed(0);
+    usleep(TL_SLEEP);
 
     // regress
-    set_desire_speed(0);
-    usleep(TL_SLEEP);
-    if (tl == TL_LEFT) // left: regress more
+    if (left > right) { // left: regress more
         move(-TL_SPEED, -10.f * TICK_PER_CM);
-    else // right: regress less
+        set_steering(2000);
+    } else { // right: regress less
         move(-TL_SPEED, -5.f * TICK_PER_CM);
-    /*
-   // get traffic light signals
-    int sig_left = 0, sig_right = 0;
-    for (int i = 0; i < 100;) {
-        recog_traffic_light_t tl = recog->traffic_light.value;
-        if (tl == TL_LEFT) sig_left++, i++;
-        else if (tl == TL_GREEN)
-            sig_right++, i++;
-        usleep(10);
+        set_steering(1000);
     }
-    */
-
-    recog->traffic_light.enabled  = false;
     recog->tl_lane.enable         = true;
     recog->is_on_end_zone.enabled = true;
-
-    // tilt down camera
-    set_camer_Yservo(1700);
-
-    if (tl == TL_LEFT) set_steering(2000);
-    else if (tl == TL_GREEN)
-        set_steering(1000);
     usleep(TL_SLEEP);
 
     // turn xx-degree
@@ -116,34 +98,10 @@ void do_trafficLight(fnClean_t *fnClean) {
 
     // progress toward end point
     set_desire_speed(TL_SPEED);
-#if 0
-    while (recog->is_on_end_zone.value) {
-        set_steering(  recog->tl_lane.value.position * -50 + 1500);
-    }
-#else
+
     while (!recog->is_on_end_zone.value) dive_into_end_point();
     while (recog->is_on_end_zone.value) dive_into_end_point();
-
-#endif
     set_desire_speed(0);
-
-    /*
-        // turn left or right 90-degrees
-        set_steering(  (sig_left > sig_right) ? 2000 : 1000);
-        move(  TL_SPEED, RADIUS * PI / 2.0f * TICK_PER_CM);
-
-        // progress into end-point
-        recog->is_on_end_zone.enabled = true;
-        set_steering(  1500);
-        set_desire_speed(  TL_SPEED);
-        set_encoder_counter(  0);
-        usleep(TL_SLEEP);
-        // progress until I can see end point
-        while (!recog->is_on_end_zone.value) usleep(1000);
-        // progress until I can't see end point
-        while (recog->is_on_end_zone.value) usleep(1000);
-        set_desire_speed(  0);
-    */
 
     // end trafficLight
     beep(50);
@@ -151,9 +109,11 @@ void do_trafficLight(fnClean_t *fnClean) {
 }
 
 void dive_into_end_point() {
-    int steering = recog->tl_lane.value * -GAIN_POSITION + 1500;
+    short steering = recog->tl_lane.value * -GAIN_POSITION + 1500.f;
+
+    // constrain
     if (steering > 2000) steering = 2000;
     else if (steering < 1000)
         steering = 1000;
-    set_steering((short)steering);
+    set_steering(steering);
 }

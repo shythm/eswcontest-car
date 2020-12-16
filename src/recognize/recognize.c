@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 /* include custom libraries */
-#include "ctrlboard-lib.h"
 #include "recognize-lib.h"
 #include "util.h"
 
@@ -338,11 +337,12 @@ void *update_psd_value(void *argv) {
         }
 
         // Third, update the psd value of the shared memory
-        memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+        for (i = 0; i < PSD_COUNT; i++) { result->psd.value[i] = psd_dist[i]; }
         result->psd.valid = true;
     }
 }
 
+// #define TURN_ON_VALUE_CHECK
 void *value_check(void *argv) {
     /* get the shared memory from the pthread argument */
     recog_result *shm      = (recog_result *)argv;
@@ -355,7 +355,8 @@ void *value_check(void *argv) {
     shm->traffic_light.enabled   = false;
     shm->lane.enabled            = true;
     shm->is_on_lane.enabled      = false;
-    shm->stop_obstacle.enabled   = true;
+    shm->stop_obstacle.enabled   = false;
+    shm->is_on_slope.enabled     = false;
 
     /* Print the values */
     for (;;) {
@@ -369,12 +370,11 @@ void *value_check(void *argv) {
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
                shm->stop_obstacle.value.pos_y);
+        printf("is_on_slope: %d \n", (int)shm->is_on_slope.value);
 
         usleep(delay_us);
     }
 }
-
-// #define TURN_ON_VALUE_CHECK
 
 int main(int argc, char **argv) {
     recog_result *shm_rr;
@@ -388,7 +388,7 @@ int main(int argc, char **argv) {
     /* Get PSD data from I2C by thread */
     pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
-                       shm_rr)) {
+                       (void *)shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
         return -1;
     }
@@ -408,14 +408,7 @@ int main(int argc, char **argv) {
     recog_arg arg;
     arg.pext_data = &shm_rr->ext_data;
 
-    // Get message queue id of ctrlboard process
-    if (get_mqid_ctrl(&arg.ctrl) == -1) {
-        ERROR("An error occurred while getting the message queue id. Check "
-              "that the ctrlboard process is running");
-        return -1;
-    }
-
-    printf("RECOGNIZE\n");
+    MSG(" recognizing ... ");
     for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;

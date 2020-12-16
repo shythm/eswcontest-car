@@ -3,10 +3,6 @@
 
 #include <sys/ipc.h>
 
-#define KEY_MSGQ_CTRLBOARD     (key_t)100
-#define KEY_MSGQ_CTRLBOARD_RCV (key_t)101
-#define KEY_SHM_RECOGNIZE      (key_t)200
-#define MSG_ID_RECOGNIZE       10L
-#define MSG_ID_PROCESS         299L
+#define KEY_SHM_RECOGNIZE (key_t)200
 
 #endif

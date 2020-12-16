@@ -8,7 +8,8 @@
 WEAK_FUNC_INIT_MISSION(start);
 WEAK_FUNC_INIT_MISSION(overpass);
 WEAK_FUNC_INIT_MISSION(obstacle);
-WEAK_FUNC_INIT_MISSION(parking);
+WEAK_FUNC_INIT_MISSION(parking_vertical);
+WEAK_FUNC_INIT_MISSION(parking_parallel);
 WEAK_FUNC_INIT_MISSION(roundabout);
 WEAK_FUNC_INIT_MISSION(tunnel);
 WEAK_FUNC_INIT_MISSION(overtaking);
@@ -18,9 +19,15 @@ WEAK_FUNC_INIT_MISSION(trafficLight);
 
 // a list of missions for the contest
 fnInit_t mission_list[] = {
-    init_start,   init_overpass,   init_obstacle,
-    init_parking, init_parking,    init_roundabout,
-    init_tunnel,  init_overtaking, init_trafficLight,
+    init_start,
+    init_overpass,
+    init_obstacle,
+    init_parking_vertical,
+    init_parking_parallel,
+    init_roundabout,
+    init_tunnel,
+    init_overtaking,
+    init_trafficLight,
     NULL,
 };
 
@@ -32,9 +39,7 @@ fnInit_t mission_list[] = {
      * Write the initializing functions here array to run the
      * missions sequentially. You must add NULL at the end element.
      */
-    init_start,
-    init_overtaking,
-    NULL,
+    init_start, init_overpass, init_obstacle, init_tunnel, NULL,
 };
 
 #endif
