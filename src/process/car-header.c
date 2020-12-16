@@ -3,7 +3,7 @@
 int read_encoder_counter() {
     int ret;
     if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-        ERROR("fail to read encoder counter, car-header\n");
+        ERROR("Fail to read encoder counter.\n");
     }
     return ret;
 }
@@ -11,7 +11,7 @@ int read_encoder_counter() {
 short read_desire_speed() {
     int ret;
     if (ctrld_read(CMD_DESIRE_SPEED, &ret)) {
-        ERROR("fail to read desire speed, car-header\n");
+        ERROR("Fail to read desire speed.\n");
     }
     return (short)ret;
 }
@@ -19,13 +19,9 @@ short read_desire_speed() {
 short read_steering() {
     int ret;
     if (ctrld_read(CMD_STEERING_SERVO_CONTROL, &ret)) {
-        ERROR("fail to read sterring servo control speed, car-header\n");
+        ERROR("Fail to read steering servo control speed.\n");
     }
     return (short)ret;
-}
-
-void set_encoder_counter(int encoder_counter) { //
-    ctrld_write(CMD_ENCODER_COUNTER, encoder_counter);
 }
 
 void set_steering(short steering) { //
@@ -37,6 +33,7 @@ void set_desire_speed(short speed) { //
 }
 
 void beep(unsigned char time) { //
+    ctrld_write(CMD_SOUND, 0);
     ctrld_write(CMD_SOUND, time);
 }
 
@@ -55,7 +52,7 @@ void move(short speed, int desire_encoder) {
     usleep(100000);
 }
 
-void set_camer_Yservo(short y_servo) { //
+void set_camera_Yservo(short y_servo) { //
     ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, y_servo);
 }
 

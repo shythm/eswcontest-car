@@ -17,7 +17,7 @@ void  set_steering(short steering);
 void  set_desire_speed(short speed);
 void  beep(unsigned char time);
 void  move(short speed, int desire_encoder);
-void  set_camer_Yservo(short y_servo);
+void  set_camera_Yservo(short y_servo);
 bool  get_is_on_stop_line();
 
 #endif
