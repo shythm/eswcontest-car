@@ -159,18 +159,20 @@ void do_parking_vertical(fnClean_t *fnClean) {
     usleep(SLEEP_VERTICAL);
 
     // regress until the distance from the wall is 15cm
-    set_encoder_counter(0);
+    // set_encoder_counter(0);
+
+    int regressed_ticks = read_encoder_counter(); // [tick]
     set_desire_speed(-SPEED_VERTICAL);
     while (recog->psd.value[PSD_BACK] > 12.f) {}
     set_desire_speed(0);
-    int regressed_ticks = read_encoder_counter(); // [tick]
+    regressed_ticks -= read_encoder_counter(); // [tick]
 
     // beep
     beep(50);
     usleep(SLEEP_VERTICAL);
 
     // go straight as the car regressed
-    move(SPEED_VERTICAL, -regressed_ticks);
+    move(SPEED_VERTICAL, regressed_ticks);
 
     // steering to 1000
     set_steering(1000);
@@ -237,12 +239,14 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // turn until the distance from the wall is 5cm backward
     set_steering(2000);
-    set_encoder_counter(0);
+    // set_encoder_counter(0);
+
+    int regressed_ticks = read_encoder_counter(); // [tick]
     set_desire_speed(-SPEED_PARALLEL);
     while (recog->psd.value[PSD_BACK] > 7.3f &&
            recog->psd.value[PSD_RIGHT_2] > 6.f) {}
     set_desire_speed(0);
-    int regressed_ticks = read_encoder_counter(); // [tick]
+    regressed_ticks -= read_encoder_counter(); // [tick]
 
     // beep
     beep(50);
@@ -250,7 +254,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // turn forward as the car regressed
     set_steering(2000);
-    move(SPEED_PARALLEL, -regressed_ticks);
+    move(SPEED_PARALLEL, regressed_ticks);
 
     // steering to 1500
     set_steering(1500);

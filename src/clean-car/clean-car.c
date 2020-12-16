@@ -40,12 +40,8 @@ int stop_car() {
 }
 
 int del_ipcs() {
-    int id_snd, id_rcv, id_shm, r = 0;
+    int id_shm, r = 0;
 
-    if ((id_snd = msgget(KEY_MSGQ_CTRLBOARD, 0)) == -1) r = -1;
-    if (msgctl(id_snd, IPC_RMID, NULL) == -1) r = -1;
-    if ((id_rcv = msgget(KEY_MSGQ_CTRLBOARD_RCV, 0)) == -1) r = -1;
-    if (msgctl(id_rcv, IPC_RMID, NULL) == -1) r = -1;
     if ((id_shm = shmget(KEY_SHM_RECOGNIZE, 0, 0)) == -1) r = -1;
     if (shmctl(id_shm, IPC_RMID, NULL) == -1) r = -1;
 

@@ -1,7 +1,6 @@
 #ifndef _RECOGNIZE_LIB_H
 #define _RECOGNIZE_LIB_H
 
-#include "ctrlboard-lib.h"
 #include "util.h"
 #include <stdbool.h>
 #include <sys/ipc.h>
@@ -25,12 +24,10 @@
  * process.
  */
 
-typedef struct {
-    bool call_init_lane_info;
-} external_data;
+typedef volatile struct { bool call_init_lane_info; } external_data;
 
 typedef struct { // only for recognize process
-    mqid_ctrl      ctrl;
+    // mqid_ctrl      ctrl;
     external_data *pext_data;
     unsigned char  camera_output[VPE_OUTPUT_IMG_SIZE];
     unsigned char *display_input;
@@ -157,7 +154,7 @@ typedef struct _recog_tl_lane_data {
  * You can add some fields to share the output of the method which you have been
  * made.
  */
-typedef struct {
+typedef volatile struct {
     recog_is_on_stop_line_data is_on_stop_line;
     recog_is_on_end_zone_data  is_on_end_zone;
     recog_traffic_light_data   traffic_light;

@@ -28,51 +28,59 @@ void makellMask(unsigned char *mask, int w, int h, int offset, int size) {
     }
 }
 
-bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r) {
-    Point2f x  = o2 - o1;
-    Point2f d1 = p1 - o1;
-    Point2f d2 = p2 - o2;
+bool getIntersection(Point2i o1, Point2i p1, Point2i o2, Point2i p2,
+                     Point2i &r) {
+    Point2i x  = o2 - o1;
+    Point2i d1 = p1 - o1;
+    Point2i d2 = p2 - o2;
 
-    float cross = d1.x * d2.y - d1.y * d2.x;
-    if (abs(cross) < 1e-8) return false;
+    int cross = d1.x * d2.y - d1.y * d2.x;
+    if (cross == 0) return false;
 
-    double t1 = (x.x * d2.y - x.y * d2.x) / cross;
-    r         = o1 + d1 * t1;
+    int t1 = (x.x * d2.y - x.y * d2.x) / cross;
+    r      = o1 + d1 * t1;
+
     return true;
 }
 
-double getLineSlope(Point2f p1, Point2f p2) {
-    double w = p2.x - p1.x;
-    double h = p1.y - p2.y;
+float getLineSlope(Point2f p1, Point2f p2) {
+    float w = p2.x - p1.x;
+    float h = p1.y - p2.y;
 
-    return h / w;
+    return (float)w / h;
 }
 
+#define MAX_SLOPE_DIST 1.0f
+#define MIN_INTER_Y    IMG_H / 3
+
 bool detectSlope(recog_arg *arg) {
-    static unsigned char cam_out[IMG_SIZE];
-    copy(arg->camera_output, arg->camera_output + IMG_SIZE, cam_out);
-    Mat  frame(IMG_H, IMG_W, CV_8UC3, cam_out);
-    Mat  disp(IMG_H, IMG_W, CV_8UC3, arg->display_input);
+    static uchar cam_out[IMG_SIZE];
+
+    static const Vec4i v4i(1, 1, 1, 1); // vector four i
+    static const Vec2i v2i(1, 1);       // vector two i
+
     bool ret = false;
+
+    // 카메라 데이터 복사 (원본 데이터 보존)
+    copy(arg->camera_output, arg->camera_output + IMG_SIZE, cam_out);
+    Mat frame(IMG_H, IMG_W, CV_8UC3, cam_out);
 
     // HSV로 변환
     cvtColor(frame, frame, cv::COLOR_BGR2HSV);
 
     // 노란색(40 +-20) 추출
-    Scalar lowerb(20, 63, 168);
-    Scalar upperb(60, 255, 255);
+    static Scalar lowerb(20, 60, 0);
+    static Scalar upperb(60, 255, 255);
     inRange(frame, lowerb, upperb, frame);
 
-    // 마스킹 이미지 만들기
-    static unsigned char mask[IMG_W * IMG_H];
-    static bool          init_mask = true;
-    static Mat           mmask(VPE_OUTPUT_H, VPE_OUTPUT_W, CV_8UC1, mask);
+    // 마스킹 이미지 만들고 ROI 설정
+    static uchar mask[IMG_W * IMG_H];
+    static Mat   mmask(IMG_H, IMG_W, CV_8UC1, mask);
+    static bool  init_mask = true;
     if (init_mask) {
-        makellMask(mask, IMG_W, IMG_H, 0, 40);
+        makellMask(mask, IMG_W, IMG_H, 0, 60);
         init_mask = false;
     }
-
-    // ROI 설정
     bitwise_and(frame, mmask, frame);
 
     // Canny 방식 윤곽선 검출
@@ -93,54 +101,64 @@ bool detectSlope(recog_arg *arg) {
         }
     }
 
-    // 두 직선의 교점 구하기
-    Vec4i   vi(1, 1, 1, 1);
-    Point2f r(0, 0);
-    if (line_l.dot(vi) && line_r.dot(vi)) { // 두 직선이 유효하면
-        Point2f o1(line_l[0], line_l[1]);
-        Point2f p1(line_l[2], line_l[3]);
-        Point2f o2(line_r[0], line_r[1]);
-        Point2f p2(line_r[2], line_r[3]);
-        intersection(o1, p1, o2, p2, r);
+    // 두 직선의 교점과 기울기 구하기
+    Point2i intersection(0, 0); // intersection result (x, y)
+    Vec2f   slope(0, 0);        // slope (left, right)
+    float   slope_dist = 0.0f;  // slope distance
 
-        if (getLineSlope(o1, p1) * getLineSlope(o2, p2) < 0) {
-            // 두 직선의 기울기의 곱이 음수일 때 (커브길 판단 제외, 커브길에는
-            // 두 직선의 기울기의 곱이 양수임)
-            if (r.y > 0) {
-                // 교점 y 좌표의 절댓값이 0보다 크면 경사로로 판단
-                // (일반적인 차선에서는 교점 y좌표의 절댓값이 0보다 작음)
-                ret = true;
+    if (line_l.dot(v4i) && line_r.dot(v4i)) { // 두 직선이 유효하면
+        Point2i o1(line_l[0], line_l[1]);
+        Point2i p1(line_l[2], line_l[3]);
+        Point2i o2(line_r[0], line_r[1]);
+        Point2i p2(line_r[2], line_r[3]);
+
+        slope[0]   = getLineSlope(o1, p1);
+        slope[1]   = getLineSlope(o2, p2);
+        slope_dist = abs(slope.dot(v2i));
+
+        if (slope_dist < MAX_SLOPE_DIST) {
+            // 두 직선의 기울기 합의 절댓값이 일정 수준 미만일 때
+            // (커브길 판단 제외, 커브길에는 slope_dist가 크다.)
+            if (getIntersection(o1, p1, o2, p2, intersection)) {
+                // 두 직선의 교점의 y좌표가 크다는 것은 화면 상에서 y좌표가
+                // 아래에 위치한다는 뜻이므로 경사가 급하다고 볼 수 있다.
+                // y좌표가 크다는 것은 미리 지정된 값(MIN_INTER_Y)를 이용해
+                // 결정한다.
+                if (intersection.y > MIN_INTER_Y) { ret = true; }
             }
         }
     }
 
     // 검출 정보 화면 출력
-    cvtColor(frame, frame, COLOR_GRAY2BGR);
 #if 0
-    if (r.dot(Point2f(1, 1))) {
-        putText(frame, to_string(r.x), Point(25, 25), FONT_HERSHEY_SIMPLEX, 1,
-                Scalar(255, 255, 255), 2);
-        putText(frame, to_string(r.y), Point(25, 60), FONT_HERSHEY_SIMPLEX, 1,
-                Scalar(255, 255, 255), 2);
-        line(frame, r, r, Scalar(0, 0, 255), 10);
-    }
+    cvtColor(frame, frame, COLOR_GRAY2BGR);
 
+    if (intersection.dot(v2i)) { // 교점이 존재할 때 기본 정보 표시
+        putText(frame,
+                "x: " + to_string(intersection.x) +
+                    ", y: " + to_string(intersection.y),
+                Point(25, 25), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255),
+                2);
+        putText(frame, "sd: " + to_string(slope_dist), Point(25, 60),
+                FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
+        line(frame, intersection, intersection, Scalar(0, 0, 255), 10);
+    }
     if (ret) {
         putText(frame, "slope!", Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
                 Scalar(255, 255, 255), 2);
     }
-
-    if (line_l.dot(Vec4i(1, 1, 1, 1))) {
+    if (line_l.dot(Vec4i(1, 1, 1, 1))) { // 왼쪽 차선 존재하면 그리기
         line(frame, Point(line_l[0], line_l[1]), Point(line_l[2], line_l[3]),
              Scalar(0, 0, 255), 2);
     }
-
-    if (line_r.dot(Vec4i(1, 1, 1, 1))) {
+    if (line_r.dot(Vec4i(1, 1, 1, 1))) { // 오른쪽 차선 존재하면 그리기
         line(frame, Point(line_r[0], line_r[1]), Point(line_r[2], line_r[3]),
-             Scalar(0, 0, 255), 2);
+             Scalar(255, 0, 0), 2);
     }
-#endif
+
+    Mat disp(IMG_H, IMG_W, CV_8UC3, arg->display_input);
     frame.copyTo(disp);
+#endif
 
     return ret;
 }
