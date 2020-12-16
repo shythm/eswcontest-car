@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 /* include custom libraries */
-#include "ctrlboard-lib.h"
 #include "recognize-lib.h"
 #include "util.h"
 
@@ -338,7 +337,7 @@ void *update_psd_value(void *argv) {
         }
 
         // Third, update the psd value of the shared memory
-        memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+        for (i = 0; i < PSD_COUNT; i++) { result->psd.value[i] = psd_dist[i]; }
         result->psd.valid = true;
     }
 }
@@ -389,7 +388,7 @@ int main(int argc, char **argv) {
     /* Get PSD data from I2C by thread */
     pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
-                       shm_rr)) {
+                       (void *)shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
         return -1;
     }

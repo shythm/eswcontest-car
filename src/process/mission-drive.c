@@ -1,7 +1,7 @@
 #include "process.h"
 
 void init_drive() {
-    ctrld_write(CMDC_CAMERA_Y_SERVO_CONTROL, 1700);
+    ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, 1700);
     ctrld_write(CMD_POSITION_CONTROL_ON_OFF, 0);
     ctrld_write(CMD_SPEED_CONTROL_ON_OFF, 1);
     ctrld_write(CMD_SPEED_PID_PROPORTIONAL, 20);
@@ -47,10 +47,10 @@ void init_drive() {
 #endif
 }
 
-#define GAIN_P      12.0f // P gain of PID control
+#define GAIN_P      15.0f // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    200   // Maximum velocity
+#define MAX_VELO    280   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
 void do_drive() {

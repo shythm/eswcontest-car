@@ -1,6 +1,6 @@
 #include "process.h"
 
-volatile recog_result *recog;
+recog_result *recog;
 
 extern fnInit_t mission_list[]; // mission list for contest  (in missions.c)
 

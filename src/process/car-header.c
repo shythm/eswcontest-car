@@ -2,7 +2,7 @@
 
 int read_encoder_counter() {
     int ret;
-    if (ctrld_read(CMDC_ENCODER_COUNTER, &ret)) {
+    if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
         ERROR("fail to read encoder counter, car-header\n");
     }
     return ret;
@@ -10,7 +10,7 @@ int read_encoder_counter() {
 
 short read_desire_speed() {
     int ret;
-    if (ctrld_read(CMDC_DESIRE_SPEED, &ret)) {
+    if (ctrld_read(CMD_DESIRE_SPEED, &ret)) {
         ERROR("fail to read desire speed, car-header\n");
     }
     return (short)ret;
@@ -18,35 +18,37 @@ short read_desire_speed() {
 
 short read_steering() {
     int ret;
-    if (ctrld_read(CMDC_STEERING_SERVO_CONTROL, &ret)) {
+    if (ctrld_read(CMD_STEERING_SERVO_CONTROL, &ret)) {
         ERROR("fail to read sterring servo control speed, car-header\n");
     }
     return (short)ret;
 }
 
 void set_encoder_counter(int encoder_counter) { //
-    ctrld_write(CMDC_ENCODER_COUNTER, encoder_counter);
+    ctrld_write(CMD_ENCODER_COUNTER, encoder_counter);
 }
 
 void set_steering(short steering) { //
-    ctrld_write(CMDC_STEERING_SERVO_CONTROL, steering);
+    ctrld_write(CMD_STEERING_SERVO_CONTROL, steering);
 }
 
 void set_desire_speed(short speed) { //
-    ctrld_write(CMDC_DESIRE_SPEED, speed);
+    ctrld_write(CMD_DESIRE_SPEED, speed);
 }
 
 void beep(unsigned char time) { //
-    ctrld_write(CMDC_SOUND, time);
+    ctrld_write(CMD_SOUND, time);
 }
 
 void move(short speed, int desire_encoder) {
     // Caution: initial encoder as 0
-    set_encoder_counter(0);
+    // set_encoder_counter(0);
     set_desire_speed(speed);
     if (desire_encoder > 0) {
+        desire_encoder += read_encoder_counter();
         while (desire_encoder > read_encoder_counter()) usleep(1000);
     } else {
+        desire_encoder += read_encoder_counter();
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
@@ -64,7 +66,7 @@ bool get_is_on_stop_line() {
     static uint8_t ir_active_cnt;
 
     // LSB가 left, 검은색이 1 흰색이 0 마지막 안쓰는 MSB는 0으로 고정
-    if (ctrld_read(CMDC_LINE_SENSOR, &value) == CMDR_SUCCESS) {
+    if (ctrld_read(CMD_LINE_SENSOR, &value) == CMDR_SUCCESS) {
         ir_active_cnt = 0;
         for (int i = 0; i < IR_SENSOR_COUNT; i++) {
             if (!(value & (0x01 << i))) ir_active_cnt++;

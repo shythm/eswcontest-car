@@ -43,20 +43,17 @@ LINK_DIRECTORIES(${ROOTFS}/lib)
 SET(recog recognize)
 SET(clean clean-car)
 SET(prcss process)
-SET(board ctrlboard)
 SET(share shared)
 
 # Define source directories
 FILE(GLOB src_recog src/${recog}/*.c* src/${share}/*.c*)
 FILE(GLOB src_clean src/${clean}/*.c* src/${share}/*.c*)
 FILE(GLOB src_prcss src/${prcss}/*.c* src/${share}/*.c*)
-FILE(GLOB src_board src/${board}/*.c* src/${share}/*.c*)
 
 # Include header files
 INCLUDE_DIRECTORIES(src/${recog})
 INCLUDE_DIRECTORIES(src/${clean})
 INCLUDE_DIRECTORIES(src/${prcss})
-INCLUDE_DIRECTORIES(src/${board})
 INCLUDE_DIRECTORIES(src/${share})
 
 # Build recognize
@@ -64,12 +61,6 @@ ADD_EXECUTABLE(${recog}
     ${src_recog}
 )
 TARGET_LINK_LIBRARIES(${recog} pthread m jpeg rt drm mtdev drm_omap opencv_core opencv_highgui opencv_imgproc opencv_objdetect)
-
-# Build control board
-ADD_EXECUTABLE(${board}
-    ${src_board}
-)
-TARGET_LINK_LIBRARIES(${board} m)
 
 # Build clean-car
 ADD_EXECUTABLE(${clean}
