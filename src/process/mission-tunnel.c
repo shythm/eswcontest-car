@@ -1,10 +1,14 @@
 #include "car-header.h"
 #include "process.h"
 
-#define TUNN_SPEED          140 // 100~140 in hard map (over 140 in easy map)
-#define TUNN_GAIN           40
-#define BACK_PSD_SAFE_DIST  6.f
-#define BACK_PSD_SAFE_STEER 40
+// 100~140 in hard map || 160~170 in easy map
+#define TUNN_SPEED 170
+// 35 ~ 50 : 속력이 높을 수록 높은 게인을 주어야 한다.
+#define TUNN_GAIN 45
+// 안전거리가 짧을수록 둔감하지만 운전에 영향을 덜 준다.
+#define BACK_PSD_SAFE_DIST 6.f
+// 20 ~ 40 : 속력이 높을 수록 작은 값을 주어야 한다.(원심력때문에)
+#define BACK_PSD_SAFE_STEER 20
 
 bool check_tunnel(fnRun_t *fnRun);
 void do_tunnel(fnClean_t *fnClean);
@@ -63,11 +67,6 @@ void do_tunnel(fnClean_t *fnClean) {
         if (position > 2000) position = 2000;
         else if (position < 1000)
             position = 1000;
-
         set_steering(position);
     }
-
-    // stop after tunnel (for debugging)
-    set_desire_speed(0);
-    while (1) sleep(1);
 }
