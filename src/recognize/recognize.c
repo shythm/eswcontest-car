@@ -17,9 +17,7 @@
 
 /* include custom libraries */
 #include "ctrlboard-lib.h"
-#include "detect-end-zone.h"
 #include "recognize-lib.h"
-#include "recognize-update.h"
 #include "util.h"
 
 /* include capture libraries */
@@ -27,65 +25,75 @@
 #include "v4l2.h"
 #include "vpe-common.h"
 
-void update_recog_result(recog_arg *arg, recog_result *result) {
-    // update sample
-    if (result->sample.enabled) {
-        // update example. I used memcpy function because return value is
-        // pointer.
-        memcpy(&(result->sample.value), get_sample(arg), SAMPLE_COUNT);
-    }
+/* weak functions */
+__attribute__((weak)) bool get_is_on_stop_line(recog_arg *arg) { return false; }
+__attribute__((weak)) bool get_is_on_end_zone(recog_arg *arg) { return false; }
+__attribute__((weak)) recog_traffic_light_t get_traffic_light(recog_arg *arg) {
+    return TL_NONE;
+}
+__attribute__((weak)) vector_lane get_lane(recog_arg *arg) {
+    vector_lane vl = {0.0f, 0.0f};
+    return vl;
+}
+__attribute__((weak)) recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
+    return ON_LANE_NONE;
+}
+__attribute__((weak)) bool get_is_on_slope(recog_arg *arg) { return false; }
+__attribute__((weak)) bool get_is_in_tunnel(recog_arg *arg) { return false; }
+__attribute__((weak)) recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
+    recog_stop_obstacle_t so = {0, 0, 0.0f};
+    return so;
+}
+__attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
+    return TC_NONE;
+}
+__attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
 
-    // update is_on_stop_line
-    if (result->is_on_stop_line.enabled) {
+/* update reocg_result function */
+void update_recog_result(recog_arg *arg, recog_result *result) {
+    // < recognize >
+    // - is_on_stop_line    (o)
+    // - is_on_end_zone     (o)
+    // - traffic_light      (o)
+    // - lane               (o)
+    // - is_on_lane         (o)
+    // - is_on_slope        (o)
+    // - is_on_overpass     (o)
+    // - is_in_tunnel       (x)
+    // - curr_velocity      (x)
+    // - stop_obstacle      (o)
+    // - is_there_car       (x)
+    // - psd                (o)
+
+    if (result->is_on_stop_line.enabled) { // update is_on_stop_line
         result->is_on_stop_line.value = get_is_on_stop_line(arg);
     }
-
-    // update is_on_end_point
-    if (result->is_on_end_point.enabled) {
-        result->is_on_end_point.value = get_is_on_end_point(arg);
+    if (result->is_on_end_zone.enabled) { // update is_on_end_zone
+        result->is_on_end_zone.value = get_is_on_end_zone(arg);
     }
-
-    // update traffic_light
-    if (result->traffic_light.enabled) {
+    if (result->traffic_light.enabled) { // update traffic_light
         result->traffic_light.value = get_traffic_light(arg);
     }
-
-    // update lane
-    if (result->lane.enabled) { result->lane.value = get_lane(arg); }
-
-    // update is_on_lane
-    if (result->is_on_lane.enabled) {
+    if (result->lane.enabled) { // update lane
+        result->lane.value = get_lane(arg);
+    }
+    if (result->is_on_lane.enabled) { // update_is_on_lane
         result->is_on_lane.value = get_is_on_lane(arg);
     }
-
-    // update is_on_slope
-    if (result->is_on_slope.enabled) {
-        // TODO: write your update function
+    if (result->is_on_slope.enabled) { // update is_on_slope
+        result->is_on_slope.value = get_is_on_slope(arg);
     }
-
-    // update is_on_overpass
-    if (result->is_on_overpass.enabled) {
-        // TODO: write your update function
+    if (result->is_in_tunnel.enabled) { // update is_in_tunnel
+        result->is_in_tunnel.value = get_is_in_tunnel(arg);
     }
-
-    // update is_in_tunnel
-    if (result->is_in_tunnel.enabled) {
-        // TODO: write your update function
-    }
-
-    // update curr_velocity
-    if (result->curr_velocity.enabled) {
-        // TODO: write your update function
-    }
-
-    // update stop_obstacle
-    if (result->stop_obstacle.enabled) {
+    if (result->stop_obstacle.enabled) { // update stop_obstacle
         result->stop_obstacle.value = get_stop_obstacle(arg);
     }
-
-    // update is_there_car
-    if (result->is_there_car.enabled) {
-        // TODO: write your update function
+    if (result->is_there_car.enabled) { // update is_there_car
+        result->is_there_car.value = get_is_there_car(arg);
+    }
+    if (result->tl_lane.enable) { // update lane for traffic light
+        result->tl_lane.value = get_tl_lane(arg);
     }
 }
 
@@ -224,7 +232,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 /* define I2C & PSD constants */
 #define PSD_I2C_DEVICE   "/dev/i2c-2"
 #define PSD_I2C_BUF_SIZE 8
-#define PSD_I2C_DELAY_US 2000
+#define PSD_I2C_DELAY_US 1000
 
 #define PSD_CMD_FRONT   0x8C
 #define PSD_CMD_RIGHT_1 0xCC
@@ -232,9 +240,6 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_CMD_BACK    0xDC
 #define PSD_CMD_LEFT_2  0xAC
 #define PSD_CMD_LEFT_1  0xEC
-
-#define PSD_DISTANCE_MIN 4.0f
-#define PSD_DISTANCE_MAX 30.0f
 
 #define PSD_MEDIAN_SAMPLE_SIZE 3
 
@@ -334,9 +339,11 @@ void *update_psd_value(void *argv) {
 
         // Third, update the psd value of the shared memory
         memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+        result->psd.valid = true;
     }
 }
 
+// #define TURN_ON_VALUE_CHECK
 void *value_check(void *argv) {
     /* get the shared memory from the pthread argument */
     recog_result *shm      = (recog_result *)argv;
@@ -344,33 +351,31 @@ void *value_check(void *argv) {
     char          str_buf[10];
 
     /* Turn on recognition */
-    shm->is_on_stop_line.enabled = true;
-    shm->is_on_end_point.enabled = true;
-    shm->traffic_light.enabled   = true;
+    shm->is_on_stop_line.enabled = false;
+    shm->is_on_end_zone.enabled  = false;
+    shm->traffic_light.enabled   = false;
     shm->lane.enabled            = false;
-    shm->is_on_lane.enabled      = true;
-    shm->stop_obstacle.enabled   = true;
+    shm->is_on_lane.enabled      = false;
+    shm->stop_obstacle.enabled   = false;
+    shm->is_on_slope.enabled     = false;
 
     /* Print the values */
     for (;;) {
         printf(" *** VALUE CHECK *** \n");
         printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
-        printf("is_on_end_point: %d \n", (int)(shm->is_on_end_point.value));
+        printf("is_on_end_zone: %d \n", (int)(shm->is_on_end_zone.value));
         printf("traffic_light:   %d \n", shm->traffic_light.value);
-        printf("lane: lc=%f lp=%f rc=%f rp=%f pos=%f \n",
-               shm->lane.value.left_curv, shm->lane.value.left_pos,
-               shm->lane.value.right_curv, shm->lane.value.right_pos,
-               shm->lane.value.position);
+        printf("lane: pos=%f pos_with_white=%f \n", shm->lane.value.pos_yl,
+               shm->lane.value.pos_yawl);
         printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
                shm->stop_obstacle.value.pos_y);
+        printf("is_on_slope: %d \n", (int)shm->is_on_slope.value);
 
         usleep(delay_us);
     }
 }
-
-// #define TURN_ON_VALUE_CHECK
 
 int main(int argc, char **argv) {
     recog_result *shm_rr;
@@ -402,6 +407,7 @@ int main(int argc, char **argv) {
 
     /* Do capture and recognize */
     recog_arg arg;
+    arg.pext_data = &shm_rr->ext_data;
 
     // Get message queue id of ctrlboard process
     if (get_mqid_ctrl(&arg.ctrl) == -1) {

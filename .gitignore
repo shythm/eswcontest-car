@@ -7,10 +7,12 @@ bin/
 CMakeFiles/
 build/
 CrossCompiler/
+CrossCompiler
 
 # Test
 screenshot/
 /test/
+imgs/
 
 # Personal setting
 .vscode/

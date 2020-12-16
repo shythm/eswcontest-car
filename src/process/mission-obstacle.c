@@ -1,43 +1,50 @@
-#include "ctrlboard-lib.h"
+#include "car-header.h"
 #include "process.h"
 
-void do_obstacle(State *state);
+#define THRESHOLD_SO_AREA 1000.0f
+#define ONE_SHOT_COUNT    250
+#define ONE_SHOT_DELAY_US 1000
+#define WAIT_DELAY        1
 
-void init_obstacle(State *state) {
-    state->input->stop_obstacle.enabled     = true;
-    state->input->stop_obstacle.value.pos_x = -1;
-    state->missions.obstacle.function       = do_obstacle;
+bool check_obstacle(fnRun_t *fnRun);
+void run_obstacle(fnClean_t *fnClear);
+void clean_obstacle();
+
+void init_obstacle(fnCheck_t *fnCheck) {
+    recog->stop_obstacle.value.area = 0.0f;
+    recog->stop_obstacle.enabled    = true;
+
+    MSG("UPCOMING MISSION => obstacle");
+    *fnCheck = check_obstacle;
 }
 
-void check_obstacle(State *state) {
-    static int is_checked = false;
-
-    if (!is_checked) {
-        if (state->input->stop_obstacle.value.pos_x != -1) {
-            state->missions.obstacle.priority = 10;
-            is_checked                        = true;
-        }
+bool check_obstacle(fnRun_t *fnRun) {
+    if (recog->stop_obstacle.value.area > THRESHOLD_SO_AREA) {
+        MSG("START MISSION => obstacle");
+        *fnRun = run_obstacle;
+        return true;
     }
+
+    return false;
 }
 
-#define ONE_SHOT_COUNT 1000
-void do_obstacle(State *state) {
-    ctrlboard_byte_container container;
-
-    container.c_int16 = 0;
-    send_ctrlboard(state->ctrl, CMD_DESIRE_SPEED, 2, &container);
-
-    container.c_uint8 = 50;
-    if (send_ctrlboard(state->ctrl, CMD_SOUND, 1, &container) !=
-        MSG_STATE_SUCCESS)
-        printf("fail to sound beep: mission-parking\n");
+void run_obstacle(fnClean_t *fnClean) {
+    set_desire_speed(0);
+    beep(50);
 
     // block until the obstacle is disappear.
     for (int i = 0; i < ONE_SHOT_COUNT; i++) {
-        if (state->input->stop_obstacle.value.pos_x != -1) i = 0;
-        usleep(1000);
+        if (recog->stop_obstacle.value.area > THRESHOLD_SO_AREA) i = 0;
+        usleep(ONE_SHOT_DELAY_US);
     }
 
-    state->input->stop_obstacle.enabled = false;
-    sleep(1);
+    // wait while the priority stop obstacle is dissapeared.
+    sleep(WAIT_DELAY);
+
+    *fnClean = clean_obstacle;
+}
+
+void clean_obstacle() {
+    // turn off stop_obstacle recognition.
+    recog->stop_obstacle.enabled = false;
 }

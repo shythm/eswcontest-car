@@ -1,6 +1,5 @@
-#include "detect-end-zone.h"
 // #include "draw-txt.h"
-#include "recognize-update.h"
+#include "recognize-lib.h"
 #include <algorithm>
 #include <numeric>
 #include <opencv2/opencv.hpp>
@@ -21,8 +20,7 @@ bool detectEndZone(recog_arg *arg) {
     unsigned char *disp_data = arg->display_input;
 
     //이미지 받아와서 mat 클래스로 감싼다
-    unsigned char *cam_copied =
-        new unsigned char[VPE_OUTPUT_W * VPE_OUTPUT_H * 3];
+    static unsigned char cam_copied[VPE_OUTPUT_W * VPE_OUTPUT_H * 3];
     copy(cam_data, cam_data + VPE_OUTPUT_W * VPE_OUTPUT_H * 3, cam_copied);
     Mat src_img(VPE_OUTPUT_H, VPE_OUTPUT_W, CV_8UC3, cam_copied);
 
@@ -30,9 +28,7 @@ bool detectEndZone(recog_arg *arg) {
     for (int i = 0; i < VPE_OUTPUT_H; i++) {
         if (CUT_START <= i && i <= CUT_END) continue;
         uchar *row = src_img.ptr<uchar>(i);
-        for (int j = 0; j < VPE_OUTPUT_W * 3; j++) {
-            row[j] = 0;
-        }
+        for (int j = 0; j < VPE_OUTPUT_W * 3; j++) { row[j] = 0; }
     }
 
     //노란색으로 이미지 마스킹하기
@@ -87,4 +83,11 @@ bool detectEndZone(recog_arg *arg) {
 
     drawTxt(edge, disp_data, 10, 50, VPE_OUTPUT_W, VPE_OUTPUT_H);
     */
+}
+
+// *********************************************************
+// THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
+// *********************************************************
+extern "C" bool get_is_on_end_zone(recog_arg *arg) {
+    return detectEndZone(arg);
 }
