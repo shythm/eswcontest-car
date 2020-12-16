@@ -53,7 +53,7 @@ void do_trafficLight(fnClean_t *fnClean) {
     set_desire_speed(0);
 
     // tilt up camera to see trafficLight
-    set_camer_Yservo(1500);
+    set_camera_Yservo(1500);
     usleep(TL_SLEEP);
 
     // wait for signal
@@ -70,7 +70,7 @@ void do_trafficLight(fnClean_t *fnClean) {
     }
     recog->traffic_light.enabled = false;
     // tilt down camera
-    set_camer_Yservo(1700);
+    set_camera_Yservo(1700);
 
     // progress
     set_steering(1500);
