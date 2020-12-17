@@ -50,7 +50,7 @@ void init_drive() {
 #define GAIN_P      15.0f // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    280   // Maximum velocity
+#define MAX_VELO    150   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
 void do_drive() {

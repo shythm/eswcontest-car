@@ -224,7 +224,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     resize(img, img, sizeOrigin, INTER_NEAREST);
 
     // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
+    // copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
     // // Copy processed image to display
     // copy(img.data, img.data + W * H * 3, arg->display_input);

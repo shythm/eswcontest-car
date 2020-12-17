@@ -48,6 +48,7 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
 }
 __attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
 
+__attribute__((weak)) int get_other_cars_location(recog_arg *arg) { return 0; }
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
     // < recognize >
@@ -93,6 +94,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
+    }
+    if (result->other_cars.enable) {
+        result->other_cars.value = get_other_cars_location(arg);
     }
 }
 
@@ -231,7 +235,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 /* define I2C & PSD constants */
 #define PSD_I2C_DEVICE   "/dev/i2c-2"
 #define PSD_I2C_BUF_SIZE 8
-#define PSD_I2C_DELAY_US 1000
+#define PSD_I2C_DELAY_US 500
 
 #define PSD_CMD_FRONT   0x8C
 #define PSD_CMD_RIGHT_1 0xCC
