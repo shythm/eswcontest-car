@@ -23,7 +23,7 @@ void putTextAtTop(cv::Mat &frame, std::string text, cv::Scalar color) {
 }
 
 int decide_deriction(Mat *img) {
-    const int h1 = H / 2, h2 = H;
+    const int h1 = H / 2, h2 = H - 10;
     int       countL = 0, countR = 0;
     for (int h = h1; h < h2; h++) {
         int left, right;
@@ -78,21 +78,21 @@ int get_other_cars_location_t(recog_arg *arg) {
     // img_copy for decide_direction() and display
     img.copyTo(img_copy);
     cvtColor(img_copy, img_copy, COLOR_BGR2GRAY);
-    Canny(img_copy, img_copy, 100, 170);
+    // Canny(img_copy, img_copy, 100, 170);
+    adaptiveThreshold(img_copy, img_copy, 255, ADAPTIVE_THRESH_MEAN_C,
+                      THRESH_BINARY, 3, -2);
     cvtColor(img_copy, img_copy, COLOR_GRAY2BGR);
 
     cvtColor(img, img, COLOR_BGR2HSV);
-
     // extract color
-    static Scalar lowerb(0, 0, 210);
+    static Scalar lowerb(0, 0, 195);
     static Scalar upperb(255, 48, 255);
     inRange(img, lowerb, upperb, img);
-
-    // cvtColor(img, img, COLOR_BGR2GRAY);
-    Canny(img, img, 60, 150);
+    Canny(img, img, 70, 140);
     vector<Vec2f> lines;
-    HoughLines(img, lines, 1, CV_PI / 180, 25);
+    HoughLines(img, lines, 1, CV_PI / 180, 20);
 
+    cvtColor(img, img, COLOR_GRAY2BGR);
     // cvtColor(img, img, COLOR_GRAY2BGR);
     for (size_t i = 0; i < lines.size(); i++) {
         float rho = lines[i][0], theta = lines[i][1];
@@ -108,6 +108,7 @@ int get_other_cars_location_t(recog_arg *arg) {
         pt2.x = cvRound(x0 - 1000 * (-b));
         pt2.y = cvRound(y0 - 1000 * (a));
         line(img_copy, pt1, pt2, Scalar(0, 0, 255), 2, 8);
+        // line(img, pt1, pt2, Scalar(0, 0, 255), 2, 8);
     }
 
     int ret_var = decide_deriction(&img_copy);
@@ -120,6 +121,8 @@ int get_other_cars_location_t(recog_arg *arg) {
     else if (ret_var == 1)
         putTextAtTop(img_copy, "RIGHT", Scalar(0, 255, 0));
     copy(img_copy.data, img_copy.data + W * H * 3, arg->display_input);
+
+    // copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
     return ret_var;
 }

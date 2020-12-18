@@ -23,18 +23,21 @@ void init_overtaking(fnCheck_t *fnCheck) {
 }
 
 bool check_overtaking(fnRun_t *fnRun) {
+    // set_camera_Yservo(1600);
+    // recog->other_cars.enable = true;
+    // while (1) {}
 
     if (recog->psd.value[PSD_FRONT] < 28.f) {
         set_desire_speed(0);
         *fnRun = do_overtaking;
         MSG("START MISSION => overtaking");
+        MSG("1: psd %3.1f", recog->psd.value[PSD_FRONT]);
         return true;
     }
     return false;
 }
 
 void do_overtaking(fnClean_t *fnClean) {
-    MSG("enter do");
     int         overtaking_direction;
     const float turn_rad = PI / 3.0f;
     // stop
@@ -42,31 +45,33 @@ void do_overtaking(fnClean_t *fnClean) {
     set_steering(1500);
     usleep(SLEEP_OVERTAKING * 3);
 
-    set_desire_speed(-SPEED_OVERTAKING);
+    set_desire_speed(-SPEED_OVERTAKING / 2);
 
+    MSG("2: psd %3.1f", recog->psd.value[PSD_FRONT]);
     while (recog->psd.value[PSD_FRONT] < 20.0f) {}
     set_desire_speed(0);
     usleep(SLEEP_OVERTAKING);
+    MSG("1: psd %3.1f", recog->psd.value[PSD_FRONT]);
 
-    move(-SPEED_OVERTAKING, -20.f * TICK_PER_CM);
+    move(-SPEED_OVERTAKING, -25.f * TICK_PER_CM);
 
     // search empty road
     recog->other_cars.enable = true;
     set_camera_Yservo(1600);
     usleep(SLEEP_OVERTAKING * 2);
-
+    sleep(3);
     overtaking_direction = 0;
     for (int i = 0; i < 100; i++) {
+
         overtaking_direction += recog->other_cars.value;
         usleep(2500);
     }
-    while (1) {}
 
     int steer_direc = 500;
     if (overtaking_direction < 0) { // left
         steer_direc = -500;
         MSG("LEFT!!!\n");
-    } else if (overtaking_direction > 0) { // right
+    } else if (overtaking_direction >= 0) { // right
         steer_direc = 500;
         MSG("RIGHT!!!\n");
     }
@@ -90,7 +95,7 @@ void do_overtaking(fnClean_t *fnClean) {
     // go straight
     set_steering(1500);
     usleep(SLEEP_OVERTAKING);
-    move(SPEED_OVERTAKING, 30.0f * TICK_PER_CM);
+    move(SPEED_OVERTAKING, 40.0f * TICK_PER_CM);
     usleep(SLEEP_OVERTAKING);
 
     // turn left | right
