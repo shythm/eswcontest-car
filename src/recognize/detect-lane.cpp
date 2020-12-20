@@ -1,13 +1,11 @@
+#include "opencv2/opencv.hpp"
 #include "recognize-lib.h"
 #include <math.h>
-#include <opencv2/opencv.hpp>
-#include <stdio.h>
+using namespace cv;
+using namespace std;
 
 #define W VPE_OUTPUT_W
 #define H VPE_OUTPUT_H
-
-using namespace cv;
-using namespace std;
 
 // 입력 이미지 사이즈 정보
 const Size sizeOrigin = Size(W, H);
@@ -33,11 +31,11 @@ void initLaneInfo(LaneInfo &li) {
 void updateLaneInfo(vector<int> positions, LaneInfo &li) {
     // constants
     static const int dist           = 24;
-    static const int threshScoreMax = -8;
+    static const int threshScoreMax = -4;
 
-    float lScoreMax = -9999;
-    float rScoreMax = -9999;
-    int   lScore, rScore, posL, posR;
+    int lScoreMax = -9999;
+    int rScoreMax = -9999;
+    int lScore, rScore, posL, posR;
 
     // Get left lane position and right lane position
     for (int pos : positions) {
@@ -118,10 +116,15 @@ void getRoiPerspectiveTransform(Mat &perspM) {
     perspM = getPerspectiveTransform(src, dst);
 }
 
-void getValidPositions(Mat &img, vector<int> &out, int bl, Scalar l, Scalar u) {
-    uchar *row = img.ptr(bl);
-    bool   isValid;
+#define BASE_LINE_RATIO 0.40f
 
+void getYellowPoints(Mat &img, vector<int> &out) {
+    const static Scalar l(20, 20, 0);
+    const static Scalar u(48, 255, 255);
+
+    uchar *row = img.ptr(img.size().height * BASE_LINE_RATIO);
+
+    bool isValid;
     for (int i = 0; i < img.size().width; i++) {
         isValid = true;
         isValid &= (l[0] <= row[i * 3 + 0]) && (row[i * 3 + 0] <= u[0]);
@@ -132,13 +135,31 @@ void getValidPositions(Mat &img, vector<int> &out, int bl, Scalar l, Scalar u) {
     }
 }
 
-#define BASE_LINE_RATIO 0.45f
-#define DISPLAY_RESULT
+void getWhitePoints(Mat &img, vector<int> &out) {
+    const static Scalar l(0, 0, 200);    // lower white
+    const static Scalar u(255, 48, 255); // upper white
+    const static Size   ks(1, 16);       // kernal size
+
+    Mat tempM;
+    img.copyTo(tempM);
+    inRange(tempM, l, u, tempM);
+
+    // salt noise 제거 (침식 연산)
+    Mat kernalM4E = getStructuringElement(MORPH_RECT, Size(1, 3));
+    erode(tempM, tempM, kernalM4E);
+    // 검출된 하얀색 선 길게 늘이기 (팽창 연산)
+    Mat kernalM4D = getStructuringElement(MORPH_RECT, Size(1, 16));
+    dilate(tempM, tempM, kernalM4D, Point(0, 16 - 1));
+
+    uchar *row = tempM.ptr(tempM.size().height * BASE_LINE_RATIO);
+    for (int i = 0; i < tempM.size().width; i++) {
+        if (row[i]) { out.push_back(i); }
+    }
+}
 
 void detectLane(recog_arg *arg, vector_lane *result) {
     static uchar raw[W * H * 3]; // dynamic memory allocation is not required.
     static Mat   perspM;         // Matirx for perspective transform
-    static int   baseline;
 
     static LaneInfo liY;   // line information of yellow lane
     static LaneInfo liYAW; // line information of white and yellow lane
@@ -149,8 +170,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
         getRoiPerspectiveTransform(perspM);
         arg->pext_data->call_init_lane_info =
             true; // 외부에서 LaneInfo 초기화하는 용도로 사용됨
-        baseline = sizeSmall.height * BASE_LINE_RATIO;
-        init     = false;
+        init = false;
     }
 
     if (arg->pext_data->call_init_lane_info) {
@@ -180,41 +200,42 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     resize(img, img, sizeSmall, INTER_NEAREST);
     cvtColor(img, img, CV_BGR2HSV);
 
-    // yellow lane
-    const static Scalar lowerY(20, 20, 0);
-    const static Scalar upperY(48, 255, 255);
-    vector<int>         vpOfY; // valid positions of yellow
-    getValidPositions(img, vpOfY, baseline, lowerY, upperY);
-    updateLaneInfo(vpOfY, liY);
+    vector<int> vpOfY;   // valid positions of yellow
+    vector<int> vpOfYAW; // valid positions of yellow and white
 
-    // yellow and white lane
-    const static Scalar lowerW(0, 0, 200);
-    const static Scalar upperW(255, 40, 255);
-    vector<int>         vpOfYAW;
+    getYellowPoints(img, vpOfY);
+    getWhitePoints(img, vpOfYAW);
     for (int vp : vpOfY) { // push back valid positions of yellow
         vpOfYAW.push_back(vp);
     }
-    getValidPositions(img, vpOfYAW, baseline, lowerW, upperW);
+
+    updateLaneInfo(vpOfY, liY);
     updateLaneInfo(vpOfYAW, liYAW);
 
-#ifdef DISPLAY_RESULT
-    // Display result. You must remove here at release version
-    inRange(img, lowerY, upperY, img);
-    cvtColor(img, img, COLOR_GRAY2BGR);
+    // center position = (left+width)/2 - imgWidth/2;
+    //                 = (left+width-imgWidth)/2
+    // Because we use gain in process, constant is not required.
+    // And to reverse direction, multiply -1.
+    result->pos_yl   = -(liY.posL + liY.posR - sizeSmall.width);
+    result->pos_yawl = -(liYAW.posL + liYAW.posR - sizeSmall.width);
 
-    uchar *row = img.ptr(baseline);
-    for (int i = 0; i < sizeSmall.width; i++) {
+#if 1
+    // Display result. You must remove here at release version
+    cvtColor(img, img, COLOR_HSV2BGR);
+
+    uchar *row = img.ptr(img.size().height * BASE_LINE_RATIO);
+    for (int i = 0; i < img.size().width; i++) {
         // make color of baseline to white
         row[i * 3 + 0] = 255;
         row[i * 3 + 1] = 255;
         row[i * 3 + 2] = 255;
     }
-    if (liYAW.posL >= 0 || liYAW.posL < sizeSmall.width) {
+    if (liYAW.posL >= 0 && liYAW.posL < img.size().width) {
         row[liYAW.posL * 3 + 0] = 0;
         row[liYAW.posL * 3 + 1] = 0;
         row[liYAW.posL * 3 + 2] = 255;
     }
-    if (liYAW.posR >= 0 || liYAW.posR < sizeSmall.width) {
+    if (liYAW.posR >= 0 && liYAW.posR < img.size().width) {
         row[liYAW.posR * 3 + 0] = 255;
         row[liYAW.posR * 3 + 1] = 0;
         row[liYAW.posR * 3 + 2] = 0;
@@ -223,18 +244,14 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
 
+    putText(img, "vec: " + to_string(liYAW.posL) + ", " + to_string(liYAW.posR),
+            Point(25, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 0), 2);
+    putText(img, "pos: " + to_string(result->pos_yawl), Point(25, 60),
+            FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
+
     // Copy processed image to display
     copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
-    // // Copy processed image to display
-    // copy(img.data, img.data + W * H * 3, arg->display_input);
-
-    // center position = (left+width)/2 - imgWidth/2;
-    //                 = (left+width-imgWidth)/2
-    // Because we use gain in process, constant is not required.
-    // And to reverse direction, multiply -1.
-    result->pos_yl   = -(liY.posL + liY.posR - sizeSmall.width);
-    result->pos_yawl = -(liYAW.posL + liYAW.posR - sizeSmall.width);
 }
 
 // *********************************************************
