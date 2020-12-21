@@ -136,7 +136,7 @@ void getYellowPoints(Mat &img, vector<int> &out) {
 }
 
 void getWhitePoints(Mat &img, vector<int> &out) {
-    const static Scalar l(0, 0, 200);    // lower white
+    const static Scalar l(0, 0, 220);    // lower white
     const static Scalar u(255, 48, 255); // upper white
     const static Size   ks(1, 16);       // kernal size
 
