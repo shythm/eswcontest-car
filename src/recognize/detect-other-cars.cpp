@@ -16,7 +16,7 @@ void putTextAtTop(cv::Mat &frame, std::string text, cv::Scalar color) {
         getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 1, 1, &baseline);
 
     int x = (frame.cols - textSize.width) / 2;
-    int y = textSize.height + 10;
+    int y = textSize.height + 20;
 
     putText(frame, text, cv::Point(x, y), cv::FONT_HERSHEY_SIMPLEX, 1, color,
             1);
