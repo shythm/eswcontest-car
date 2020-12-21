@@ -8,15 +8,13 @@ void steering(short pos);
 void init_overpass(fnCheck_t *fnCheck) {
     // settings for slope detection
     recog->is_on_slope.enabled = true;
-    command(CMD_CAMERA_X_SERVO_CONTROL, 1500);
-    command(CMD_CAMERA_Y_SERVO_CONTROL, 1725);
 
     // Initialize to drive with PSD
-    if (command(CMD_POSITION_CONTROL_ON_OFF, 0)) printf("Init Fail 1 \n");
-    if (command(CMD_SPEED_CONTROL_ON_OFF, 1)) printf("Init Fail 2 \n");
-    if (command(CMD_SPEED_PID_PROPORTIONAL, 20)) printf("Init Fail 3 \n");
-    if (command(CMD_SPEED_PID_INTEGRAL, 20)) printf("Init Fail 4 \n");
-    if (command(CMD_SPEED_PID_DIFFERENTAL, 20)) printf("Init Fail 5 \n");
+    ctrld_write(CMD_POSITION_CONTROL_ON_OFF, 0);
+    ctrld_write(CMD_SPEED_CONTROL_ON_OFF, 1);
+    ctrld_write(CMD_SPEED_PID_PROPORTIONAL, 20);
+    ctrld_write(CMD_SPEED_PID_INTEGRAL, 20);
+    ctrld_write(CMD_SPEED_PID_DIFFERENTAL, 20);
 
     MSG("UPCOMING MISSION => overpass & slope");
     *fnCheck = check_overpass;
@@ -57,7 +55,7 @@ bool check_overpass(fnRun_t *fnRun) {
 void run_overpass(fnClean_t *fnClean) {
     psd_data_t fL, fR; // front Left and Right
 
-    command(CMD_DESIRE_SPEED, VELO);
+    ctrld_write(CMD_DESIRE_SPEED, VELO);
 
     for (;;) {
         if (recog->is_on_slope.value) { break; }
@@ -67,7 +65,7 @@ void run_overpass(fnClean_t *fnClean) {
         steering(GAIN_P * (fL - fR) + TARGET_STEERING);
     }
 
-    command(CMD_DESIRE_SPEED, VELO_SLOPE);
+    ctrld_write(CMD_DESIRE_SPEED, VELO_SLOPE);
 
     for (;;) {
         fL = recog->psd.value[PSD_LEFT_1];
@@ -93,6 +91,6 @@ void steering(short pos) {
         pos = 1000;
     }
 
-    command(CMD_STEERING_SERVO_CONTROL, pos);
+    ctrld_write(CMD_STEERING_SERVO_CONTROL, pos);
     usleep(SERVO_US_DELAY);
 }

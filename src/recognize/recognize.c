@@ -16,7 +16,6 @@
 #include <unistd.h>
 
 /* include custom libraries */
-#include "ctrlboard-lib.h"
 #include "recognize-lib.h"
 #include "util.h"
 
@@ -48,6 +47,7 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
     return TC_NONE;
 }
 __attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
+__attribute__((weak)) float get_stop_line(recog_arg *arg) { return -1; }
 
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
@@ -94,6 +94,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
+    }
+    if (result->stop_line_pos.enable) { // update stop line position
+        result->stop_line_pos.value = get_stop_line(arg);
     }
 }
 
@@ -338,7 +341,7 @@ void *update_psd_value(void *argv) {
         }
 
         // Third, update the psd value of the shared memory
-        memcpy(result->psd.value, psd_dist, sizeof(psd_data_t) * PSD_COUNT);
+        for (i = 0; i < PSD_COUNT; i++) { result->psd.value[i] = psd_dist[i]; }
         result->psd.valid = true;
     }
 }
@@ -354,7 +357,7 @@ void *value_check(void *argv) {
     shm->is_on_stop_line.enabled = false;
     shm->is_on_end_zone.enabled  = false;
     shm->traffic_light.enabled   = false;
-    shm->lane.enabled            = false;
+    shm->lane.enabled            = true;
     shm->is_on_lane.enabled      = false;
     shm->stop_obstacle.enabled   = false;
     shm->is_on_slope.enabled     = false;
@@ -389,7 +392,7 @@ int main(int argc, char **argv) {
     /* Get PSD data from I2C by thread */
     pthread_t thread_update_psd_value;
     if (pthread_create(&thread_update_psd_value, NULL, update_psd_value,
-                       shm_rr)) {
+                       (void *)shm_rr)) {
         ERROR("An error occurred while creating thread for update_psd_value.");
         return -1;
     }
@@ -409,14 +412,7 @@ int main(int argc, char **argv) {
     recog_arg arg;
     arg.pext_data = &shm_rr->ext_data;
 
-    // Get message queue id of ctrlboard process
-    if (get_mqid_ctrl(&arg.ctrl) == -1) {
-        ERROR("An error occurred while getting the message queue id. Check "
-              "that the ctrlboard process is running");
-        return -1;
-    }
-
-    printf("RECOGNIZE\n");
+    MSG(" recognizing ... ");
     for (;;) { capture_recognize(shm_rr, &arg); }
 
     return 0;

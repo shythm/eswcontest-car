@@ -6,16 +6,18 @@
 using namespace cv;
 using namespace std;
 
-#define W            VPE_OUTPUT_W
-#define H            VPE_OUTPUT_H
-#define DISP_TL_LANE 1
+#define W               VPE_OUTPUT_W
+#define H               VPE_OUTPUT_H
+#define W_SMALL         VPE_OUTPUT_W / 4
+#define H_SMALL         VPE_OUTPUT_H / 4
+#define DISPLAY_TL_LANE 1
 
-const Size   sizeOrigin   = Size(VPE_OUTPUT_W, VPE_OUTPUT_H);
-const Size   sizeSmall    = Size(VPE_OUTPUT_W / 4, VPE_OUTPUT_H / 4);
+const Size   sizeOrigin   = Size(W, H);
+const Size   sizeSmall    = Size(W_SMALL, H_SMALL);
 const double vanish       = 0;   // Y position of vanish point
 const double range        = 300; // TEST
 const double viewRange    = 0.4; // ROI, higher, closer(crop image)
-const int    bar_height   = sizeSmall.height / 10;
+const int    bar_height   = H_SMALL / 10;
 const Scalar lower_yellow = Scalar(15, 20, 20);
 const Scalar upper_yellow = Scalar(65, 255, 255);
 
@@ -46,77 +48,12 @@ void getRoiPerspectiveTransform(Mat *M) {
 
     *M = getPerspectiveTransform(src, dst);
 }
-/*
-// recog_tl_lane_t cal_tl_lane(Mat img, recog_arg *arg) {
-//     uchar       min, max, thresh;
-//     const uchar thresh_abs = 170;
-//     uchar *     bar        = img.ptr(bar_height);
-//     int         bar_len    = img.size().width;
-//     int         left_first = -1, right_last = bar_len;
-
-//     int i = 0;
-//     for (; i < bar_len; i++) {
-//         if (bar[i] == 0) continue;
-//         else {
-//             min = max = bar[i++];
-//             break;
-//         }
-//     }
-//     for (; i < bar_len; i++) {
-//         if (bar[i] == 0) continue;
-//         if (bar[i] < min) min = bar[i];
-//         if (max < bar[i]) max = bar[i];
-//     }
-//     thresh = (min + 3 * max) / 4;
-
-//     for (i = 0; i < bar_len / 2; i++)
-//         if (bar[i] > thresh || bar[i] > thresh_abs) {
-//             left_first = i;
-//             break;
-//         }
-//     for (i = bar_len - 1; i >= bar_len / 2; i--)
-//         if (bar[i] > thresh || bar[i] > thresh_abs) {
-//             right_last = i;
-//             break;
-//         }
-
-//     recog_tl_lane_t ret_val;
-//     ret_val.is_left_lane  = (left_first < 0) ? false : true;
-//     ret_val.is_right_lane = (right_last >= bar_len) ? false : true;
-//     ret_val.position =
-//         left_first + right_last - bar_len; //(left-len/2)+(right-len/2)
-
-//     // printf("hello %d:%d \n", left_first, right_last);
-// #if 0
-//     // FOR DISPLAY
-//     cvtColor(img, img, COLOR_GRAY2BGR);
-//     // printf("bye %d:%d \n", left_first, right_last);
-//     for (int i = 0; i < bar_len; i++) {
-//         if (i == left_first || i == right_last) { // (B,G,R) = (0,0,255)
-//             img.at<Vec3b>(bar_height, i)[0] = 0;
-//             img.at<Vec3b>(bar_height, i)[1] = 0;
-//             img.at<Vec3b>(bar_height, i)[2] = 255;
-//         } else { // (B,G,R) - (255,0,0)
-//             img.at<Vec3b>(bar_height, i)[0] = 255;
-//             img.at<Vec3b>(bar_height, i)[1] = 0;
-//             img.at<Vec3b>(bar_height, i)[2] = 0;
-//         }
-//     }
-//     resize(img, img, sizeOrigin, INTER_NEAREST);
-//     // Copy processed image to display
-//     copy(img.data, img.data + W * H * 3, arg->display_input);
-
-// #endif
-//     return ret_val;
-// }
-*/
-
-unsigned char raw_[W * H * 3];
 
 float get_tl_lane_t(recog_arg *arg) {
-    static Mat   perspM;
-    static bool  initialized  = false;
-    static float pre_position = 0;
+    static Mat           perspM;
+    static bool          initialized  = false;
+    static float         pre_position = 0;
+    static unsigned char raw_[W * H * 3];
 
     if (!initialized) { // get transform matrix
         getRoiPerspectiveTransform(&perspM);
@@ -136,9 +73,10 @@ float get_tl_lane_t(recog_arg *arg) {
     Mat img_yellow;
     inRange(img, lower_yellow, upper_yellow, img_yellow);
 
+#if DISPLAY_TL_LANE
     // img (for display) convert to BGR
     cvtColor(img, img, COLOR_HSV2BGR);
-
+#endif
     // get position
     uchar *bar      = img_yellow.ptr(bar_height);
     int    bar_len  = img_yellow.size().width;
@@ -147,14 +85,14 @@ float get_tl_lane_t(recog_arg *arg) {
 
     for (int i = 0; i < bar_len; i++) {
         if (bar[i] == 0) {
-#if DISP_TL_LANE
+#if DISPLAY_TL_LANE
             img.at<Vec3b>(bar_height, i)[0] = 255;
             img.at<Vec3b>(bar_height, i)[1] = 0;
             img.at<Vec3b>(bar_height, i)[2] = 0;
 #endif
             continue;
         }
-#if DISP_TL_LANE
+#if DISPLAY_TL_LANE
         img.at<Vec3b>(bar_height, i)[0] = 0;
         img.at<Vec3b>(bar_height, i)[1] = 0;
         img.at<Vec3b>(bar_height, i)[2] = 255;
@@ -164,7 +102,7 @@ float get_tl_lane_t(recog_arg *arg) {
     }
     if (pnum) position /= (float)pnum;
 
-#if DISP_TL_LANE
+#if DISPLAY_TL_LANE
     // printf("%6.3F\n", position);
     resize(img, img, sizeOrigin);
     copy(img.data, img.data + W * H * 3, arg->display_input);
@@ -172,28 +110,7 @@ float get_tl_lane_t(recog_arg *arg) {
     img.release();
     img_yellow.release();
     pre_position = (position + pre_position) / 2; // Low Pass Filter
-    // recog_tl_lane_t ret_val;
-    // ret_val.position = pre_position;
-    // return ret_val;
     return pre_position;
-
-    // Canny(img, img, 150, 255);
-
-    // vector<Vec4i> linesP;
-    // HoughLinesP(img, linesP, 1, (CV_PI / 180), 10, 10, 10);
-    // for (size_t i = 0; i < linesP.size(); i++) {
-    //     float   rho = linesP[i][0], theta = linesP[i][1];
-    //     Point2f pt1, pt2;
-    //     double  a = cos(theta), b = sin(theta);
-    //     double  x0 = a * rho, y0 = b * rho;
-    //     pt1.x = cvRound(x0 + 1000 * (-b));
-    //     pt1.y = cvRound(y0 + 1000 * (-b));
-    //     pt2.x = cvRound(x0 - 1000 * (-b));
-    //     pt2.y = cvRound(y0 - 1000 * (a));
-    //     line(img, pt1, pt2, Scalar(0, 0, 255), 2, 8);
-    //     line(img, pt1, pt2, Scalar::all(255), 1, 8);
-    // }
-    // recog_tl_lane_t ret_val = cal_tl_lane(img, arg);
 }
 
 // *********************************************************

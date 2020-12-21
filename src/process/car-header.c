@@ -1,74 +1,80 @@
 #include "car-header.h"
-#include "process.h"
-#include "recognize-lib.h"
 
 int read_encoder_counter() {
-    container data;
-    if (comm_ctrlboard(ctrl, MSG_ID_PROCESS, CMD_ENCODER_COUNTER, CMD_TYPE_READ,
-                       4, &data) != MSG_STATE_SUCCESS)
-        printf("fail to read encoder count, car-header\n");
-    return data.c_int32;
+    int ret;
+    if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
+        ERROR("Fail to read encoder counter.\n");
+    }
+    return ret;
 }
+
 short read_desire_speed() {
-    container data;
-    if (comm_ctrlboard(ctrl, MSG_ID_PROCESS, CMD_DESIRE_SPEED, CMD_TYPE_READ, 2,
-                       &data) != MSG_STATE_SUCCESS)
-        printf("fail to read encoder count, car-header\n");
-    return data.c_int16;
+    int ret;
+    if (ctrld_read(CMD_DESIRE_SPEED, &ret)) {
+        ERROR("Fail to read desire speed.\n");
+    }
+    return (short)ret;
 }
+
 short read_steering() {
-    container data;
-    if (comm_ctrlboard(ctrl, MSG_ID_PROCESS, CMD_STEERING_SERVO_CONTROL,
-                       CMD_TYPE_READ, 2, &data) != MSG_STATE_SUCCESS)
-        printf("fail to read steering, car-header\n");
-    return data.c_int16;
+    int ret;
+    if (ctrld_read(CMD_STEERING_SERVO_CONTROL, &ret)) {
+        ERROR("Fail to read steering servo control speed.\n");
+    }
+    return (short)ret;
 }
 
-void set_encoder_counter(int encoder_counter) {
-    container data;
-    data.c_int32 = encoder_counter;
-    if (send_ctrlboard(ctrl, CMD_ENCODER_COUNTER, 4, &data) !=
-        MSG_STATE_SUCCESS)
-        printf("fail to set encode counter to %d: car-header\n",
-               encoder_counter);
+void set_steering(short steering) { //
+    ctrld_write(CMD_STEERING_SERVO_CONTROL, steering);
 }
 
-void set_steering(short steering) {
-    container data;
-    data.c_int16 = steering;
-    if (send_ctrlboard(ctrl, CMD_STEERING_SERVO_CONTROL, 2, &data) !=
-        MSG_STATE_SUCCESS)
-        printf("fail to set steering : car-header ");
-}
-void set_desire_speed(short speed) {
-    container data;
-    data.c_int16 = speed;
-    if (send_ctrlboard(ctrl, CMD_DESIRE_SPEED, 2, &data) != MSG_STATE_SUCCESS)
-        printf("fail to set desire_speed");
+void set_desire_speed(short speed) { //
+    ctrld_write(CMD_DESIRE_SPEED, speed);
 }
 
-void beep(unsigned char time) {
-    container data = {time};
-    if (send_ctrlboard(ctrl, CMD_SOUND, 1, &data) != MSG_STATE_SUCCESS)
-        printf("fail to sound beep: car-header\n");
+void beep(unsigned char time) { //
+    ctrld_write(CMD_SOUND, 0);
+    ctrld_write(CMD_SOUND, time);
 }
 
-void move(short speed, int desire_encoder) { // Caution: initial encoder as 0
-    set_encoder_counter(0);
+void move(short speed, int desire_encoder) {
+    // Caution: initial encoder as 0
+    // set_encoder_counter(0);
     set_desire_speed(speed);
     if (desire_encoder > 0) {
+        desire_encoder += read_encoder_counter();
         while (desire_encoder > read_encoder_counter()) usleep(1000);
     } else {
+        desire_encoder += read_encoder_counter();
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
     usleep(100000);
 }
 
-void set_camer_Yservo(short y_servo) {
-    container data;
-    data.c_int16 = y_servo;
-    if (send_ctrlboard(ctrl, CMD_CAMERA_Y_SERVO_CONTROL, 2, &data) !=
-        MSG_STATE_SUCCESS)
-        printf("fail to set camera Y servo\n");
+void set_camera_Yservo(short y_servo) { //
+    ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, y_servo);
+}
+
+#define IR_SENSOR_COUNT     7
+#define IR_ACTIVE_THRESHOLD 5
+bool get_is_on_stop_line() {
+    static int     value;
+    static uint8_t ir_active_cnt;
+
+    // LSB가 left, 검은색이 1 흰색이 0 마지막 안쓰는 MSB는 0으로 고정
+    if (ctrld_read(CMD_LINE_SENSOR, &value) == CMDR_SUCCESS) {
+        ir_active_cnt = 0;
+        for (int i = 0; i < IR_SENSOR_COUNT; i++) {
+            if (!(value & (0x01 << i))) ir_active_cnt++;
+        }
+
+        if (ir_active_cnt >= IR_ACTIVE_THRESHOLD) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
 }
