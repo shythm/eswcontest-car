@@ -20,4 +20,8 @@ void do_drive();
  * process.c. It stores the reocgnition results. */
 extern recog_result *recog;
 
+/* `target_velo' is global variable that is externed by process.h and
+ * initialized by process.c. It stores the target velocity of mission-drive. */
+extern short target_velo;
+
 #endif
