@@ -244,7 +244,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_CMD_LEFT_2  0xAC
 #define PSD_CMD_LEFT_1  0xEC
 
-#define PSD_MEDIAN_SAMPLE_SIZE 1 // WITHOUT MEDIAN FILTER!
+#define PSD_MEDIAN_SAMPLE_SIZE 3
 
 void bubble_sort(uint16_t *arr, int length) {
     int      i, j;

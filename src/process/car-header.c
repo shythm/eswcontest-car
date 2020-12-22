@@ -2,8 +2,12 @@
 
 int read_encoder_counter() {
     int ret;
-    if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-        ERROR("Fail to read encoder counter.\n");
+    while (1) {
+        if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
+            ERROR("Fail to read encoder counter.\n");
+            usleep(2000);
+        } else
+            break;
     }
     return ret;
 }
