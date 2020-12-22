@@ -1,6 +1,5 @@
 #include "car-header.h"
 #include "process.h"
-#include <limits.h>
 
 #define TL_SPEED       70
 #define TL_SLEEP       100000 // 0.1s
@@ -13,30 +12,26 @@ void clean_trafficLight();
 void dive_into_end_point();
 
 void init_trafficLight(fnCheck_t *fnCheck) {
-    recog->is_on_end_zone.enabled  = false;
-    recog->is_on_stop_line.enabled = true;
-    recog->traffic_light.enabled   = false;
-    recog->tl_lane.enable          = false;
+    recog->is_on_end_zone.enabled = false;
+    recog->traffic_light.enabled  = false;
+    recog->tl_lane.enable         = false;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
     *fnCheck = check_trafficLight;
 }
 
 void clean_trafficLight() {
-    recog->is_on_end_zone.enabled  = false;
-    recog->is_on_stop_line.enabled = false;
-    recog->traffic_light.enabled   = false;
-    recog->tl_lane.enable          = false;
+    recog->is_on_end_zone.enabled = false;
+    recog->traffic_light.enabled  = false;
+    recog->tl_lane.enable         = false;
 
     while (1) sleep(1); /* THE END */
 }
 
 bool check_trafficLight(fnRun_t *fnRun) {
-    recog->is_on_stop_line.enabled = true;
 
-    if (recog->is_on_stop_line.value == true) {
+    if (get_is_on_stop_line()) {
         set_desire_speed(0); // stop on the stop line
-        beep(50);
         MSG("START MISSION => trafficLight & end-zone");
         *fnRun = do_trafficLight;
         return true;
@@ -46,27 +41,27 @@ bool check_trafficLight(fnRun_t *fnRun) {
 }
 
 void do_trafficLight(fnClean_t *fnClean) {
-    recog->lane.enabled            = false;
-    recog->is_on_stop_line.enabled = false;
-    recog->traffic_light.enabled   = true;
+    recog->lane.enabled          = false;
+    recog->traffic_light.enabled = true;
     // stop on the stop line
     set_desire_speed(0);
 
     // tilt up camera to see trafficLight
     set_camera_Yservo(1500);
-    usleep(TL_SLEEP);
+    sleep(1);
 
     // wait for signal
-    volatile recog_traffic_light_t tl = recog->traffic_light.value;
-    unsigned char                  left, right;
-    while (left != right) {
-        left = 0, right = 0;
-        for (int i = 0; i < 100; i++, tl = recog->traffic_light.value) {
-            if (tl == TL_LEFT) left++;
-            else if (tl == TL_GREEN)
-                right++;
-            usleep(100);
+    volatile recog_traffic_light_t tl   = recog->traffic_light.value;
+    unsigned char                  left = 0, right = 0;
+    for (int i = 0; i < 10; tl = recog->traffic_light.value) {
+        if (tl == TL_LEFT) {
+            left++;
+            i++;
+        } else if (tl == TL_GREEN) {
+            right++;
+            i++;
         }
+        usleep(10000);
     }
     recog->traffic_light.enabled = false;
     // tilt down camera
@@ -110,7 +105,6 @@ void do_trafficLight(fnClean_t *fnClean) {
 
 void dive_into_end_point() {
     short steering = recog->tl_lane.value * -GAIN_POSITION + 1500.f;
-
     // constrain
     if (steering > 2000) steering = 2000;
     else if (steering < 1000)
