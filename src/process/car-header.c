@@ -2,22 +2,13 @@
 
 int read_encoder_counter() {
     int ret;
-    if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-        ERROR("Fail to read encoder counter.\n");
-    }
-    return ret;
-}
-
-int read_encoder_counter_retry() {
-    int ret;
-    for (int i = 0; i < 5; i++) {
+    while (1) {
         if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-            usleep(50000);
-        } else
-            break;
+            ERROR("Fail to read encoder counter.\n");
+        } else {
+            return ret;
+        }
     }
-    s ERROR("Fail to read encoder counter RETRY.\n");
-    return ret;
 }
 
 short read_desire_speed() {
