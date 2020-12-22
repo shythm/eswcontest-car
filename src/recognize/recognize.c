@@ -47,8 +47,9 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
     return TC_NONE;
 }
 __attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
-
+__attribute__((weak)) float get_stop_line(recog_arg *arg) { return -1; }
 __attribute__((weak)) int get_other_cars_location(recog_arg *arg) { return 0; }
+
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
     // < recognize >
@@ -97,6 +98,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
     if (result->other_cars.enable) {
         result->other_cars.value = get_other_cars_location(arg);
+    }
+    if (result->stop_line_pos.enable) { // update stop line position
+        result->stop_line_pos.value = get_stop_line(arg);
     }
 }
 

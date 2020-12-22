@@ -146,6 +146,11 @@ typedef struct _recog_other_cars_data {
     int  value;
 } recog_other_cars_data;
 
+typedef struct {
+    bool  enable;
+    float value;
+} recog_stop_line_data;
+
 /******************************************************/
 /* <END SECTION OF RECOGNITION RESULTS>               */
 /******************************************************/
@@ -172,6 +177,7 @@ typedef volatile struct {
     recog_psd_data             psd;
     recog_tl_lane_data         tl_lane;
     recog_other_cars_data      other_cars;
+    recog_stop_line_data       stop_line_pos;
     external_data              ext_data;
 } recog_result;
 

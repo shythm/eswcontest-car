@@ -9,7 +9,6 @@ int read_encoder_counter() {
         } else
             break;
     }
-    return ret;
 }
 
 short read_desire_speed() {

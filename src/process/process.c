@@ -1,6 +1,7 @@
 #include "process.h"
 
 recog_result *recog;
+short         target_velo;
 
 extern fnInit_t mission_list[]; // mission list for contest  (in missions.c)
 

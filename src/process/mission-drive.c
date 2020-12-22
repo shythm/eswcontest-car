@@ -1,5 +1,7 @@
 #include "process.h"
 
+#define MAX_VELO 200 // Maximum velocity
+
 void init_drive() {
     ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, 1700);
     ctrld_write(CMD_POSITION_CONTROL_ON_OFF, 0);
@@ -10,6 +12,7 @@ void init_drive() {
 
     recog->lane.enabled                 = true;
     recog->ext_data.call_init_lane_info = true;
+    target_velo                         = MAX_VELO;
 
     MSG("Initialize drive mission!");
 
@@ -50,7 +53,6 @@ void init_drive() {
 #define GAIN_P      15.0f // P gain of PID control
 #define GAIN_I      0.00f // I gain of PID control
 #define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    150   // Maximum velocity
 #define CURVE_DECEL 150   // The smaller this value, the more it slows down.
 
 void do_drive() {
@@ -67,7 +69,8 @@ void do_drive() {
     // PI-control with pos value and convert control value to steer value
     steering_val = 1500 + (short)(pos * GAIN_P + errSum);
 
-    short velocity = (short)(MAX_VELO * CURVE_DECEL / (CURVE_DECEL + abs(pos)));
+    short velocity =
+        (short)(target_velo * CURVE_DECEL / (CURVE_DECEL + abs(pos)));
 
     // Limit steering range
     if (steering_val > 2000) steering_val = 2000;
