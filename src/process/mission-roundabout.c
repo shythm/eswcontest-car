@@ -1,97 +1,71 @@
+#include "car-header.h"
 #include "process.h"
-#include <time.h>
+#include <math.h>
 
-// 회전교차로를 주행하는데 필요한 상수.
-// 준호가 작성한 mission-drive에서 참고하였고,
-// 원래 정의에서 MAX_VELO를 줄였다.
-#define GAIN_P      20    // P gain of PID control
-#define GAIN_I      0.00f // I gain of PID control
-#define ANTI_WINDUP 500   // Anti windup of I error
-#define MAX_VELO    75    // Maximum velocity
-#define CURVE_DECEL 150   // The smaller this value, the more it slows down.
-#define CURVE_THRESHOLD                                                        \
-    25 // lane.value.position_with_white 값이 이 값 이상이라면 회전 교차로를
-       // 주행중이라고 판단. lane.value.position_with_white 값이 이 값
-       // 이상이다가, 다시 이 값보다 작은 상태가 일정 시간 이상 유지될 경우,
-       // 회전 교차로가 끝난 것으로 인식하고 미션을 종료함.
+/************************************/
+/* Constants for roundabout mission */
+/************************************/
+#define GAIN_P         15.0f // P gain of PID control
+#define GAIN_P_RUSH    15.0f
+#define VELO           100 // velocity
+#define VELO_RUSH      200
+#define VELO_STOP_LINE 80 // velocity at stop line
 
-bool check_roundabout(fnRun_t *fnRun);
-void do_roundabout(fnClean_t *fnClean);
-void clean_roundabout();
-void go_forward(recog_result *input, float *error_sum, int *steering_result,
-                short *velocity_result);
+// 차선 위치 보정 정도(실수 전체, 바깥쪽으로 돌려면 음수여야 함)
+#define POS_COMP_DEGREE -6.0f
+// 곡선 구간을 판단을 위한 상수(양수)
+#define POS_CURVE_CONDITION 8.0f
+// 회전 교차로 탈출 조건: 얼마나 직선 구간을 주행했는가에 대한 상수(단위: cm)
+#define STRAIGHT_DIST_CONDITION 80.0f
+// 전방 또는 후방 차량 유무 결정(양수)
+#define PSD_STOP_CONDITION 29.0f
+// 측면 차량 유무 결정(양수)
+#define PSD_SIDE_STOP_CONDITION 8.0f
+/************************************/
+
+bool check_roundabout(fnRun_t *);
+void run_roundabout(fnClean_t *);
+void clean_roundabout(void);
 
 void init_roundabout(fnCheck_t *fnCheck) {
-    recog->is_on_stop_line.enabled = true;
-
     MSG("UPCOMING MISSION => roundabout");
+    recog->stop_line_pos.enable = true;
+
     *fnCheck = check_roundabout;
 }
 
-void clean_roundabout() { recog->is_on_stop_line.enabled = false; }
+void clean_roundabout(void) { recog->stop_line_pos.enable = false; }
 
 bool check_roundabout(fnRun_t *fnRun) {
-    if (recog->is_on_stop_line.value) {
-        ctrld_write(CMD_DESIRE_SPEED, 0);
+    static float stop_line_pos      = -1.0f;
+    static bool  is_there_stop_line = false;
+
+    if (is_there_stop_line && get_is_on_stop_line()) {
         MSG("START MISSION => roundabout");
-        *fnRun = do_roundabout;
+        recog->ext_data.call_init_lane_info = true; // 차선 인식 정보 초기화
+        set_desire_speed(0);
+        *fnRun = run_roundabout;
         return true;
+    }
+
+    // 카메라에 정지선 감지되면 감속(감지되지 않으면 음수)
+    stop_line_pos = recog->stop_line_pos.value;
+    if (stop_line_pos > 0.0f) {
+        // 정지선에 가까워질수록 속도가 느려짐
+        target_velo = target_velo * pow(1.0f - stop_line_pos, 2);
+        if (target_velo < VELO_STOP_LINE) {
+            // 속도 제한 (최소 VELO_STOP_LINE으로)
+            target_velo = VELO_STOP_LINE;
+        }
+        is_there_stop_line = true;
     }
 
     return false;
 }
 
-void do_roundabout(fnClean_t *fnClean) {
-    ctrld_write(CMD_DESIRE_SPEED, 0);
-    while (recog->psd.value[PSD_FRONT] > 29) usleep(1000 * 500);
-
-    int     steering;
-    short   velocity;
-    float   error_sum   = 0;
-    bool    inCurve     = false;
-    clock_t exitedCurve = -1;
-
-    while (exitedCurve == -1 || (clock() - exitedCurve) / CLOCKS_PER_SEC < 1) {
-        if (recog->psd.value[PSD_FRONT] < 29 ||
-            recog->psd.value[PSD_LEFT_1] < 8)
-            ctrld_write(CMD_DESIRE_SPEED, 0);
-        else
-            go_forward(recog, &error_sum, &steering, &velocity);
-
-        if (steering < CURVE_THRESHOLD) { // 직선 주행 중이라면
-            if (inCurve && exitedCurve == -1) {
-                inCurve     = false;
-                exitedCurve = clock();
-            }
-        } else { // 곡선 주행 중이라면
-            if (!inCurve) {
-                inCurve     = true;
-                exitedCurve = -1;
-            }
-        }
-    }
-
-    printf("EXITED! (mission-roundabout)\n");
-    fflush(stdout);
-}
-
-// 준호가 작성한 mission-drive.c의 do_drive에서 참고하였다.
-void go_forward(recog_result *input, float *error_sum, int *steering_result,
-                short *velocity_result) {
-    int steering_val = 1500;
-    // 기존의 do_drive에서는 노란색 차선의 위치(value.position)만 보았으나,
-    // 회전 교차로에서는 흰색 정지선도 차선으로 인식해야 하므로
-    // value.position_with_white를 확인한다.
-    int pos = input->lane.value.pos_yawl;
-    *error_sum += pos * GAIN_I;
-
-    // Anti-windup
-    *error_sum = MIN(*error_sum, ANTI_WINDUP);
-    *error_sum = MAX(*error_sum, -ANTI_WINDUP);
-
+static void steering(float pos, float gain_p) {
     // PI-control with pos value and convert control value to steer value
-    steering_val   = 1500 + (short)(pos * GAIN_P + *error_sum);
-    short velocity = (short)(MAX_VELO * CURVE_DECEL / (CURVE_DECEL + abs(pos)));
+    short steering_val = 1500 + (short)(pos * gain_p);
 
     // Limit steering range
     steering_val = MIN(steering_val, 2000);
@@ -99,9 +73,69 @@ void go_forward(recog_result *input, float *error_sum, int *steering_result,
 
     // Send steering value to hardware
     ctrld_write(CMD_STEERING_SERVO_CONTROL, steering_val);
-    // Send velocity to hardware
-    ctrld_write(CMD_DESIRE_SPEED, velocity);
+}
 
-    *steering_result = steering_val;
-    *velocity_result = velocity;
+void run_roundabout(fnClean_t *fnClean) {
+    // 앞에 차량이 지나갈 때까지 기다림
+    while (recog->psd.value[PSD_FRONT] > 29.0f) usleep(1000 * 100);
+
+    // 회전 교차로 탈출을 위한 변수들
+    float curve_degree       = 0.0f;
+    float straight_dist_accu = 0.0f; // 누적된 직선 구간 거리(cm)
+    float straight_dist_curr = 0.0f; // 현재 직선 구간 거리(cm)
+    bool  is_straight        = false;
+    int encoder_prev_count = 0; // 직선 구간에 진입한 시점의 엔코더 값
+
+    // 주행을 위한 변수들
+    short velo                = VELO;
+    float gain_p              = GAIN_P;
+    float straight_dist_total = 0.0f; // 주행한 총 직선 거리
+    float pos_comp            = 0.0f; // 보정된 차선 위치
+
+    for (;;) {
+        /* 앞 또는 뒤 차량과 충돌 방지 */
+        if (recog->psd.value[PSD_FRONT] < PSD_STOP_CONDITION ||
+            recog->psd.value[PSD_LEFT_1] < PSD_SIDE_STOP_CONDITION) {
+            // 전방에 차량이 감지되면 일단 멈춤
+            set_desire_speed(0);
+            usleep(1000 * 1000);
+        } else if (recog->psd.value[PSD_BACK] < PSD_STOP_CONDITION ||
+                   recog->psd.value[PSD_LEFT_2] < PSD_SIDE_STOP_CONDITION) {
+            // 후방에 차량이 감지되면 속도 높임
+            velo   = VELO_RUSH;
+            gain_p = GAIN_P_RUSH;
+        }
+
+        /* 조향 및 주행 */
+        pos_comp =
+            recog->lane.value.pos_yawl + POS_COMP_DEGREE; // 차선 위치 보정
+        if (pos_comp < -POS_CURVE_CONDITION) {
+            // 차선 위치 제한(우회전을 많이 안하는 방향으로)
+            pos_comp = -POS_CURVE_CONDITION;
+        }
+        steering(pos_comp, gain_p);
+        set_desire_speed(velo);
+
+        /* 미션 탈출 검사 */
+        if (abs(pos_comp) < POS_CURVE_CONDITION) { // 직선 주행 중이라면
+            // 직선 구간 거리 갱신
+            if (is_straight == false) {
+                straight_dist_accu += straight_dist_curr;
+                encoder_prev_count = read_encoder_counter();
+                is_straight        = true;
+            }
+            straight_dist_curr =
+                (read_encoder_counter() - encoder_prev_count) / TICK_PER_CM;
+        } else { // 곡선 주행 중이라면
+            is_straight = false;
+        }
+        straight_dist_total = straight_dist_accu + straight_dist_curr;
+        if (straight_dist_total > STRAIGHT_DIST_CONDITION) { // 미션 탈출 조건
+            beep(50);
+            break;
+        }
+    }
+
+    *fnClean = clean_roundabout;
+    MSG("CLEAR MISSION => roundabout");
 }

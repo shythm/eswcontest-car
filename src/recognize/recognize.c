@@ -47,6 +47,7 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
     return TC_NONE;
 }
 __attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
+__attribute__((weak)) float get_stop_line(recog_arg *arg) { return -1; }
 
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
@@ -93,6 +94,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
+    }
+    if (result->stop_line_pos.enable) { // update stop line position
+        result->stop_line_pos.value = get_stop_line(arg);
     }
 }
 
