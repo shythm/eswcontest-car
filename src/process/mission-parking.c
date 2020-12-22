@@ -207,17 +207,16 @@ void do_parking_parallel(fnClean_t *fnClean) {
         while (recog->psd.value[PSD_RIGHT_1] < 29.f) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
-        // progress: move to proper position to park
-        move(SPEED_PARALLEL, 8.f * TICK_PER_CM);
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_PARALLEL);
         while (recog->psd.value[PSD_RIGHT_1] > 29.f) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
-        // progress: move to proper position to park
-        move(SPEED_PARALLEL, 8.f * TICK_PER_CM);
     }
+
+    // progress: move to proper position to park
+    move(SPEED_PARALLEL, 8.f * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1000);
@@ -261,7 +260,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
     usleep(SLEEP_PARALLEL);
 
     // progress: move to proper position
-    move(SPEED_PARALLEL, (straight_cm + 5.0f) * TICK_PER_CM);
+    move(SPEED_PARALLEL, (straight_cm + 4.0f) * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1000);

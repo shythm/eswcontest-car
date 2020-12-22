@@ -8,6 +8,18 @@ int read_encoder_counter() {
     return ret;
 }
 
+int read_encoder_counter_retry() {
+    int ret;
+    for (int i = 0; i < 5; i++) {
+        if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
+            usleep(50000);
+        } else
+            break;
+    }
+    s ERROR("Fail to read encoder counter RETRY.\n");
+    return ret;
+}
+
 short read_desire_speed() {
     int ret;
     if (ctrld_read(CMD_DESIRE_SPEED, &ret)) {
