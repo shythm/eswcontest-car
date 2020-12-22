@@ -2,10 +2,13 @@
 
 int read_encoder_counter() {
     int ret;
-    if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-        ERROR("Fail to read encoder counter.\n");
+    while (1) {
+        if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
+            ERROR("Fail to read encoder counter.\n");
+        } else {
+            return ret;
+        }
     }
-    return ret;
 }
 
 short read_desire_speed() {
