@@ -25,6 +25,7 @@ void clean_trafficLight() {
     recog->traffic_light.enabled  = false;
     recog->tl_lane.enable         = false;
 
+    MSG("** THE END **");
     while (1) sleep(1); /* THE END */
 }
 

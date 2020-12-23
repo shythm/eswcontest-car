@@ -35,8 +35,8 @@ void start_with_PSD(fnClean_t *fnClean) {
     }
 
     beep(50);
+    recog->ext_data.call_init_lane_info = true;
     MSG("Start mission !!!");
-    init_drive(); // Init drive mission
 }
 
 bool check_start(fnRun_t *fnRun) {

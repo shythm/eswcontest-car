@@ -16,7 +16,7 @@
 // 곡선 구간을 판단을 위한 상수(양수)
 #define POS_CURVE_CONDITION 4.0f
 // 회전 교차로 탈출 조건: 얼마나 직선 구간을 주행했는가에 대한 상수(단위: cm)
-#define STRAIGHT_DIST_CONDITION 70.0f
+#define STRAIGHT_DIST_CONDITION 50.0f
 // 전방 또는 후방 차량 유무 결정(양수)
 #define PSD_STOP_CONDITION 29.0f
 // 측면 차량 유무 결정(양수)
@@ -34,7 +34,10 @@ void init_roundabout(fnCheck_t *fnCheck) {
     *fnCheck = check_roundabout;
 }
 
-void clean_roundabout(void) { recog->stop_line_pos.enable = false; }
+void clean_roundabout(void) {
+    recog->stop_line_pos.enable         = false;
+    recog->ext_data.call_init_lane_info = true;
+}
 
 bool check_roundabout(fnRun_t *fnRun) {
     static float stop_line_pos      = -1.0f;
@@ -92,6 +95,8 @@ void run_roundabout(fnClean_t *fnClean) {
     float straight_dist_total = 0.0f; // 주행한 총 직선 거리
     float pos_comp            = 0.0f; // 보정된 차선 위치
 
+    float msg_trig_cond = 0.0f; // for debugging
+
     for (;;) {
         /* 앞 또는 뒤 차량과 충돌 방지 */
         if (recog->psd.value[PSD_FRONT] < PSD_STOP_CONDITION ||
@@ -134,9 +139,14 @@ void run_roundabout(fnClean_t *fnClean) {
             beep(50);
             break;
         }
+
+        /* 측정 */
+        if (straight_dist_total > msg_trig_cond) {
+            MSG("dist: %3.1f", straight_dist_total);
+            msg_trig_cond += 1.0f;
+        }
     }
 
     *fnClean = clean_roundabout;
     MSG("CLEAR MISSION => roundabout");
-    init_drive(); // Init drive mission
 }

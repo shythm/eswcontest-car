@@ -48,6 +48,6 @@ void run_obstacle(fnClean_t *fnClean) {
 
 void clean_obstacle() {
     // turn off stop_obstacle recognition.
-    recog->stop_obstacle.enabled = false;
-    init_drive(); // Init drive mission
+    recog->stop_obstacle.enabled        = false;
+    recog->ext_data.call_init_lane_info = true;
 }

@@ -21,8 +21,8 @@ void init_overpass(fnCheck_t *fnCheck) {
 }
 
 void clean_overpass() {
-    recog->is_on_slope.enabled = false;
-    init_drive(); // Init drive mission
+    recog->is_on_slope.enabled          = false;
+    recog->ext_data.call_init_lane_info = true;
 }
 
 bool check_overpass(fnRun_t *fnRun) {
@@ -47,7 +47,7 @@ bool check_overpass(fnRun_t *fnRun) {
 // Constants for PSD driving
 #define GAIN_P       48.0f
 #define GAIN_P_SLOPE 96.0f
-#define VELO         100
+#define VELO         160
 #define VELO_SLOPE   40
 
 // MAX_PSD_VALUE_SLOPE = (lane width / 2) - (car width) = (40 / 2) - (18 / 2)

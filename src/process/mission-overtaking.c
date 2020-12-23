@@ -3,7 +3,7 @@
 
 #define SPEED_OVERTAKING 70
 #define SLEEP_OVERTAKING 400000
-#define STEER_GAIN       50
+#define STEER_GAIN       14.0f
 
 void init_overtaking(fnCheck_t *fnCheck);
 bool check_overtaking(fnRun_t *fnRun);
@@ -20,7 +20,6 @@ void init_overtaking(fnCheck_t *fnCheck) {
 }
 
 bool check_overtaking(fnRun_t *fnRun) {
-    // recog->ext_data.call_init_lane_info = true;
     while (1) {
         set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN);
         usleep(1000);
@@ -31,7 +30,7 @@ bool check_overtaking(fnRun_t *fnRun) {
         }
         if (get_is_on_stop_line()) {
             *fnRun = NULL;
-            return;
+            return true;
         }
     }
     *fnRun = do_overtaking;
