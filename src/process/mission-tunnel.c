@@ -69,4 +69,5 @@ void do_tunnel(fnClean_t *fnClean) {
             position = 1000;
         set_steering(position);
     }
+    beep(200);
 }

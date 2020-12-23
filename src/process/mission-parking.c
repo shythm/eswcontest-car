@@ -188,6 +188,7 @@ void do_parking_vertical(fnClean_t *fnClean) {
     // recover steering as previous steering before parking
     set_steering(previous_steering);
     usleep(SLEEP_VERTICAL);
+    init_drive(); // Init drive mission
     return;
 }
 
@@ -277,6 +278,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
     set_steering(previous_steering);
     usleep(SLEEP_PARALLEL);
 
+    init_drive(); // Init drive mission
     return;
 }
 

@@ -138,4 +138,5 @@ void run_roundabout(fnClean_t *fnClean) {
 
     *fnClean = clean_roundabout;
     MSG("CLEAR MISSION => roundabout");
+    init_drive(); // Init drive mission
 }

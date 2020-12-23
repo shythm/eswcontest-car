@@ -81,7 +81,7 @@ void do_trafficLight(fnClean_t *fnClean) {
         move(-TL_SPEED, -10.f * TICK_PER_CM);
         set_steering(2000);
     } else { // right: regress less
-        move(-TL_SPEED, -5.f * TICK_PER_CM);
+        move(-TL_SPEED, -10.f * TICK_PER_CM);
         set_steering(1000);
     }
     recog->tl_lane.enable         = true;
