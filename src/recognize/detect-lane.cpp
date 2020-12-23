@@ -116,7 +116,7 @@ void getRoiPerspectiveTransform(Mat &perspM) {
     perspM = getPerspectiveTransform(src, dst);
 }
 
-#define BASE_LINE_RATIO 0.40f
+#define BASE_LINE_RATIO 0.45f
 
 void getYellowPoints(Mat &img, vector<int> &out) {
     const static Scalar l(20, 20, 0);
@@ -183,18 +183,6 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     copy(arg->camera_output, arg->camera_output + W * H * 3, raw);
     Mat img(H, W, CV_8UC3, raw);
 
-#if 0
-    // Image save
-    static int frame = 0;
-    frame++;
-    if (frame % 3 == 0) {
-        string name =
-            "/home/root/imgs/screenshot2-" + to_string(frame) + ".jpg";
-        // cout << "Frame : " << name << endl;
-        imwrite(name, img);
-    }
-#endif
-
     // Convert to small perspective small size image
     warpPerspective(img, img, perspM, sizeOrigin);
     resize(img, img, sizeSmall, INTER_NEAREST);
@@ -244,13 +232,24 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     // Restore size
     resize(img, img, sizeOrigin, INTER_NEAREST);
 
+#if 0
+    // Image save
+    static int frame = 0;
+    frame++;
+    if (frame % 3 == 0) {
+        string name =
+            "/home/root/imgs/screenshot5-" + to_string(frame) + ".jpg";
+        imwrite(name, img);
+    }
+#endif
+
     putText(img, "vec: " + to_string(liYAW.posL) + ", " + to_string(liYAW.posR),
             Point(25, 30), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 0), 2);
     putText(img, "pos: " + to_string(result->pos_yawl), Point(25, 60),
             FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
 
     // Copy processed image to display
-    copy(img.data, img.data + W * H * 3, arg->display_input);
+    // copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
 }
 

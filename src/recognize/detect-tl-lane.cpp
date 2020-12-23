@@ -10,7 +10,7 @@ using namespace std;
 #define H               VPE_OUTPUT_H
 #define W_SMALL         VPE_OUTPUT_W / 4
 #define H_SMALL         VPE_OUTPUT_H / 4
-#define DISPLAY_TL_LANE 1
+#define DISPLAY_TL_LANE 0
 
 const Size   sizeOrigin   = Size(W, H);
 const Size   sizeSmall    = Size(W_SMALL, H_SMALL);

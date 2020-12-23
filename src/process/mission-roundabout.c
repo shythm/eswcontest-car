@@ -8,15 +8,15 @@
 #define GAIN_P         15.0f // P gain of PID control
 #define GAIN_P_RUSH    15.0f
 #define VELO           100 // velocity
-#define VELO_RUSH      200
+#define VELO_RUSH      150
 #define VELO_STOP_LINE 80 // velocity at stop line
 
 // 차선 위치 보정 정도(실수 전체, 바깥쪽으로 돌려면 음수여야 함)
-#define POS_COMP_DEGREE -6.0f
+#define POS_COMP_DEGREE -4.0f
 // 곡선 구간을 판단을 위한 상수(양수)
-#define POS_CURVE_CONDITION 8.0f
+#define POS_CURVE_CONDITION 4.0f
 // 회전 교차로 탈출 조건: 얼마나 직선 구간을 주행했는가에 대한 상수(단위: cm)
-#define STRAIGHT_DIST_CONDITION 80.0f
+#define STRAIGHT_DIST_CONDITION 70.0f
 // 전방 또는 후방 차량 유무 결정(양수)
 #define PSD_STOP_CONDITION 29.0f
 // 측면 차량 유무 결정(양수)

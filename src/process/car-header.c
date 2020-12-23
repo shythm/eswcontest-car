@@ -5,9 +5,9 @@ int read_encoder_counter() {
     while (1) {
         if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
             ERROR("Fail to read encoder counter.\n");
-        } else {
-            return ret;
-        }
+            usleep(2000);
+        } else
+            break;
     }
 }
 

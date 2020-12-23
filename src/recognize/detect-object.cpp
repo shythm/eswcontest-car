@@ -78,7 +78,7 @@ Shape labelPolygon(Contour &c) {
                 ++leftCount;
         }
 
-        if (leftCount > rightCount) return Left;
+        if (leftCount >= rightCount) return Left;
         else
             return Right;
     }
@@ -144,8 +144,8 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
     cv::Mat redMasked    = maskImage(frame, 0, 15, 90, 60);
     cv::Mat yellowMasked = maskImage(frame, 30, 20, 120, 60);
-    cv::Mat greenMasked  = maskImage(frame, 60, 20, 90, 40);
-    // cv::Mat greenInverse = 255 - greenMasked;
+    cv::Mat greenMasked  = maskImage(frame, 65, 15, 60, 40);
+    cv::Mat greenInverse = 255 - greenMasked;
 
     const static std::string captions[] = {"Red Light!", "Yellow Light!",
                                            "Green Light!", "Left Direction!",
@@ -158,12 +158,12 @@ TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
         findShapes(Circle, redMasked, minArea, maxArea),
         findShapes(Circle, yellowMasked, minArea, maxArea),
         findShapes(Circle, greenMasked, minArea, maxArea),
-        // findShapes(Left, greenInverse, minArea, maxArea),
-        // findShapes(Right, greenInverse, minArea, maxArea)
+        findShapes(Left, greenMasked, minArea, maxArea),
+        findShapes(Right, greenMasked, minArea, maxArea),
     };
 
     if (drawBoard) {
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 5; ++i) {
             if (!found[i].empty()) {
                 cv::drawContours(*drawBoard, found[i], -1, colors[i], 2);
                 putTextAtCenter(*drawBoard, captions[i], colors[i]);
@@ -242,18 +242,15 @@ struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
         if (drawBoard) {
             std::vector<Contour> toDraw;
             toDraw.push_back(rectFound[0]);
-            cv::drawContours(*drawBoard, toDraw, -1,
-                                cv::Scalar(0, 0, 255), 2);
-            putTextAtCenter(*drawBoard, "Stop!",
-                            cv::Scalar(0, 0, 255));
+            cv::drawContours(*drawBoard, toDraw, -1, cv::Scalar(0, 0, 255), 2);
+            putTextAtCenter(*drawBoard, "Stop!", cv::Scalar(0, 0, 255));
         }
 
         StopObstacle result;
         result.exist  = true;
         cv::Moments m = cv::moments(rectFound[0]);
         result.area   = (float)m.m00;
-        result.center = {(int)(m.m10 / m.m00),
-                            (int)(m.m01 / m.m00)};
+        result.center = {(int)(m.m10 / m.m00), (int)(m.m01 / m.m00)};
         return result;
     }
 
