@@ -30,6 +30,7 @@ void start_with_PSD(fnClean_t *fnClean) {
 
     beep(50);
     MSG("Start mission !!!");
+    init_drive(); // Init drive mission
 }
 
 bool check_start(fnRun_t *fnRun) {
