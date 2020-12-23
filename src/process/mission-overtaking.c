@@ -11,18 +11,16 @@ void do_overtaking(fnClean_t *fnClean);
 void clean_overtaking(void);
 
 void init_overtaking(fnCheck_t *fnCheck) {
-    set_steering(1500);
     while (!recog->psd.valid) {}
     MSG("UPCOMING MISSION => overtaking");
+    set_desire_speed(SPEED_OVERTAKING + 30);
 
     *fnCheck            = check_overtaking;
     recog->lane.enabled = true;
-    set_steering(1500);
-    set_desire_speed(SPEED_OVERTAKING + 30);
 }
 
 bool check_overtaking(fnRun_t *fnRun) {
-    recog->ext_data.call_init_lane_info = true;
+    // recog->ext_data.call_init_lane_info = true;
     while (1) {
         set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN);
         usleep(1000);
@@ -30,6 +28,10 @@ bool check_overtaking(fnRun_t *fnRun) {
             MSG("1: %3.1f ", recog->psd.value[PSD_FRONT]);
             set_desire_speed(0);
             break;
+        }
+        if (get_is_on_stop_line()) {
+            *fnRun = NULL;
+            return;
         }
     }
     *fnRun = do_overtaking;

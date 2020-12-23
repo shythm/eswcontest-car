@@ -8,6 +8,12 @@ void start_with_PSD(fnClean_t *fnClean) {
     while (!recog->psd.valid) { usleep(1000); }
     MSG("Wait for start signal ...");
 
+    while (get_is_on_stop_line()) { // Calibration Alert
+        beep(30);
+        MSG("Please Calibration IR Sensors!");
+        usleep(500000);
+    }
+
     // wait until obstacle appear in front of car
     cnt = 0;
     while (1) {
@@ -30,6 +36,7 @@ void start_with_PSD(fnClean_t *fnClean) {
 
     beep(50);
     MSG("Start mission !!!");
+    init_drive(); // Init drive mission
 }
 
 bool check_start(fnRun_t *fnRun) {

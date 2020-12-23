@@ -20,7 +20,10 @@ void init_overpass(fnCheck_t *fnCheck) {
     *fnCheck = check_overpass;
 }
 
-void clean_overpass() { recog->is_on_slope.enabled = false; }
+void clean_overpass() {
+    recog->is_on_slope.enabled = false;
+    init_drive(); // Init drive mission
+}
 
 bool check_overpass(fnRun_t *fnRun) {
     static psd_data_t pL, pR;

@@ -14,7 +14,7 @@ int main() {
     MSG("Process has been ready!");
 
     for (int i = 0; mission_list[i]; i++) {
-        init_drive(); // Init drive mission
+        // init_drive(); // Init drive mission
 
         fnInit_t  init  = mission_list[i]; // mission init function
         fnCheck_t check = NULL;            // mission check function
