@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include "recognize-lib.h"
 #include <math.h>
+#include <stdio.h>
 using namespace cv;
 using namespace std;
 
@@ -174,7 +175,6 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     }
 
     if (arg->pext_data->call_init_lane_info) {
-        printf("####init###");
         initLaneInfo(liY);
         initLaneInfo(liYAW);
         arg->pext_data->call_init_lane_info = false;

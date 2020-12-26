@@ -17,7 +17,11 @@ void start_with_PSD(fnClean_t *fnClean) {
     // wait until obstacle appear in front of car
     cnt = 0;
     while (1) {
-        if (recog->psd.value[PSD_FRONT] < 20.f) {
+        if (recog->psd.value[PSD_FRONT] < 20.f &&
+            recog->psd.value[PSD_RIGHT_1] < 20.f &&
+            recog->psd.value[PSD_RIGHT_2] < 20.f &&
+            recog->psd.value[PSD_LEFT_1] < 20.f &&
+            recog->psd.value[PSD_LEFT_2] < 20.f) {
             cnt++;
             if (cnt > 1000) break;
         } else

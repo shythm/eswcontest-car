@@ -1,7 +1,7 @@
 #include "car-header.h"
 #include "process.h"
 
-#define SPEED_OVERTAKING 70
+#define SPEED_OVERTAKING 100
 #define SLEEP_OVERTAKING 400000
 #define STEER_GAIN1      15
 #define STEER_GAIN2      50
@@ -14,14 +14,13 @@ void clean_overtaking(void);
 void init_overtaking(fnCheck_t *fnCheck) {
     while (!recog->psd.valid) {}
     MSG("UPCOMING MISSION => overtaking");
-    set_desire_speed(SPEED_OVERTAKING + 30);
+    set_desire_speed(SPEED_OVERTAKING - 30);
 
     *fnCheck            = check_overtaking;
     recog->lane.enabled = true;
 }
 
 bool check_overtaking(fnRun_t *fnRun) {
-    // recog->ext_data.call_init_lane_info = true;
     while (1) {
         set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN1);
         usleep(1000);
@@ -93,7 +92,7 @@ void do_overtaking(fnClean_t *fnClean) {
     set_steering(1500 + steer_direc);
     usleep(SLEEP_OVERTAKING);
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
-    usleep(SLEEP_OVERTAKING);
+    usleep(SLEEP_OVERTAKING); //
 
     // regress(Yellow & White lane)     => move car to center of road
     recog->ext_data.call_init_lane_info = true;
@@ -108,7 +107,6 @@ void do_overtaking(fnClean_t *fnClean) {
     set_desire_speed(0);
 
     // progress (Yellow & White lane)
-    recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
     target_encoder = read_encoder_counter() + 60.f * TICK_PER_CM;
     usleep(SLEEP_OVERTAKING);
@@ -146,7 +144,6 @@ void do_overtaking(fnClean_t *fnClean) {
     set_desire_speed(0);
 
     // progress (Yellow lane)
-    recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
     usleep(SLEEP_OVERTAKING);
     set_desire_speed(SPEED_OVERTAKING);

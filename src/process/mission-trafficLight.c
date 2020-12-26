@@ -1,10 +1,10 @@
 #include "car-header.h"
 #include "process.h"
 
-#define TL_SPEED       80
+#define TL_SPEED       90
 #define TL_SLEEP       100000 // 0.1s
 #define GAIN_POSITION  35
-#define LAST_TURN_TICK PI * 8.0 / 18.0 * RADIUS *TICK_PER_CM // 80-degree
+#define LAST_TURN_TICK PI * 80.0F / 180.0F * RADIUS *TICK_PER_CM // 80-degree
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
@@ -73,7 +73,7 @@ void do_trafficLight(fnClean_t *fnClean) {
         move(-TL_SPEED, -10.f * TICK_PER_CM);
         set_steering(2000);
     } else { // right
-        move(-TL_SPEED, -10.f * TICK_PER_CM);
+        move(-TL_SPEED, -5.f * TICK_PER_CM);
         set_steering(1000);
     }
     recog->tl_lane.enable         = true;
