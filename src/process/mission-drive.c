@@ -10,9 +10,9 @@ void init_drive() {
     ctrld_write(CMD_SPEED_PID_INTEGRAL, 20);
     ctrld_write(CMD_SPEED_PID_DIFFERENTAL, 20);
 
-    recog->lane.enabled                 = true;
-    recog->ext_data.call_init_lane_info = true;
-    target_velo                         = MAX_VELO;
+    recog->lane.enabled = true;
+    // recog->ext_data.call_init_lane_info = true;
+    target_velo = MAX_VELO;
 
     MSG("Initialize drive mission!");
 

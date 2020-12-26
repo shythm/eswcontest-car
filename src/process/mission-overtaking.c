@@ -3,7 +3,8 @@
 
 #define SPEED_OVERTAKING 70
 #define SLEEP_OVERTAKING 400000
-#define STEER_GAIN       50
+#define STEER_GAIN1      15
+#define STEER_GAIN2      50
 
 void init_overtaking(fnCheck_t *fnCheck);
 bool check_overtaking(fnRun_t *fnRun);
@@ -22,7 +23,7 @@ void init_overtaking(fnCheck_t *fnCheck) {
 bool check_overtaking(fnRun_t *fnRun) {
     // recog->ext_data.call_init_lane_info = true;
     while (1) {
-        set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN);
+        set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN1);
         usleep(1000);
         if (recog->psd.value[PSD_FRONT] < 27.f) {
             MSG("1: %3.1f ", recog->psd.value[PSD_FRONT]);
@@ -65,7 +66,7 @@ void do_overtaking(fnClean_t *fnClean) {
     usleep(SLEEP_OVERTAKING * 2);
     sleep(3);
     overtaking_direction = 0;
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 50; i++) {
         overtaking_direction += recog->other_cars.value;
         usleep(2000);
     }
@@ -98,10 +99,10 @@ void do_overtaking(fnClean_t *fnClean) {
     recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
     set_desire_speed(-SPEED_OVERTAKING);
-    target_encoder = read_encoder_counter() - 30.f * TICK_PER_CM;
+    target_encoder = read_encoder_counter() - 50.f * TICK_PER_CM;
     usleep(SLEEP_OVERTAKING);
     while (target_encoder < read_encoder_counter()) {
-        set_steering(1500 - (short)recog->lane.value.pos_yawl * STEER_GAIN);
+        set_steering(1500 - (short)recog->lane.value.pos_yawl * STEER_GAIN2);
         usleep(1000);
     }
     set_desire_speed(0);
@@ -113,7 +114,7 @@ void do_overtaking(fnClean_t *fnClean) {
     usleep(SLEEP_OVERTAKING);
     set_desire_speed(SPEED_OVERTAKING);
     while (read_encoder_counter() < target_encoder) {
-        set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN);
+        set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN2);
         usleep(1000);
     }
     set_desire_speed(0);
@@ -150,7 +151,7 @@ void do_overtaking(fnClean_t *fnClean) {
     usleep(SLEEP_OVERTAKING);
     set_desire_speed(SPEED_OVERTAKING);
     while (!get_is_on_stop_line()) {
-        set_steering(1500 + (short)recog->lane.value.pos_yl * STEER_GAIN);
+        set_steering(1500 + (short)recog->lane.value.pos_yl * STEER_GAIN2);
     }
     set_desire_speed(0);
 }

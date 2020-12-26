@@ -174,6 +174,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     }
 
     if (arg->pext_data->call_init_lane_info) {
+        printf("####init###");
         initLaneInfo(liY);
         initLaneInfo(liYAW);
         arg->pext_data->call_init_lane_info = false;
@@ -249,7 +250,7 @@ void detectLane(recog_arg *arg, vector_lane *result) {
             FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 0, 255), 2);
 
     // Copy processed image to display
-    // copy(img.data, img.data + W * H * 3, arg->display_input);
+    copy(img.data, img.data + W * H * 3, arg->display_input);
 #endif
 }
 

@@ -46,5 +46,6 @@ bool check_start(fnRun_t *fnRun) {
 
 void init_start(fnCheck_t *fnCheck) {
     set_desire_speed(0);
+    ctrld_write(CMD_ENCODER_COUNTER, 0);
     *fnCheck = check_start;
 }
