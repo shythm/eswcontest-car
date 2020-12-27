@@ -31,7 +31,7 @@ bool check_overtaking(fnRun_t *fnRun) {
         }
         if (get_is_on_stop_line()) {
             *fnRun = NULL;
-            return;
+            return true;
         }
     }
     *fnRun = do_overtaking;

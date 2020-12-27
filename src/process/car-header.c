@@ -7,8 +7,9 @@ int read_encoder_counter() {
             ERROR("Fail to read encoder counter. trial: %d retval: %d", ++trial,
                   ret);
             usleep(3000);
-        } else
+        } else {
             break;
+        }
     }
     if (trial) MSG("Final retval of encoder: %d", ret);
     return ret;
