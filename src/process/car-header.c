@@ -81,3 +81,18 @@ bool get_is_on_stop_line() {
         return false;
     }
 }
+
+void record_ticks(fnInit_t mission) {
+    static fnInit_t pre_mission = NULL;
+    static int      saved_tick  = 0;
+
+    if (mission == pre_mission) { // same mission
+        saved_tick     = read_encoder_counter() - saved_tick;
+        float saved_cm = ((float)saved_tick) / TICK_PER_CM;
+        MSG("<%s> distance: %3.1f[cm]  %d[tick]\n ", get_mission_name(mission),
+            saved_cm, saved_tick);
+    } else { // different mission
+        pre_mission = mission;
+        saved_tick  = read_encoder_counter();
+    }
+}
