@@ -2,7 +2,7 @@
 #include "process.h"
 
 void start_with_PSD(fnClean_t *fnClean) {
-    int cnt = 0;
+    volatile int cnt = 0, flag = 0;
 
     // wait until psd is ready.
     while (!recog->psd.valid) { usleep(1000); }
@@ -14,8 +14,18 @@ void start_with_PSD(fnClean_t *fnClean) {
         usleep(500000);
     }
 
+    // wait until the car is on the overpass
+    cnt = 0, flag = 0;
+    while (1) {
+        for (int i = 1; i < PSD_COUNT; i++) {
+            if (recog->psd.value[i] < 20.f) cnt++;
+        }
+        if (cnt >= 3) flag++;
+        if (flag >= 1000) break;
+    }
+
     // wait until obstacle appear in front of car
-    cnt = 0;
+    cnt = 0, flag = 0;
     while (1) {
         if (recog->psd.value[PSD_FRONT] < 20.f) {
             cnt++;
@@ -23,9 +33,8 @@ void start_with_PSD(fnClean_t *fnClean) {
         } else
             cnt = 0;
     }
-
     // wait until obstacle disappear in front of car
-    cnt = 0;
+    cnt = 0, flag = 0;
     while (1) {
         if (recog->psd.value[PSD_FRONT] > 20.f) {
             cnt++;
@@ -46,5 +55,6 @@ bool check_start(fnRun_t *fnRun) {
 
 void init_start(fnCheck_t *fnCheck) {
     set_desire_speed(0);
+    ctrld_write(CMD_ENCODER_COUNTER, 0);
     *fnCheck = check_start;
 }

@@ -1,6 +1,7 @@
 #include "opencv2/opencv.hpp"
 #include "recognize-lib.h"
 #include <math.h>
+#include <stdio.h>
 using namespace cv;
 using namespace std;
 
