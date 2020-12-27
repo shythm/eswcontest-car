@@ -35,8 +35,9 @@ void initLaneInfo(LaneInfo &li) {
 // LaneInfo 구조체 업데이트
 void updateLaneInfo(vector<LaneScalar> positions, LaneInfo &li) {
     // constants
-    static const int dist           = 24;
-    static const int threshScoreMax = -4;
+    static const int dist           = 24; // Normal distance between lanes
+    static const int threshScoreMax = -4; //
+    static const int minDist        = 12; // Minimum distance between lanes
 
     int lScoreMax = -9999;
     int rScoreMax = -9999;
@@ -58,7 +59,7 @@ void updateLaneInfo(vector<LaneScalar> positions, LaneInfo &li) {
     }
 
     // Check whether lane is detected.
-    // For first frame, threshScore is quiet low(-16). Therefore, it easily
+    // For the first frame, threshScore is quiet low(-16). Therefore, it easily
     // detects lane.
     bool detectL = lScoreMax > li.threshScore;
     bool detectR = rScoreMax > li.threshScore;
@@ -70,21 +71,33 @@ void updateLaneInfo(vector<LaneScalar> positions, LaneInfo &li) {
         if (li.threshScore == threshScoreMax) li.init = false;
     }
 
-    // If no line detected, use position of previous frame.
-    if (!detectL && !detectR) {
-        posL = li.posL;
-        posR = li.posR;
+    // Binary condition search
+    if (detectL) {
+        if (detectR) {
+            // Case A. Both L,R are detected
+            if ((posR - posL) < minDist) {
+                // If two lanes are too close or inversed
+                if (lScore > rScore) {
+                    posR = posL + dist;
+                } else {
+                    posL = posR - dist;
+                }
+            }
+        } else {
+            // Case B. Only L is detected
+            posR = posL + dist;
+        }
+    } else {
+        if (detectR) {
+            // Case C. Only R is detected
+            posL = posR - dist;
+        } else {
+            // Case D. No lines are detected, use position of previous frame.
+            posL = li.posL;
+            posR = li.posR;
+        }
     }
 
-    // If only one lane is detected, get the lane position from another lane
-    // Actually, the condition !detectL || !detectR is not detectR^detectL.
-    // But eventaully it works identically.
-    if (!detectL || !detectR) {
-        if (detectL) { posR = posL + dist; }
-        if (detectR) { posL = posR - dist; }
-    }
-
-    // Update position
     li.posL = posL;
     li.posR = posR;
 }
