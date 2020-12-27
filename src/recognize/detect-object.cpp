@@ -25,21 +25,22 @@ enum Shape : int {
 };
 typedef std::vector<cv::Point> Contour;
 
-cv::Mat maskImage(cv::Mat &frame, int h, int error, int sMin, int vMin) {
+// OpenCV HSV Value Range
+// H: 0-179, S: 0-255, V: 0-255
+cv::Mat maskImage(cv::Mat &frame, int hStart, int hEnd, int sMin, int sMax, int vMin, int vMax) {
     cv::Mat hsvImage;
     cv::cvtColor(frame, hsvImage, cv::COLOR_BGR2HSV);
-    int lowH  = (h - error >= 0) ? h - error : h - error + 180;
-    int highH = (h + error <= 180) ? h + error : h + error - 180;
 
     std::vector<cv::Mat> channels;
     cv::split(hsvImage, channels);
-    if (lowH < highH)
-        cv::bitwise_and(lowH <= channels[0], channels[0] <= highH, channels[0]);
-    else
-        cv::bitwise_or(lowH <= channels[0], channels[0] <= highH, channels[0]);
 
-    channels[1] = channels[1] > sMin;
-    channels[2] = channels[2] > vMin;
+    if (hStart < hEnd)
+        cv::bitwise_and(hStart <= channels[0], channels[0] <= hEnd, channels[0]);
+    else
+        cv::bitwise_or(hStart <= channels[0], channels[0] <= hEnd, channels[0]);
+    
+    cv::bitwise_and(sMin <= channels[1], channels[1] <= sMax, channels[1]);
+    cv::bitwise_and(vMin <= channels[2], channels[2] <= vMax, channels[2]);
 
     cv::Mat mask = channels[0];
     for (int i = 1; i < 3; ++i) cv::bitwise_and(channels[i], mask, mask);
@@ -206,40 +207,7 @@ struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
     cv::Mat              redMasked = maskImage(frame, 0, 15, 90, 60);
     std::vector<Contour> rectFound =
         findShapes(Rectangle, redMasked, minArea, maxArea);
-    /*
-// std::vector<Contour> circFound =
-//     findShapes(Circle, redMasked, minArea, maxArea);
-
-// for (int r = 0; r < (int)rectFound.size(); ++r) {
-//     for (int c1 = 0; c1 < (int)circFound.size(); ++c1) {
-//         for (int c2 = 0; c2 < (int)circFound.size(); ++c2) {
-//             Contour &rect = rectFound[r];
-//             Contour &cir1 = circFound[c1];
-//             Contour &cir2 = circFound[c2];
-
-//             if (cv::pointPolygonTest(rect, cir1[0], false) > 0 &&
-//                 cv::pointPolygonTest(cir1, cir2[0], false) > 0) {
-//                 if (drawBoard) {
-//                     std::vector<Contour> toDraw;
-//                     toDraw.push_back(rect);
-//                     cv::drawContours(*drawBoard, toDraw, -1,
-//                                      cv::Scalar(0, 0, 255), 2);
-//                     putTextAtCenter(*drawBoard, "Stop!",
-//                                     cv::Scalar(0, 0, 255));
-//                 }
-
-//                 StopObstacle result;
-//                 result.exist  = true;
-//                 cv::Moments m = cv::moments(rect);
-//                 result.area   = (float)m.m00;
-//                 result.center = {(int)(m.m10 / m.m00),
-//                                  (int)(m.m01 / m.m00)};
-//                 return result;
-//             }
-//         }
-//     }
-// }
-*/
+        
     if (rectFound.size() > 0) {
         if (drawBoard) {
             std::vector<Contour> toDraw;
@@ -302,11 +270,12 @@ extern "C" recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
 }
 extern "C" recog_traffic_light_t get_traffic_light(recog_arg *arg) {
     struct TrafficLights detected = detectLights(arg);
+    int result = TL_NONE;
 
-    if (detected.green) return TL_GREEN;
-    if (detected.yellow) return TL_YELLOW;
-    if (detected.left) return TL_LEFT;
-    if (detected.red) return TL_RED;
+    if (detected.green) result |= TL_GREEN;
+    if (detected.yellow) result |= TL_YELLOW;
+    if (detected.left) result |= TL_LEFT;
+    if (detected.red) result |= TL_RED;
 
-    return TL_NONE;
+    return (recog_traffic_light_t)result;
 }
