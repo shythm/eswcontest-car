@@ -194,9 +194,9 @@ struct TrafficLights detectLights(recog_arg *arg) {
 
     if (outBuf) {
         cv::Mat dstRGB(IMG_H, IMG_W, CV_8UC3, outBuf);
-        result = detectLights(srcRGB, &dstRGB, 50, 100000);
+        result = detectLights(srcRGB, &dstRGB, 40, 100000);
     } else
-        result = detectLights(srcRGB, NULL, 50, 100000);
+        result = detectLights(srcRGB, NULL, 40, 100000);
 
     return result;
 }
@@ -206,38 +206,40 @@ struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
     cv::Mat              redMasked = maskImage(frame, 0, 15, 90, 60);
     std::vector<Contour> rectFound =
         findShapes(Rectangle, redMasked, minArea, maxArea);
-    // std::vector<Contour> circFound =
-    //     findShapes(Circle, redMasked, minArea, maxArea);
+    /*
+// std::vector<Contour> circFound =
+//     findShapes(Circle, redMasked, minArea, maxArea);
 
-    // for (int r = 0; r < (int)rectFound.size(); ++r) {
-    //     for (int c1 = 0; c1 < (int)circFound.size(); ++c1) {
-    //         for (int c2 = 0; c2 < (int)circFound.size(); ++c2) {
-    //             Contour &rect = rectFound[r];
-    //             Contour &cir1 = circFound[c1];
-    //             Contour &cir2 = circFound[c2];
+// for (int r = 0; r < (int)rectFound.size(); ++r) {
+//     for (int c1 = 0; c1 < (int)circFound.size(); ++c1) {
+//         for (int c2 = 0; c2 < (int)circFound.size(); ++c2) {
+//             Contour &rect = rectFound[r];
+//             Contour &cir1 = circFound[c1];
+//             Contour &cir2 = circFound[c2];
 
-    //             if (cv::pointPolygonTest(rect, cir1[0], false) > 0 &&
-    //                 cv::pointPolygonTest(cir1, cir2[0], false) > 0) {
-    //                 if (drawBoard) {
-    //                     std::vector<Contour> toDraw;
-    //                     toDraw.push_back(rect);
-    //                     cv::drawContours(*drawBoard, toDraw, -1,
-    //                                      cv::Scalar(0, 0, 255), 2);
-    //                     putTextAtCenter(*drawBoard, "Stop!",
-    //                                     cv::Scalar(0, 0, 255));
-    //                 }
+//             if (cv::pointPolygonTest(rect, cir1[0], false) > 0 &&
+//                 cv::pointPolygonTest(cir1, cir2[0], false) > 0) {
+//                 if (drawBoard) {
+//                     std::vector<Contour> toDraw;
+//                     toDraw.push_back(rect);
+//                     cv::drawContours(*drawBoard, toDraw, -1,
+//                                      cv::Scalar(0, 0, 255), 2);
+//                     putTextAtCenter(*drawBoard, "Stop!",
+//                                     cv::Scalar(0, 0, 255));
+//                 }
 
-    //                 StopObstacle result;
-    //                 result.exist  = true;
-    //                 cv::Moments m = cv::moments(rect);
-    //                 result.area   = (float)m.m00;
-    //                 result.center = {(int)(m.m10 / m.m00),
-    //                                  (int)(m.m01 / m.m00)};
-    //                 return result;
-    //             }
-    //         }
-    //     }
-    // }
+//                 StopObstacle result;
+//                 result.exist  = true;
+//                 cv::Moments m = cv::moments(rect);
+//                 result.area   = (float)m.m00;
+//                 result.center = {(int)(m.m10 / m.m00),
+//                                  (int)(m.m01 / m.m00)};
+//                 return result;
+//             }
+//         }
+//     }
+// }
+*/
     if (rectFound.size() > 0) {
         if (drawBoard) {
             std::vector<Contour> toDraw;
