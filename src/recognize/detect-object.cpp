@@ -143,9 +143,9 @@ void putTextAtCenter(cv::Mat &frame, std::string text, cv::Scalar color) {
 
 TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
-    cv::Mat redMasked    = maskImage(frame, 0, 15, 90, 60);
-    cv::Mat yellowMasked = maskImage(frame, 30, 20, 120, 60);
-    cv::Mat greenMasked  = maskImage(frame, 65, 15, 60, 40);
+    cv::Mat redMasked    = maskImage(frame, -15, 15, 90, 255, 60, 255);
+    cv::Mat yellowMasked = maskImage(frame, 10, 50, 120, 255, 60, 255);
+    cv::Mat greenMasked  = maskImage(frame, 50, 80, 60, 255, 40, 255);
     cv::Mat greenInverse = 255 - greenMasked;
 
     const static std::string captions[] = {"Red Light!", "Yellow Light!",
@@ -204,7 +204,7 @@ struct TrafficLights detectLights(recog_arg *arg) {
 
 struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
                                        int minArea, int maxArea) {
-    cv::Mat              redMasked = maskImage(frame, 0, 15, 90, 60);
+    cv::Mat              redMasked = maskImage(frame, -15, 15, 90, 255, 60, 255);
     std::vector<Contour> rectFound =
         findShapes(Rectangle, redMasked, minArea, maxArea);
         
