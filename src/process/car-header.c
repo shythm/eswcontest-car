@@ -62,7 +62,7 @@ void set_camera_Yservo(short y_servo) { //
 }
 
 #define IR_SENSOR_COUNT     7
-#define IR_ACTIVE_THRESHOLD 5
+#define IR_ACTIVE_THRESHOLD 3
 bool get_is_on_stop_line() {
     static int     value;
     static uint8_t ir_active_cnt;
