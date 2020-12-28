@@ -4,7 +4,7 @@
 #define TL_SPEED       90
 #define TL_SLEEP       100000 // 0.1s
 #define GAIN_POSITION  35
-#define LAST_TURN_TICK PI * 80.0F / 180.0F * RADIUS *TICK_PER_CM // 80-degree
+#define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);

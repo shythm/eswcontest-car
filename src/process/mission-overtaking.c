@@ -22,7 +22,7 @@ void init_overtaking(fnCheck_t *fnCheck) {
 
 bool check_overtaking(fnRun_t *fnRun) {
     while (1) {
-        set_steering(1500 + (short)recog->lane.value.pos_yawl * STEER_GAIN1);
+        set_steering(1500 + recog->lane.value.pos_yawl * STEER_GAIN1);
         usleep(1000);
         if (recog->psd.value[PSD_FRONT] < 27.f) {
             MSG("1: %3.1f ", recog->psd.value[PSD_FRONT]);
