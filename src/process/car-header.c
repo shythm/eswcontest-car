@@ -1,15 +1,17 @@
 #include "car-header.h"
 
 int read_encoder_counter() {
-    int ret;
+    int ret = 0, trial = 0;
     while (1) {
         if (ctrld_read(CMD_ENCODER_COUNTER, &ret)) {
-            ERROR("Fail to read encoder counter.\n");
-            usleep(2000);
+            ERROR("Fail to read encoder counter. trial: %d retval: %d", ++trial,
+                  ret);
+            usleep(3000);
         } else {
             break;
         }
     }
+    if (trial) MSG("Final retval of encoder: %d", ret);
     return ret;
 }
 
@@ -29,35 +31,32 @@ short read_steering() {
     return (short)ret;
 }
 
-void set_steering(short steering) { //
+void set_steering(short steering) {
     ctrld_write(CMD_STEERING_SERVO_CONTROL, steering);
 }
 
-void set_desire_speed(short speed) { //
-    ctrld_write(CMD_DESIRE_SPEED, speed);
-}
+void set_desire_speed(short speed) { ctrld_write(CMD_DESIRE_SPEED, speed); }
 
-void beep(unsigned char time) { //
+void beep(unsigned char time) {
     ctrld_write(CMD_SOUND, 0);
     ctrld_write(CMD_SOUND, time);
 }
 
-void move(short speed, int desire_encoder) {
-    // Caution: initial encoder as 0
-    // set_encoder_counter(0);
-    set_desire_speed(speed);
+void move(short speed, volatile int desire_encoder) {
     if (desire_encoder > 0) {
         desire_encoder += read_encoder_counter();
+        set_desire_speed(speed);
         while (desire_encoder > read_encoder_counter()) usleep(1000);
     } else {
         desire_encoder += read_encoder_counter();
+        set_desire_speed(speed);
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
     usleep(100000);
 }
 
-void set_camera_Yservo(short y_servo) { //
+void set_camera_Yservo(short y_servo) {
     ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, y_servo);
 }
 
@@ -81,5 +80,20 @@ bool get_is_on_stop_line() {
         }
     } else {
         return false;
+    }
+}
+
+void record_ticks(fnInit_t mission) {
+    static fnInit_t pre_mission = NULL;
+    static int      saved_tick  = 0;
+
+    if (mission == pre_mission) { // same mission
+        saved_tick     = read_encoder_counter() - saved_tick;
+        float saved_cm = ((float)saved_tick) / TICK_PER_CM;
+        MSG("<%s> distance: %3.1f[cm]  %d[tick]\n ", get_mission_name(mission),
+            saved_cm, saved_tick);
+    } else { // different mission
+        pre_mission = mission;
+        saved_tick  = read_encoder_counter();
     }
 }

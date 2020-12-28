@@ -13,8 +13,9 @@ typedef void (*fnRun_t)(fnClean_t *);
 typedef bool (*fnCheck_t)(fnRun_t *);
 typedef void (*fnInit_t)(fnCheck_t *);
 
-void init_drive();
-void do_drive();
+void        init_drive();
+void        do_drive();
+const char *get_mission_name(fnInit_t func);
 
 /* `recog' is global variable that is externed by process.h and initialized by
  * process.c. It stores the reocgnition results. */

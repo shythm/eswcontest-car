@@ -19,6 +19,11 @@ typedef struct _lane_info {
     int  threshScore;
 } LaneInfo;
 
+typedef struct _lane_scalar {
+    int   scalar;
+    float weight;
+} LaneScalar;
+
 // LaneInfo 구조체 초기화
 void initLaneInfo(LaneInfo &li) {
     li.init        = true;
@@ -28,32 +33,33 @@ void initLaneInfo(LaneInfo &li) {
 }
 
 // LaneInfo 구조체 업데이트
-void updateLaneInfo(vector<int> positions, LaneInfo &li) {
+void updateLaneInfo(vector<LaneScalar> positions, LaneInfo &li) {
     // constants
-    static const int dist           = 24;
-    static const int threshScoreMax = -4;
+    static const int dist           = 24; // Normal distance between lanes
+    static const int threshScoreMax = -4; //
+    static const int minDist        = 12; // Minimum distance between lanes
 
     int lScoreMax = -9999;
     int rScoreMax = -9999;
     int lScore, rScore, posL, posR;
 
     // Get left lane position and right lane position
-    for (int pos : positions) {
-        lScore = -abs(pos - li.posL);
-        rScore = -abs(pos - li.posR);
+    for (LaneScalar pos : positions) {
+        lScore = -abs(pos.scalar - li.posL) * pos.weight;
+        rScore = -abs(pos.scalar - li.posR) * pos.weight;
 
         if (lScore > lScoreMax) {
             lScoreMax = lScore;
-            posL      = pos;
+            posL      = pos.scalar;
         }
         if (rScore > rScoreMax) {
             rScoreMax = rScore;
-            posR      = pos;
+            posR      = pos.scalar;
         }
     }
 
     // Check whether lane is detected.
-    // For first frame, threshScore is quiet low(-16). Therefore, it easily
+    // For the first frame, threshScore is quiet low(-16). Therefore, it easily
     // detects lane.
     bool detectL = lScoreMax > li.threshScore;
     bool detectR = rScoreMax > li.threshScore;
@@ -65,21 +71,33 @@ void updateLaneInfo(vector<int> positions, LaneInfo &li) {
         if (li.threshScore == threshScoreMax) li.init = false;
     }
 
-    // If no line detected, use position of previous frame.
-    if (!detectL && !detectR) {
-        posL = li.posL;
-        posR = li.posR;
+    // Binary condition search
+    if (detectL) {
+        if (detectR) {
+            // Case A. Both L,R are detected
+            if ((posR - posL) < minDist) {
+                // If two lanes are too close or inversed
+                if (lScore > rScore) {
+                    posR = posL + dist;
+                } else {
+                    posL = posR - dist;
+                }
+            }
+        } else {
+            // Case B. Only L is detected
+            posR = posL + dist;
+        }
+    } else {
+        if (detectR) {
+            // Case C. Only R is detected
+            posL = posR - dist;
+        } else {
+            // Case D. No lines are detected, use position of previous frame.
+            posL = li.posL;
+            posR = li.posR;
+        }
     }
 
-    // If only one lane is detected, get the lane position from another lane
-    // Actually, the condition !detectL || !detectR is not detectR^detectL.
-    // But eventaully it works identically.
-    if (!detectL || !detectR) {
-        if (detectL) { posR = posL + dist; }
-        if (detectR) { posL = posR - dist; }
-    }
-
-    // Update position
     li.posL = posL;
     li.posR = posR;
 }
@@ -116,9 +134,11 @@ void getRoiPerspectiveTransform(Mat &perspM) {
     perspM = getPerspectiveTransform(src, dst);
 }
 
-#define BASE_LINE_RATIO 0.45f
+#define BASE_LINE_RATIO    0.45f
+#define YELLOW_LANE_WEIGHT 1.00f
+#define WHITE_LANE_WEIGHT  0.25f
 
-void getYellowPoints(Mat &img, vector<int> &out) {
+void getYellowPoints(Mat &img, vector<LaneScalar> &out) {
     const static Scalar l(20, 20, 0);
     const static Scalar u(48, 255, 255);
 
@@ -131,11 +151,16 @@ void getYellowPoints(Mat &img, vector<int> &out) {
         isValid &= (l[1] <= row[i * 3 + 1]) && (row[i * 3 + 1] <= u[1]);
         isValid &= (l[2] <= row[i * 3 + 2]) && (row[i * 3 + 2] <= u[2]);
 
-        if (isValid) { out.push_back(i); }
+        if (isValid) {
+            LaneScalar ls;
+            ls.scalar = i;
+            ls.weight = YELLOW_LANE_WEIGHT;
+            out.push_back(ls);
+        }
     }
 }
 
-void getWhitePoints(Mat &img, vector<int> &out) {
+void getWhitePoints(Mat &img, vector<LaneScalar> &out) {
     const static Scalar l(0, 0, 220);    // lower white
     const static Scalar u(255, 48, 255); // upper white
     const static Size   ks(1, 16);       // kernal size
@@ -153,7 +178,12 @@ void getWhitePoints(Mat &img, vector<int> &out) {
 
     uchar *row = tempM.ptr(tempM.size().height * BASE_LINE_RATIO);
     for (int i = 0; i < tempM.size().width; i++) {
-        if (row[i]) { out.push_back(i); }
+        if (row[i]) {
+            LaneScalar ls;
+            ls.scalar = i;
+            ls.weight = WHITE_LANE_WEIGHT;
+            out.push_back(ls);
+        }
     }
 }
 
@@ -188,12 +218,12 @@ void detectLane(recog_arg *arg, vector_lane *result) {
     resize(img, img, sizeSmall, INTER_NEAREST);
     cvtColor(img, img, CV_BGR2HSV);
 
-    vector<int> vpOfY;   // valid positions of yellow
-    vector<int> vpOfYAW; // valid positions of yellow and white
+    vector<LaneScalar> vpOfY;   // valid positions of yellow
+    vector<LaneScalar> vpOfYAW; // valid positions of yellow and white
 
     getYellowPoints(img, vpOfY);
     getWhitePoints(img, vpOfYAW);
-    for (int vp : vpOfY) { // push back valid positions of yellow
+    for (LaneScalar vp : vpOfY) { // push back valid positions of yellow
         vpOfYAW.push_back(vp);
     }
 

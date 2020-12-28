@@ -40,8 +40,24 @@ fnInit_t mission_list[] = {
      * Write the initializing functions here array to run the
      * missions sequentially. You must add NULL at the end element.
      */
-    init_start,
     NULL,
 };
+
+#define IF_FUNC_NAME(name)                                                     \
+    if (func == init_##name) return #name
+
+const char *get_mission_name(fnInit_t func) {
+    IF_FUNC_NAME(test);
+    IF_FUNC_NAME(start);
+    IF_FUNC_NAME(overpass);
+    IF_FUNC_NAME(obstacle);
+    IF_FUNC_NAME(parking_vertical);
+    IF_FUNC_NAME(parking_parallel);
+    IF_FUNC_NAME(roundabout);
+    IF_FUNC_NAME(tunnel);
+    IF_FUNC_NAME(overtaking);
+    IF_FUNC_NAME(trafficLight);
+    else return "";
+}
 
 #endif

@@ -1,11 +1,10 @@
 #include "recognize-lib.h"
 #include <math.h>
 #include <opencv2/opencv.hpp>
-#include <stdio.h>
 
 #define W                  VPE_OUTPUT_W
 #define H                  VPE_OUTPUT_H
-#define DISPLAY_OTHER_CARS 1
+#define DISPLAY_EMPTY_ROAD 1
 
 using namespace cv;
 using namespace std;
@@ -64,7 +63,7 @@ int decide_deriction(Mat *img) {
         return -1;
 }
 
-int get_other_cars_location_t(recog_arg *arg) {
+int get_empty_road_t(recog_arg *arg) {
     static unsigned char raw_[W * H * 3];
 
     // read camera image
@@ -113,7 +112,7 @@ int get_other_cars_location_t(recog_arg *arg) {
 
     int ret_var = decide_deriction(&img_copy);
 
-#if DISPLAY_OTHER_CARS
+#if DISPLAY_EMPTY_ROAD
     img_copy(Rect(Point(0, 0), Point(W, H / 2))) = Scalar(0, 0, 0);
     if (ret_var == 0) putTextAtTop(img_copy, "NONE", Scalar(0, 255, 0));
     else if (ret_var == -1)
@@ -130,6 +129,6 @@ int get_other_cars_location_t(recog_arg *arg) {
 // *********************************************************
 // THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
 // *********************************************************
-extern "C" float get_other_cars_location(recog_arg *arg) {
-    return get_other_cars_location_t(arg);
+extern "C" float get_empty_road(recog_arg *arg) {
+    return get_empty_road_t(arg);
 }
