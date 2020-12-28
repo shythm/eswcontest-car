@@ -106,8 +106,6 @@ void clean_trafficLight() {
 void dive_into_end_point() {
     short steering = (-recog->tl_lane.value * GAIN_POSITION) + 1500.f;
     // constrain 1200~1800
-    if (steering > 1800) steering = 1800;
-    else if (steering < 1200)
-        steering = 1200;
+    steering = CONSTRAIN(steering, 1200, 1800);
     set_steering(steering);
 }

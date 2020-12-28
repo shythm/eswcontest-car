@@ -136,7 +136,7 @@ void getRoiPerspectiveTransform(Mat &perspM) {
 
 #define BASE_LINE_RATIO    0.45f
 #define YELLOW_LANE_WEIGHT 1.00f
-#define WHITE_LANE_WEIGHT  0.25f
+#define WHITE_LANE_WEIGHT  0.50f
 
 void getYellowPoints(Mat &img, vector<LaneScalar> &out) {
     const static Scalar l(20, 20, 0);

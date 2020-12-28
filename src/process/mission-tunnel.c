@@ -54,9 +54,7 @@ void do_tunnel(fnClean_t *fnClean) {
         position = TUNN_GAIN * (fL - fR) + 1500;
 
         // constrain 1000~2000
-        if (position > 2000) position = 2000;
-        else if (position < 1000)
-            position = 1000;
+        position = CONSTRAIN(position, 1000, 2000);
 
         // Additionary Algorithm: prevent invading safe distance
         // 로봇 뒤쪽이 터널 벽에 닿는 것을 예방
@@ -64,9 +62,7 @@ void do_tunnel(fnClean_t *fnClean) {
         if (bR < BACK_PSD_SAFE_DIST) position += BACK_PSD_SAFE_STEER;
 
         // constrain 1000~2000
-        if (position > 2000) position = 2000;
-        else if (position < 1000)
-            position = 1000;
+
         set_steering(position);
     }
 

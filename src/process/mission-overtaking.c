@@ -21,6 +21,7 @@ void init_overtaking(fnCheck_t *fnCheck) {
 }
 
 bool check_overtaking(fnRun_t *fnRun) {
+    int steering;
     while (1) {
         set_steering(1500 + recog->lane.value.pos_yawl * STEER_GAIN1);
         usleep(1000);
@@ -44,6 +45,7 @@ void do_overtaking(fnClean_t *fnClean) {
     const float turn_rad       = PI * 50.f / 180.f;
     const int   straight_tick  = 15.f * TICK_PER_CM;
     int         target_encoder = 0;
+    int         steering       = 0;
     // stop
     set_desire_speed(0);
     set_steering(1500);

@@ -32,6 +32,7 @@ short read_steering() {
 }
 
 void set_steering(short steering) {
+    steering = CONSTRAIN(steering, 1000, 2000);
     ctrld_write(CMD_STEERING_SERVO_CONTROL, steering);
 }
 
