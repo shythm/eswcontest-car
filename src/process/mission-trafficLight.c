@@ -100,7 +100,8 @@ void clean_trafficLight() {
     recog->traffic_light.enabled  = false;
     recog->tl_lane.enable         = false;
 
-    while (1) sleep(1); /* THE END */
+    sleep(2);
+    // while (1) sleep(1); /* THE END */
 }
 
 void dive_into_end_point() {

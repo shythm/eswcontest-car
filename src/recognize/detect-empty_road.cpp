@@ -97,7 +97,7 @@ int get_empty_road_t(recog_arg *arg) {
         float rho = lines[i][0], theta = lines[i][1];
         // if (theta <= 10.f * CV_PI / 180.f || 170.f * CV_PI / 180.f <= theta)
         //     continue;
-        if (80.f * CV_PI / 180.f <= theta && theta <= 100.f * CV_PI / 180.f)
+        if (70.f * CV_PI / 180.f <= theta && theta <= 110.f * CV_PI / 180.f)
             continue;
         Point  pt1, pt2;
         double a = cos(theta), b = sin(theta);

@@ -2,7 +2,7 @@
 #include "process.h"
 
 // 100~140 in hard map || 160~170 in easy map
-#define TUNN_SPEED 190
+#define TUNN_SPEED 180
 // 35 ~ 50 : 속력이 높을 수록 높은 게인을 주어야 한다.
 #define TUNN_GAIN 45
 // 안전거리가 짧을수록 둔감하지만 운전에 영향을 덜 준다.
@@ -35,7 +35,9 @@ bool check_tunnel(fnRun_t *fnRun) {
 
 void do_tunnel(fnClean_t *fnClean) {
     psd_data_t fL, fR, bL, bR;
-    short      position = 0;
+    short      position       = 0;
+    int        lane_init_flag = 0;
+    int        num            = 0;
 
     set_desire_speed(TUNN_SPEED);
     ctrld_write(CMD_FRONT_A_REAL_LIGHT_CONTROL, 1);
@@ -61,10 +63,20 @@ void do_tunnel(fnClean_t *fnClean) {
         if (bL < BACK_PSD_SAFE_DIST) position -= BACK_PSD_SAFE_STEER;
         if (bR < BACK_PSD_SAFE_DIST) position += BACK_PSD_SAFE_STEER;
 
-        // constrain 1000~2000
-
         set_steering(position);
+
+        if (1450 < position && position < 1550) {
+            if (lane_init_flag == 1) {
+                recog->ext_data.call_init_lane_info = true;
+                num++;
+            }
+            lane_init_flag++;
+        } else {
+            lane_init_flag = 0;
+        }
     }
+
+    printf("lane init num: %d\n", num);
 
     ctrld_write(CMD_FRONT_A_REAL_LIGHT_CONTROL, 0);
 }

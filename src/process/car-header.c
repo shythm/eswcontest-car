@@ -54,7 +54,7 @@ void move(short speed, volatile int desire_encoder) {
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
-    usleep(100000);
+    usleep(5000);
 }
 
 void set_camera_Yservo(short y_servo) {
@@ -91,7 +91,7 @@ void record_ticks(fnInit_t mission) {
     if (mission == pre_mission) { // same mission
         saved_tick     = read_encoder_counter() - saved_tick;
         float saved_cm = ((float)saved_tick) / TICK_PER_CM;
-        MSG("<<<%s>>> distance: %3.1f[cm]  %d[tick] ",
+        MSG("   <<<%s>>> distance: %3.1f[cm]  %d[tick] ",
             get_mission_name(mission), saved_cm, saved_tick);
     } else { // different mission
         pre_mission = mission;
