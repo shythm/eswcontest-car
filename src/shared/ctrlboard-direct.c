@@ -104,6 +104,8 @@ int ctrld_read(ctrl_cmd cmd, int *val) {
     unsigned char bufw[UART_BUF_SIZE];
     unsigned char bufr[UART_BUF_SIZE];
 
+    int ret_code = CMDR_SUCCESS;
+
     bufw[0] = cmd_code[cmd];               // 1st byte: cmd code
     bufw[1] = 2;                           // 2nd byte: default length(2)
     bufw[2] = 2;                           // 3rd byte: cmd type(2: read)
@@ -127,7 +129,7 @@ int ctrld_read(ctrl_cmd cmd, int *val) {
     // from read bytes
     chks %= 256;
 
-    if (bufr[last] != chks) { return CMDR_CHKSUM_ERR; }
+    if (bufr[last] != chks) { ret_code = CMDR_CHKSUM_ERR; }
 #endif
 
     *val = 0;
@@ -136,5 +138,5 @@ int ctrld_read(ctrl_cmd cmd, int *val) {
         *val += bufr[2 + i] << (8 * i);
     }
 
-    return CMDR_SUCCESS;
+    return ret_code;
 }

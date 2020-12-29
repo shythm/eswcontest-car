@@ -14,6 +14,8 @@ void init_obstacle(fnCheck_t *fnCheck) {
     recog->stop_obstacle.value.area = 0.0f;
     recog->stop_obstacle.enabled    = true;
 
+    set_camera_Yservo(1650);
+
     MSG("UPCOMING MISSION => obstacle");
     *fnCheck = check_obstacle;
 }
@@ -46,5 +48,6 @@ void run_obstacle(fnClean_t *fnClean) {
 
 void clean_obstacle() {
     // turn off stop_obstacle recognition.
-    recog->stop_obstacle.enabled = false;
+    recog->stop_obstacle.enabled        = false;
+    recog->ext_data.call_init_lane_info = true;
 }

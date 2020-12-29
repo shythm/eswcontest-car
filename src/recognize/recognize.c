@@ -48,6 +48,7 @@ __attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
 }
 __attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
 __attribute__((weak)) float get_stop_line(recog_arg *arg) { return -1; }
+__attribute__((weak)) int   get_empty_road(recog_arg *arg) { return 0; }
 
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
@@ -94,6 +95,9 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     }
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
+    }
+    if (result->other_cars.enable) {
+        result->other_cars.value = get_empty_road(arg);
     }
     if (result->stop_line_pos.enable) { // update stop line position
         result->stop_line_pos.value = get_stop_line(arg);
@@ -235,7 +239,7 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 /* define I2C & PSD constants */
 #define PSD_I2C_DEVICE   "/dev/i2c-2"
 #define PSD_I2C_BUF_SIZE 8
-#define PSD_I2C_DELAY_US 1000
+#define PSD_I2C_DELAY_US 500
 
 #define PSD_CMD_FRONT   0x8C
 #define PSD_CMD_RIGHT_1 0xCC
@@ -244,11 +248,12 @@ int capture_recognize(recog_result *result, recog_arg *arg) {
 #define PSD_CMD_LEFT_2  0xAC
 #define PSD_CMD_LEFT_1  0xEC
 
-#define PSD_MEDIAN_SAMPLE_SIZE 3
+#define PSD_MEDIAN_SAMPLE_SIZE 1
 
 void bubble_sort(uint16_t *arr, int length) {
     int      i, j;
     uint16_t temp;
+    if (length == 1) return;
 
     for (i = 0; i < length - 1; i++) {
         for (j = 0; j < length - i - 1; j++) {
@@ -329,8 +334,8 @@ void *update_psd_value(void *argv) {
                              19.1f * expf(-0.0004304f * psd_raw[PSD_BACK]);
         psd_dist[PSD_LEFT_2] = 490.1f * expf(-0.004111f * psd_raw[PSD_LEFT_2]) +
                                24.61f * expf(-0.0004845f * psd_raw[PSD_LEFT_2]);
-        psd_dist[PSD_LEFT_1] = 638.6f * expf(-0.004488f * psd_raw[PSD_LEFT_1]) +
-                               26.45f * expf(-0.000508f * psd_raw[PSD_LEFT_1]);
+        psd_dist[PSD_LEFT_1] = 904.3f * expf(-0.004669f * psd_raw[PSD_LEFT_1]) +
+                               23.23f * expf(-0.0004703f * psd_raw[PSD_LEFT_1]);
 
         for (i = 0; i < PSD_COUNT;
              i++) { // limit the psd value (PSD_DISTANCE_MIN <= psd_dist <=

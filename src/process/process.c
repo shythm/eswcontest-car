@@ -25,9 +25,13 @@ int main() {
 
         if (!check) continue;
         while (!check(&run))
-            do_drive();       // Do drive until the mission is detected.
-        if (run) run(&clean); // Run the mission.
-        if (clean) clean();   // Clear the mission.
+            do_drive(); // Do drive until the mission is detected.
+        if (run) {      // Run the mission.
+            record_ticks(init);
+            run(&clean);
+            record_ticks(init);
+        }
+        if (clean) clean(); // Clear the mission.
     }
 
     MSG("All missions were completed!");

@@ -1,11 +1,10 @@
 #include "car-header.h"
 #include "process.h"
-#include <limits.h>
 
-#define TL_SPEED       70
+#define TL_SPEED       90
 #define TL_SLEEP       100000 // 0.1s
-#define GAIN_POSITION  40
-#define LAST_TURN_TICK PI * 8.0 / 18.0 * RADIUS *TICK_PER_CM // 80-degree
+#define GAIN_POSITION  35
+#define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
@@ -13,60 +12,48 @@ void clean_trafficLight();
 void dive_into_end_point();
 
 void init_trafficLight(fnCheck_t *fnCheck) {
-    recog->is_on_end_zone.enabled  = false;
-    recog->is_on_stop_line.enabled = true;
-    recog->traffic_light.enabled   = false;
-    recog->tl_lane.enable          = false;
+    recog->is_on_end_zone.enabled = false;
+    recog->traffic_light.enabled  = false;
+    recog->tl_lane.enable         = false;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
     *fnCheck = check_trafficLight;
 }
 
-void clean_trafficLight() {
-    recog->is_on_end_zone.enabled  = false;
-    recog->is_on_stop_line.enabled = false;
-    recog->traffic_light.enabled   = false;
-    recog->tl_lane.enable          = false;
-
-    while (1) sleep(1); /* THE END */
-}
-
 bool check_trafficLight(fnRun_t *fnRun) {
-    recog->is_on_stop_line.enabled = true;
-
-    if (recog->is_on_stop_line.value == true) {
+    if (get_is_on_stop_line()) {
         set_desire_speed(0); // stop on the stop line
         beep(50);
         MSG("START MISSION => trafficLight & end-zone");
         *fnRun = do_trafficLight;
         return true;
     }
-
     return false;
 }
 
 void do_trafficLight(fnClean_t *fnClean) {
-    recog->lane.enabled            = false;
-    recog->is_on_stop_line.enabled = false;
-    recog->traffic_light.enabled   = true;
+    recog->lane.enabled          = false;
+    recog->traffic_light.enabled = true;
     // stop on the stop line
     set_desire_speed(0);
 
     // tilt up camera to see trafficLight
     set_camera_Yservo(1500);
-    usleep(TL_SLEEP);
+    sleep(1);
 
     // wait for signal
-    volatile recog_traffic_light_t tl = recog->traffic_light.value;
-    unsigned char                  left, right;
-    while (left != right) {
-        left = 0, right = 0;
-        for (int i = 0; i < 100; i++, tl = recog->traffic_light.value) {
-            if (tl == TL_LEFT) left++;
-            else if (tl == TL_GREEN)
-                right++;
-            usleep(100);
-        }
+    volatile recog_traffic_light_t tl           = recog->traffic_light.value;
+    int                            tl_direction = 0;
+    for (int i = 0; i < 10; tl = recog->traffic_light.value) {
+        if (tl == TL_LEFT) {
+            tl_direction--;
+            i++;
+        } else if (tl == TL_GREEN) {
+            tl_direction++;
+            i++;
+        } else
+            continue;
+        usleep(10000);
     }
     recog->traffic_light.enabled = false;
     // tilt down camera
@@ -82,10 +69,10 @@ void do_trafficLight(fnClean_t *fnClean) {
     usleep(TL_SLEEP);
 
     // regress
-    if (left > right) { // left: regress more
+    if (tl_direction < 0) { // left
         move(-TL_SPEED, -10.f * TICK_PER_CM);
         set_steering(2000);
-    } else { // right: regress less
+    } else { // right
         move(-TL_SPEED, -5.f * TICK_PER_CM);
         set_steering(1000);
     }
@@ -108,12 +95,18 @@ void do_trafficLight(fnClean_t *fnClean) {
     *fnClean = clean_trafficLight;
 }
 
-void dive_into_end_point() {
-    short steering = recog->tl_lane.value * -GAIN_POSITION + 1500.f;
+void clean_trafficLight() {
+    recog->is_on_end_zone.enabled = false;
+    recog->traffic_light.enabled  = false;
+    recog->tl_lane.enable         = false;
 
-    // constrain
-    if (steering > 2000) steering = 2000;
-    else if (steering < 1000)
-        steering = 1000;
+    sleep(2);
+    // while (1) sleep(1); /* THE END */
+}
+
+void dive_into_end_point() {
+    short steering = (-recog->tl_lane.value * GAIN_POSITION) + 1500.f;
+    // constrain 1200~1800
+    steering = CONSTRAIN(steering, 1200, 1800);
     set_steering(steering);
 }

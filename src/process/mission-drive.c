@@ -1,6 +1,6 @@
 #include "process.h"
 
-#define MAX_VELO 200 // Maximum velocity
+#define MAX_VELO 250 // Maximum velocity
 
 void init_drive() {
     ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, 1700);
@@ -10,9 +10,8 @@ void init_drive() {
     ctrld_write(CMD_SPEED_PID_INTEGRAL, 20);
     ctrld_write(CMD_SPEED_PID_DIFFERENTAL, 20);
 
-    recog->lane.enabled                 = true;
-    recog->ext_data.call_init_lane_info = true;
-    target_velo                         = MAX_VELO;
+    recog->lane.enabled = true;
+    target_velo         = MAX_VELO;
 
     MSG("Initialize drive mission!");
 

@@ -6,8 +6,34 @@
 #define SLEEP_VERTICAL 300000 // 0.3s
 #define SLEEP_PARALLEL 300000 // 0.3s
 
-#define BRAKING_TIME 100000
+#define BRAKING_TIME 110000
 #define TIME_STEP    1000
+
+#define OBSTACLE_DISTANCE 29.F
+
+#define LEFT  0
+#define RIGHT 1
+// Location of parking lot to road
+#define LOC_VERT RIGHT // parking vertical
+#define LOC_PARA RIGHT // parking parallel
+
+#if LOC_VERT == RIGHT
+int psd_XX_1_vert    = PSD_RIGHT_1;
+int steer_direc_vert = 500;
+#elif LOC_VERT == LEFT
+int psd_XX_1_vert    = PSD_LEFT_2;
+int steer_direc_vert = -500;
+#endif
+
+#if LOC_PARA == RIGHT
+int psd_XX_1_para    = PSD_RIGHT_1;
+int psd_XX_2_para    = PSD_RIGHT_2;
+int steer_direc_para = 500;
+#elif LOC_PARAA == LEFT
+int psd_XX_1_para    = PSD_LEFT_2;
+int psd_XX_2_para    = PSD_LEFT_2;
+int steer_direc_para = -500;
+#endif
 
 bool check_parking_vertical(fnRun_t *);
 bool check_parking_parallel(fnRun_t *);
@@ -46,31 +72,35 @@ void init_parking_parallel(fnCheck_t *fnCheck) {
 */
 
 bool check_parking_vertical(fnRun_t *fnRun) {
-    // printf("psd: %3.1f\n", recog->psd.value[PSD_RIGHT_1]);
     static enum { NONE, READY, DECISION } parking_state = 0;
     static int encoder_count1                           = 0;
+
     switch (parking_state) {
     case NONE: { // no obstacle sensed
-        if (recog->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
+        if (recog->psd.value[psd_XX_1_vert] < OBSTACLE_DISTANCE)
+            parking_state = READY;
         break;
     }
     case READY: { // first obstacle sensed
-        if (recog->psd.value[PSD_RIGHT_1] > 29.f) {
+        if (recog->psd.value[psd_XX_1_vert] > OBSTACLE_DISTANCE) {
             encoder_count1 = read_encoder_counter(); // parking area start
             parking_state  = DECISION;
         }
         break;
     }
-    case DECISION: {                                // parking area sensed
-        if (recog->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
+    case DECISION: { // parking area sensed
+        if (recog->psd.value[psd_XX_1_vert] <
+            OBSTACLE_DISTANCE) { // parking area end
             int distance =
                 (float)(read_encoder_counter() - encoder_count1) / TICK_PER_CM;
             printf("@@@@distance : %d [cm]\n", distance);
-            if (25 < distance && distance < 40) {
+            if (25 < distance && distance < 45) {
                 MSG("START MISSION => parking vertical");
                 *fnRun        = do_parking_vertical;
                 parking_state = NONE;
                 return true;
+            } else {
+                parking_state = NONE;
             }
         }
         break;
@@ -89,26 +119,30 @@ bool check_parking_parallel(fnRun_t *fnRun) {
 
     switch (parking_state) {
     case NONE: { // no obstacle sensed
-        if (recog->psd.value[PSD_RIGHT_1] < 26.f) parking_state = READY;
+        if (recog->psd.value[psd_XX_1_para] < OBSTACLE_DISTANCE)
+            parking_state = READY;
         break;
     }
     case READY: { // first obstacle sensed
-        if (recog->psd.value[PSD_RIGHT_1] > 29.f) {
+        if (recog->psd.value[psd_XX_1_para] > OBSTACLE_DISTANCE) {
             encoder_count1 = read_encoder_counter(); // parking area start
             parking_state  = DECISION;
         }
         break;
     }
-    case DECISION: {                                // parking area sensed
-        if (recog->psd.value[PSD_RIGHT_1] < 26.f) { // parking area end
+    case DECISION: { // parking area sensed
+        if (recog->psd.value[psd_XX_1_para] <
+            OBSTACLE_DISTANCE) { // parking area end
             int distance =
                 (float)(read_encoder_counter() - encoder_count1) / TICK_PER_CM;
             printf("@@@@distance : %d [cm]\n", distance);
-            if (45 < distance && distance < 60) {
+            if (40 < distance && distance < 65) {
                 MSG("START MISSION => parking parallel");
                 *fnRun        = do_parking_parallel;
                 parking_state = NONE;
                 return true;
+            } else {
+                parking_state = NONE;
             }
         }
         break;
@@ -131,24 +165,28 @@ void do_parking_vertical(fnClean_t *fnClean) {
     set_steering(1500);
     usleep(SLEEP_VERTICAL);
 
-    if (recog->psd.value[PSD_RIGHT_1] < 26.0f) {
+    if (recog->psd.value[psd_XX_1_vert] < 29.0f) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_VERTICAL / 2);
-        while (recog->psd.value[PSD_RIGHT_1] < 29.f) {}
+        while (recog->psd.value[psd_XX_1_vert] < OBSTACLE_DISTANCE) {}
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_VERTICAL / 2);
-        while (recog->psd.value[PSD_RIGHT_1] > 29.f) {}
+        while (recog->psd.value[psd_XX_1_vert] > OBSTACLE_DISTANCE) {}
     }
 
     set_desire_speed(0);
     usleep(SLEEP_VERTICAL);
 
+#if LOC_VERT == LEFT
+    move(-SPEED_VERTICAL, -30.f * TICK_PER_CM);
+#endif
+
     // progress : move to proper position to park
-    move(SPEED_VERTICAL, 16.f * TICK_PER_CM);
+    move(SPEED_VERTICAL, 20.f * TICK_PER_CM);
 
     // steering to 1000
-    set_steering(1000);
+    set_steering(1500 - steer_direc_vert);
     usleep(SLEEP_VERTICAL);
 
     // turn 90-degree backward
@@ -163,7 +201,7 @@ void do_parking_vertical(fnClean_t *fnClean) {
 
     int regressed_ticks = read_encoder_counter(); // [tick]
     set_desire_speed(-SPEED_VERTICAL);
-    while (recog->psd.value[PSD_BACK] > 12.f) {}
+    while (recog->psd.value[PSD_BACK] > 9.f) {}
     set_desire_speed(0);
     regressed_ticks -= read_encoder_counter(); // [tick]
 
@@ -171,11 +209,14 @@ void do_parking_vertical(fnClean_t *fnClean) {
     beep(50);
     usleep(SLEEP_VERTICAL);
 
-    // go straight as the car regressed
+// go straight as the car regressed
+#if LOC_VERT == LEFT
+    regressed_ticks -= 4.F * TICK_PER_CM;
+#endif
     move(SPEED_VERTICAL, regressed_ticks);
 
     // steering to 1000
-    set_steering(1000);
+    set_steering(1500 - steer_direc_vert);
     usleep(SLEEP_VERTICAL);
 
     // turn 90-degree forward
@@ -184,6 +225,8 @@ void do_parking_vertical(fnClean_t *fnClean) {
     // recover steering as previous steering before parking
     set_steering(previous_steering);
     usleep(SLEEP_VERTICAL);
+
+    recog->ext_data.call_init_lane_info = true;
     return;
 }
 
@@ -195,36 +238,38 @@ void do_parking_parallel(fnClean_t *fnClean) {
     // remember previous steering
     short       previous_steering = read_steering();
     const float turn_radian       = PI / 3.0f; // 60-degree
-    const float straight_cm       = 25.f;
+    const float straight_cm       = 28.f;
 
     // set steering at center
     set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
-    if (recog->psd.value[PSD_RIGHT_1] < 26.0f) {
+    if (recog->psd.value[psd_XX_1_para] < OBSTACLE_DISTANCE) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_PARALLEL);
-        while (recog->psd.value[PSD_RIGHT_1] < 29.f) {}
+        while (recog->psd.value[psd_XX_1_para] < OBSTACLE_DISTANCE) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
-        // progress: move to proper position to park
-        move(SPEED_PARALLEL, 8.f * TICK_PER_CM);
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_PARALLEL);
-        while (recog->psd.value[PSD_RIGHT_1] > 29.f) {}
+        while (recog->psd.value[psd_XX_1_para] > OBSTACLE_DISTANCE) {}
         set_desire_speed(0);
         usleep(SLEEP_PARALLEL);
-        // progress: move to proper position to park
-        move(SPEED_PARALLEL, 8.f * TICK_PER_CM);
     }
 
+#if LOC_PARA == LEFT
+    move(-SPEED_PARALLEL, -30.f * TICK_PER_CM);
+#endif
+    // progress: move to proper position to park
+    move(SPEED_PARALLEL, 5.f * TICK_PER_CM);
+
     // steering to 1000
-    set_steering(1000);
+    set_steering(1500 - steer_direc_para);
     usleep(SLEEP_PARALLEL);
 
     // turn ??-degree backward
-    move(-SPEED_PARALLEL, -(RADIUS * turn_radian * TICK_PER_CM));
+    move(-(SPEED_PARALLEL + 10), -(RADIUS * turn_radian * TICK_PER_CM));
 
     // steering to 1500
     set_steering(1500);
@@ -234,17 +279,15 @@ void do_parking_parallel(fnClean_t *fnClean) {
     move(-SPEED_PARALLEL, -straight_cm * TICK_PER_CM);
 
     // steering to 2000
-    set_steering(2000);
+    set_steering(1500 + steer_direc_para);
     usleep(SLEEP_PARALLEL);
 
-    // turn until the distance from the wall is 5cm backward
-    set_steering(2000);
-    // set_encoder_counter(0);
-
+    // turn until the distance from the wall is x-cm backward
+    set_steering(1500 + steer_direc_para);
     int regressed_ticks = read_encoder_counter(); // [tick]
     set_desire_speed(-SPEED_PARALLEL);
     while (recog->psd.value[PSD_BACK] > 7.3f &&
-           recog->psd.value[PSD_RIGHT_2] > 6.f) {}
+           recog->psd.value[psd_XX_2_para] > 6.f) {}
     set_desire_speed(0);
     regressed_ticks -= read_encoder_counter(); // [tick]
 
@@ -253,27 +296,28 @@ void do_parking_parallel(fnClean_t *fnClean) {
     usleep(SLEEP_PARALLEL);
 
     // turn forward as the car regressed
-    set_steering(2000);
-    move(SPEED_PARALLEL, regressed_ticks);
+    set_steering(1500 + steer_direc_para);
+    move((SPEED_PARALLEL + 10), regressed_ticks);
 
     // steering to 1500
     set_steering(1500);
     usleep(SLEEP_PARALLEL);
 
     // progress: move to proper position
-    move(SPEED_PARALLEL, (straight_cm + 5.0f) * TICK_PER_CM);
+    move(SPEED_PARALLEL, (straight_cm + 4.0f) * TICK_PER_CM);
 
     // steering to 1000
-    set_steering(1000);
+    set_steering(1500 - steer_direc_para);
     usleep(SLEEP_PARALLEL);
 
     // turn ??-degree forward
-    move(SPEED_PARALLEL, (RADIUS * turn_radian * TICK_PER_CM));
+    move((SPEED_PARALLEL + 10), (RADIUS * turn_radian * TICK_PER_CM));
 
     // set steering as previous steering before parking
     set_steering(previous_steering);
     usleep(SLEEP_PARALLEL);
 
+    recog->ext_data.call_init_lane_info = true;
     return;
 }
 
