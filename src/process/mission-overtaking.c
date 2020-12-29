@@ -2,7 +2,6 @@
 #include "process.h"
 
 #define SPEED_OVERTAKING 100
-#define SLEEP_OVERTAKING 400000
 #define STEER_GAIN1      15
 #define STEER_GAIN2      40
 
@@ -29,10 +28,10 @@ bool check_overtaking(fnRun_t *fnRun) {
             set_desire_speed(0);
             break;
         }
-        if (get_is_on_stop_line()) {
-            *fnRun = NULL;
-            return true;
-        }
+        // if (get_is_on_stop_line()) {
+        //     *fnRun = NULL;
+        //     return true;
+        // }
     }
     *fnRun = do_overtaking;
     MSG("START MISSION => overtaking");
@@ -42,29 +41,29 @@ bool check_overtaking(fnRun_t *fnRun) {
 void do_overtaking(fnClean_t *fnClean) {
     int         overtaking_direction;
     const float turn_rad       = PI * 50.f / 180.f;
-    const int   straight_tick  = 15.f * TICK_PER_CM;
+    const int   straight_tick  = 20.f * TICK_PER_CM;
     int         target_encoder = 0;
     int         steering       = 0;
     // stop
     set_desire_speed(0);
     set_steering(1500);
-    usleep(SLEEP_OVERTAKING * 3);
+
+    usleep(SLEEP_STOP);
     MSG("2: %3.1f ", recog->psd.value[PSD_FRONT]);
 
     set_desire_speed(-SPEED_OVERTAKING / 2);
     while (recog->psd.value[PSD_FRONT] < 27.0f) {}
-    set_desire_speed(0);
-    usleep(SLEEP_OVERTAKING);
+    // set_desire_speed(0);
+    // usleep(SLEEP_STOP);
     MSG("3: %3.1f ", recog->psd.value[PSD_FRONT]);
-
     move(-SPEED_OVERTAKING, -10.f * TICK_PER_CM);
     MSG("4: %3.1f ", recog->psd.value[PSD_FRONT]);
 
     // search empty road
     recog->other_cars.enable = true;
     set_camera_Yservo(1600);
-    usleep(SLEEP_OVERTAKING * 2);
-    sleep(3);
+    sleep(2);
+
     overtaking_direction = 0;
     for (int i = 0; i < 40; i++) {
         overtaking_direction += recog->other_cars.value;
@@ -99,7 +98,7 @@ void do_overtaking(fnClean_t *fnClean) {
     recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
     target_encoder = read_encoder_counter() - 50.f * TICK_PER_CM;
-    usleep(SLEEP_OVERTAKING);
+    usleep(SLEEP_STEER);
     set_desire_speed(-SPEED_OVERTAKING);
     while (target_encoder < read_encoder_counter()) {
         set_steering(1500 - (short)recog->lane.value.pos_yawl * STEER_GAIN2);
@@ -110,7 +109,7 @@ void do_overtaking(fnClean_t *fnClean) {
     // progress (Yellow & White lane)
     set_steering(1500);
     target_encoder = read_encoder_counter() + 60.f * TICK_PER_CM;
-    usleep(SLEEP_OVERTAKING);
+    usleep(SLEEP_STOP);
     set_desire_speed(SPEED_OVERTAKING);
     while (read_encoder_counter() < target_encoder) {
         set_steering(1500 + recog->lane.value.pos_yawl * STEER_GAIN2);
@@ -137,7 +136,7 @@ void do_overtaking(fnClean_t *fnClean) {
 
     // regress (psd) => move car to center of road
     set_steering(1500);
-    usleep(SLEEP_OVERTAKING);
+    usleep(SLEEP_STEER);
     set_desire_speed(-SPEED_OVERTAKING);
     while (recog->psd.value[PSD_BACK] > 25.f) {}
     MSG("back: %3.1f ", recog->psd.value[PSD_BACK]);
@@ -146,7 +145,7 @@ void do_overtaking(fnClean_t *fnClean) {
     // progress (Yellow lane)
     recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
-    usleep(SLEEP_OVERTAKING);
+    usleep(SLEEP_STOP);
     set_desire_speed(SPEED_OVERTAKING);
     while (!get_is_on_stop_line()) {
         set_steering(1500 + recog->lane.value.pos_yl * STEER_GAIN2);

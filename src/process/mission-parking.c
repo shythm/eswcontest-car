@@ -1,10 +1,8 @@
 #include "car-header.h"
 #include "process.h"
 
-#define SPEED_VERTICAL 85     // 50~100
-#define SPEED_PARALLEL 50     // 50
-#define SLEEP_VERTICAL 300000 // 0.3s
-#define SLEEP_PARALLEL 300000 // 0.3s
+#define SPEED_VERTICAL 85 // 50~100
+#define SPEED_PARALLEL 50 // 50
 
 #define BRAKING_TIME 110000
 #define TIME_STEP    1000
@@ -163,7 +161,7 @@ void do_parking_vertical(fnClean_t *fnClean) {
 
     // set steering at center
     set_steering(1500);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
     if (recog->psd.value[psd_XX_1_vert] < 29.0f) {
         // progress: until psd_right_1 is near by progress point
@@ -176,25 +174,27 @@ void do_parking_vertical(fnClean_t *fnClean) {
     }
 
     set_desire_speed(0);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
-#if LOC_VERT == LEFT
-    move(-SPEED_VERTICAL, -30.f * TICK_PER_CM);
-#endif
-
+#if LOC_VERT == RIGHT
     // progress : move to proper position to park
     move(SPEED_VERTICAL, 20.f * TICK_PER_CM);
+#else
+    move(-SPEED_VERTICAL, -10.f * TICK_PER_CM);
+#endif
+    usleep(SLEEP_STOP);
 
     // steering to 1000
     set_steering(1500 - steer_direc_vert);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
     // turn 90-degree backward
     move(-SPEED_VERTICAL, -(RADIUS * PI / 2 * TICK_PER_CM));
+    usleep(SLEEP_STOP);
 
     // steering to 1500
     set_steering(1500);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
     // regress until the distance from the wall is 15cm
     // set_encoder_counter(0);
@@ -207,33 +207,33 @@ void do_parking_vertical(fnClean_t *fnClean) {
 
     // beep
     beep(50);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
 // go straight as the car regressed
 #if LOC_VERT == LEFT
     regressed_ticks -= 4.F * TICK_PER_CM;
 #endif
     move(SPEED_VERTICAL, regressed_ticks);
+    usleep(SLEEP_STOP);
 
     // steering to 1000
     set_steering(1500 - steer_direc_vert);
-    usleep(SLEEP_VERTICAL);
+    usleep(SLEEP_STEER);
 
     // turn 90-degree forward
     move(SPEED_VERTICAL, (RADIUS * PI / 2 * TICK_PER_CM));
-
+    usleep(SLEEP_STOP);
     // recover steering as previous steering before parking
     set_steering(previous_steering);
-    usleep(SLEEP_VERTICAL);
-
     recog->ext_data.call_init_lane_info = true;
+    usleep(SLEEP_STEER);
     return;
 }
 
 void do_parking_parallel(fnClean_t *fnClean) {
     // stop slowly
     stop_slowly();
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STOP);
 
     // remember previous steering
     short       previous_steering = read_steering();
@@ -242,45 +242,45 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // set steering at center
     set_steering(1500);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     if (recog->psd.value[psd_XX_1_para] < OBSTACLE_DISTANCE) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_PARALLEL);
         while (recog->psd.value[psd_XX_1_para] < OBSTACLE_DISTANCE) {}
-        set_desire_speed(0);
-        usleep(SLEEP_PARALLEL);
     } else {
         // regress: until psd_right_1 is near by progress point
         set_desire_speed(-SPEED_PARALLEL);
         while (recog->psd.value[psd_XX_1_para] > OBSTACLE_DISTANCE) {}
-        set_desire_speed(0);
-        usleep(SLEEP_PARALLEL);
     }
+    set_desire_speed(0);
+    usleep(SLEEP_STOP);
 
-#if LOC_PARA == LEFT
-    move(-SPEED_PARALLEL, -30.f * TICK_PER_CM);
-#endif
+#if LOC_PARA == RIGHT
     // progress: move to proper position to park
     move(SPEED_PARALLEL, 5.f * TICK_PER_CM);
+#else
+    move(-SPEED_PARALLEL, -25.f * TICK_PER_CM);
+#endif
+    usleep(SLEEP_STOP);
 
     // steering to 1000
     set_steering(1500 - steer_direc_para);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     // turn ??-degree backward
     move(-(SPEED_PARALLEL + 10), -(RADIUS * turn_radian * TICK_PER_CM));
 
     // steering to 1500
     set_steering(1500);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     // regress: move to proper position
     move(-SPEED_PARALLEL, -straight_cm * TICK_PER_CM);
 
     // steering to 2000
     set_steering(1500 + steer_direc_para);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     // turn until the distance from the wall is x-cm backward
     set_steering(1500 + steer_direc_para);
@@ -293,29 +293,30 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // beep
     beep(50);
-    usleep(SLEEP_PARALLEL);
 
     // turn forward as the car regressed
     set_steering(1500 + steer_direc_para);
+    usleep(SLEEP_STEER);
     move((SPEED_PARALLEL + 10), regressed_ticks);
+    usleep(SLEEP_STOP);
 
     // steering to 1500
     set_steering(1500);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     // progress: move to proper position
     move(SPEED_PARALLEL, (straight_cm + 4.0f) * TICK_PER_CM);
 
     // steering to 1000
     set_steering(1500 - steer_direc_para);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     // turn ??-degree forward
     move((SPEED_PARALLEL + 10), (RADIUS * turn_radian * TICK_PER_CM));
-
+    usleep(SLEEP_STOP);
     // set steering as previous steering before parking
     set_steering(previous_steering);
-    usleep(SLEEP_PARALLEL);
+    usleep(SLEEP_STEER);
 
     recog->ext_data.call_init_lane_info = true;
     return;

@@ -54,7 +54,6 @@ void move(short speed, volatile int desire_encoder) {
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
-    usleep(5000);
 }
 
 void set_camera_Yservo(short y_servo) {
