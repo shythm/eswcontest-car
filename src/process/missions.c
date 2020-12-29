@@ -40,9 +40,14 @@ fnInit_t mission_list[] = {
      * Write the initializing functions here array to run the
      * missions sequentially. You must add NULL at the end element.
      */
+    // init_parking_vertical,
     init_start,
+    init_parking_parallel,
+    init_parking_vertical,
     NULL,
 };
+
+#endif
 
 #define IF_FUNC_NAME(name)                                                     \
     if (func == init_##name) return #name
@@ -60,5 +65,3 @@ const char *get_mission_name(fnInit_t func) {
     IF_FUNC_NAME(trafficLight);
     else return "";
 }
-
-#endif
