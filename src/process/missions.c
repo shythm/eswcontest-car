@@ -42,8 +42,6 @@ fnInit_t mission_list[] = {
      */
     // init_parking_vertical,
     init_start,
-    init_parking_parallel,
-    init_parking_vertical,
     NULL,
 };
 
