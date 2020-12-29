@@ -4,7 +4,7 @@
 #define TL_SPEED       90
 #define TL_SLEEP       100000 // 0.1s
 #define GAIN_POSITION  35
-#define LAST_TURN_TICK PI * 80.0F / 180.0F * RADIUS *TICK_PER_CM // 80-degree
+#define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
@@ -100,14 +100,13 @@ void clean_trafficLight() {
     recog->traffic_light.enabled  = false;
     recog->tl_lane.enable         = false;
 
-    while (1) sleep(1); /* THE END */
+    sleep(2);
+    // while (1) sleep(1); /* THE END */
 }
 
 void dive_into_end_point() {
     short steering = (-recog->tl_lane.value * GAIN_POSITION) + 1500.f;
     // constrain 1200~1800
-    if (steering > 1800) steering = 1800;
-    else if (steering < 1200)
-        steering = 1200;
+    steering = CONSTRAIN(steering, 1200, 1800);
     set_steering(steering);
 }

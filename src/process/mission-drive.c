@@ -1,6 +1,6 @@
 #include "process.h"
 
-#define MAX_VELO 250 // Maximum velocity
+#define MAX_VELO 200 // Maximum velocity
 
 void init_drive() {
     ctrld_write(CMD_CAMERA_Y_SERVO_CONTROL, 1700);
