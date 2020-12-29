@@ -17,6 +17,7 @@ void start_with_PSD(fnClean_t *fnClean) {
     // wait until the car is on the overpass
     cnt = 0, flag = 0;
     while (1) {
+        cnt = 0;
         for (int i = 1; i < PSD_COUNT; i++) {
             if (recog->psd.value[i] < 20.f) cnt++;
         }
@@ -25,22 +26,23 @@ void start_with_PSD(fnClean_t *fnClean) {
     }
 
     // wait until obstacle appear in front of car
-    cnt = 0, flag = 0;
+    flag = 0;
     while (1) {
+
         if (recog->psd.value[PSD_FRONT] < 20.f) {
-            cnt++;
-            if (cnt > 1000) break;
+            flag++;
+            if (flag > 1000) break;
         } else
-            cnt = 0;
+            flag = 0;
     }
     // wait until obstacle disappear in front of car
-    cnt = 0, flag = 0;
+    flag = 0;
     while (1) {
         if (recog->psd.value[PSD_FRONT] > 20.f) {
-            cnt++;
-            if (cnt > 1000) break;
+            flag++;
+            if (flag > 1000) break;
         } else
-            cnt = 0;
+            flag = 0;
     }
 
     beep(50);

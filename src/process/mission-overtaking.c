@@ -29,10 +29,10 @@ bool check_overtaking(fnRun_t *fnRun) {
             set_desire_speed(0);
             break;
         }
-        if (get_is_on_stop_line()) {
-            *fnRun = NULL;
-            return true;
-        }
+        // if (get_is_on_stop_line()) {
+        //     *fnRun = NULL;
+        //     return true;
+        // }
     }
     *fnRun = do_overtaking;
     MSG("START MISSION => overtaking");

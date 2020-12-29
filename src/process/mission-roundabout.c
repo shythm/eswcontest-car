@@ -14,7 +14,7 @@
 #define VELO_STOP_LINE 80 // velocity at stop line
 
 // 차선 위치 보정 정도(실수 전체, 바깥쪽으로 돌려면 음수여야 함)
-#define POS_COMP_DEGREE -4.0f
+#define POS_COMP_DEGREE -1.0f
 // 곡선 구간을 판단을 위한 상수(양수)
 #define POS_CURVE_CONDITION 4.0f
 // 회전 교차로 탈출 조건: 회전 교차로 주행 거리(단위: cm)
@@ -84,7 +84,10 @@ static void steering(float pos, float gain_p) {
 }
 
 static bool evasion_escape_flag = false;
-static void alarm_handler(int signo) { evasion_escape_flag = false; }
+static void alarm_handler(int signo) {
+    evasion_escape_flag = false;
+    MSG("Evasion !!");
+}
 
 void run_roundabout(fnClean_t *fnClean) {
     // 앞에 차량이 지나갈 때까지 기다림
