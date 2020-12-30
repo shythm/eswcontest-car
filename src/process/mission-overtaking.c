@@ -22,7 +22,7 @@ void init_overtaking(fnCheck_t *fnCheck) {
 bool check_overtaking(fnRun_t *fnRun) {
     while (1) {
         set_steering(1500 + recog->lane.value.pos_yawl * STEER_GAIN1);
-        usleep(1000);
+        // usleep(1000);
         if (recog->psd.value[PSD_FRONT] < 27.f) {
             MSG("1: %3.1f ", recog->psd.value[PSD_FRONT]);
             set_desire_speed(0);
@@ -47,33 +47,32 @@ void do_overtaking(fnClean_t *fnClean) {
     // stop
     set_desire_speed(0);
     set_steering(1500);
-
     usleep(SLEEP_STOP);
     MSG("2: %3.1f ", recog->psd.value[PSD_FRONT]);
 
+    // regress: precisely control distance between obstacle and robot
     set_desire_speed(-SPEED_OVERTAKING / 2);
     while (recog->psd.value[PSD_FRONT] < 27.0f) {}
-    // set_desire_speed(0);
-    // usleep(SLEEP_STOP);
     MSG("3: %3.1f ", recog->psd.value[PSD_FRONT]);
+    // regress
     move(-SPEED_OVERTAKING, -10.f * TICK_PER_CM);
     MSG("4: %3.1f ", recog->psd.value[PSD_FRONT]);
 
     // search empty road
-    recog->other_cars.enable = true;
+    recog->empty_road.enable = true;
     set_camera_Yservo(1600);
     sleep(2);
 
     overtaking_direction = 0;
     for (int i = 0; i < 40; i++) {
-        overtaking_direction += recog->other_cars.value;
+        overtaking_direction += recog->empty_road.value;
         usleep(2000);
     }
 
     int steer_direc = (overtaking_direction < 0) ? -500 : 500; // left:right
 
     set_camera_Yservo(1700);
-    recog->other_cars.enable = false;
+    recog->empty_road.enable = false;
 
     // RIGHT | LEFT
     // turn right | left   => first overtaking
@@ -135,6 +134,7 @@ void do_overtaking(fnClean_t *fnClean) {
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
 
     // regress (psd) => move car to center of road
+    target_encoder = read_encoder_counter();
     set_steering(1500);
     usleep(SLEEP_STEER);
     set_desire_speed(-SPEED_OVERTAKING);
@@ -144,10 +144,10 @@ void do_overtaking(fnClean_t *fnClean) {
 
     // progress (Yellow lane)
     recog->ext_data.call_init_lane_info = true;
-    set_steering(1500);
     usleep(SLEEP_STOP);
     set_desire_speed(SPEED_OVERTAKING);
-    while (!get_is_on_stop_line()) {
+    while ((!get_is_on_stop_line()) &&
+           (read_encoder_counter < target_encoder)) {
         set_steering(1500 + recog->lane.value.pos_yl * STEER_GAIN2);
     }
     set_desire_speed(0);

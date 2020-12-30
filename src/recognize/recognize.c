@@ -96,8 +96,8 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
     }
-    if (result->other_cars.enable) {
-        result->other_cars.value = get_empty_road(arg);
+    if (result->empty_road.enable) {
+        result->empty_road.value = get_empty_road(arg);
     }
     if (result->stop_line_pos.enable) { // update stop line position
         result->stop_line_pos.value = get_stop_line(arg);
