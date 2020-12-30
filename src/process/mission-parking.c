@@ -2,12 +2,12 @@
 #include "process.h"
 
 #define SPEED_VERTICAL 85 // 50~100
-#define SPEED_PARALLEL 50 // 50
+#define SPEED_PARALLEL 60 // 50
+#define SUPP_SPEED     15
+#define BRAKING_TIME   130
+#define TIME_STEP      1
 
-#define BRAKING_TIME 110000
-#define TIME_STEP    1000
-
-#define OBSTACLE_DISTANCE 29.F
+#define OBSTACLE_DISTANCE 29.5F
 
 #define LEFT  0
 #define RIGHT 1
@@ -16,21 +16,21 @@
 #define LOC_PARA RIGHT // parking parallel
 
 #if LOC_VERT == RIGHT
-int psd_XX_1_vert    = PSD_RIGHT_1;
-int steer_direc_vert = 500;
+const int psd_XX_1_vert    = PSD_RIGHT_1;
+const int steer_direc_vert = 500;
 #elif LOC_VERT == LEFT
-int psd_XX_1_vert    = PSD_LEFT_2;
-int steer_direc_vert = -500;
+const int psd_XX_1_vert    = PSD_LEFT_2;
+int       steer_direc_vert = -500;
 #endif
 
 #if LOC_PARA == RIGHT
-int psd_XX_1_para    = PSD_RIGHT_1;
-int psd_XX_2_para    = PSD_RIGHT_2;
-int steer_direc_para = 500;
-#elif LOC_PARAA == LEFT
-int psd_XX_1_para    = PSD_LEFT_2;
-int psd_XX_2_para    = PSD_LEFT_2;
-int steer_direc_para = -500;
+const int psd_XX_1_para    = PSD_RIGHT_1;
+const int psd_XX_2_para    = PSD_RIGHT_2;
+const int steer_direc_para = 500;
+#elif LOC_PARA == LEFT
+const int psd_XX_1_para    = PSD_LEFT_2;
+const int psd_XX_2_para    = PSD_LEFT_2;
+const int steer_direc_para = -500;
 #endif
 
 bool check_parking_vertical(fnRun_t *);
@@ -134,7 +134,7 @@ bool check_parking_parallel(fnRun_t *fnRun) {
             int distance =
                 (float)(read_encoder_counter() - encoder_count1) / TICK_PER_CM;
             printf("@@@@distance : %d [cm]\n", distance);
-            if (40 < distance && distance < 65) {
+            if (45 < distance && distance < 65) {
                 MSG("START MISSION => parking parallel");
                 *fnRun        = do_parking_parallel;
                 parking_state = NONE;
@@ -163,7 +163,7 @@ void do_parking_vertical(fnClean_t *fnClean) {
     set_steering(1500);
     usleep(SLEEP_STEER);
 
-    if (recog->psd.value[psd_XX_1_vert] < 29.0f) {
+    if (recog->psd.value[psd_XX_1_vert] < OBSTACLE_DISTANCE) {
         // progress: until psd_right_1 is near by progress point
         set_desire_speed(SPEED_VERTICAL / 2);
         while (recog->psd.value[psd_XX_1_vert] < OBSTACLE_DISTANCE) {}
@@ -184,7 +184,8 @@ void do_parking_vertical(fnClean_t *fnClean) {
 #endif
     usleep(SLEEP_STOP);
 
-    // steering to 1000
+    // Location of parking lot: right | left
+    // steering to right | left
     set_steering(1500 - steer_direc_vert);
     usleep(SLEEP_STEER);
 
@@ -216,7 +217,7 @@ void do_parking_vertical(fnClean_t *fnClean) {
     move(SPEED_VERTICAL, regressed_ticks);
     usleep(SLEEP_STOP);
 
-    // steering to 1000
+    // steering to right | left
     set_steering(1500 - steer_direc_vert);
     usleep(SLEEP_STEER);
 
@@ -237,8 +238,8 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // remember previous steering
     short       previous_steering = read_steering();
-    const float turn_radian       = PI / 3.0f; // 60-degree
-    const float straight_cm       = 28.f;
+    const float turn_radian       = PI * 55.f / 180.f; // 60-degre
+    const float straight_tick     = 33.f * TICK_PER_CM;
 
     // set steering at center
     set_steering(1500);
@@ -258,32 +259,26 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
 #if LOC_PARA == RIGHT
     // progress: move to proper position to park
-    move(SPEED_PARALLEL, 5.f * TICK_PER_CM);
+    move(SPEED_PARALLEL, 14.f * TICK_PER_CM);
 #else
-    move(-SPEED_PARALLEL, -25.f * TICK_PER_CM);
+    move(-SPEED_PARALLEL, -24.f * TICK_PER_CM);
 #endif
     usleep(SLEEP_STOP);
 
-    // steering to 1000
+    // Location of parking lot: right | left
+    // steering to right | left
     set_steering(1500 - steer_direc_para);
-    usleep(SLEEP_STEER);
-
     // turn ??-degree backward
-    move(-(SPEED_PARALLEL + 10), -(RADIUS * turn_radian * TICK_PER_CM));
+    move(-(SPEED_PARALLEL + SUPP_SPEED), -(RADIUS * turn_radian * TICK_PER_CM));
 
     // steering to 1500
     set_steering(1500);
-    usleep(SLEEP_STEER);
-
     // regress: move to proper position
-    move(-SPEED_PARALLEL, -straight_cm * TICK_PER_CM);
+    move(-SPEED_PARALLEL, -straight_tick);
 
-    // steering to 2000
+    // steering to left |right
     set_steering(1500 + steer_direc_para);
-    usleep(SLEEP_STEER);
-
     // turn until the distance from the wall is x-cm backward
-    set_steering(1500 + steer_direc_para);
     int regressed_ticks = read_encoder_counter(); // [tick]
     set_desire_speed(-SPEED_PARALLEL);
     while (recog->psd.value[PSD_BACK] > 7.3f &&
@@ -293,27 +288,22 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // beep
     beep(50);
+    sleep(1);
 
     // turn forward as the car regressed
-    set_steering(1500 + steer_direc_para);
-    usleep(SLEEP_STEER);
-    move((SPEED_PARALLEL + 10), regressed_ticks);
-    usleep(SLEEP_STOP);
+    set_steering(1500 + steer_direc_para); // steering to left |right
+    move((SPEED_PARALLEL + SUPP_SPEED), regressed_ticks);
 
     // steering to 1500
     set_steering(1500);
-    usleep(SLEEP_STEER);
-
     // progress: move to proper position
-    move(SPEED_PARALLEL, (straight_cm + 4.0f) * TICK_PER_CM);
+    move(SPEED_PARALLEL, straight_tick - 5.f * TICK_PER_CM);
 
-    // steering to 1000
+    // steering to left |right
     set_steering(1500 - steer_direc_para);
-    usleep(SLEEP_STEER);
-
     // turn ??-degree forward
-    move((SPEED_PARALLEL + 10), (RADIUS * turn_radian * TICK_PER_CM));
-    usleep(SLEEP_STOP);
+    move((SPEED_PARALLEL + SUPP_SPEED), (RADIUS * turn_radian * TICK_PER_CM));
+
     // set steering as previous steering before parking
     set_steering(previous_steering);
     usleep(SLEEP_STEER);
@@ -325,10 +315,6 @@ void do_parking_parallel(fnClean_t *fnClean) {
 void stop_slowly() {
     short initial_speed = read_desire_speed();
     float tangent       = -(float)(initial_speed) / (float)(BRAKING_TIME);
-    if (initial_speed < 10) {
-        set_desire_speed(0);
-        return;
-    }
     for (int time = TIME_STEP; time < BRAKING_TIME; time += TIME_STEP) {
         set_desire_speed((tangent * time + initial_speed));
     }

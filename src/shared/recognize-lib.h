@@ -143,7 +143,7 @@ typedef struct _recog_tl_lane_data {
 
 typedef struct _recog_empty_road_data {
     bool enable;
-    int  value;
+    int  value; // -1: left, 1: right is empty road
 } recog_empty_road_data;
 
 typedef struct {

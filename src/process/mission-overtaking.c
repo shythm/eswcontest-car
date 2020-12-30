@@ -1,9 +1,9 @@
 #include "car-header.h"
 #include "process.h"
 
-#define SPEED_OVERTAKING 100
+#define SPEED_OVERTAKING 110
 #define STEER_GAIN1      15
-#define STEER_GAIN2      40
+#define STEER_GAIN2      30
 
 void init_overtaking(fnCheck_t *fnCheck);
 bool check_overtaking(fnRun_t *fnRun);
@@ -39,9 +39,9 @@ bool check_overtaking(fnRun_t *fnRun) {
 }
 
 void do_overtaking(fnClean_t *fnClean) {
-    int         overtaking_direction;
+    int         direction;
     const float turn_rad       = PI * 50.f / 180.f;
-    const int   straight_tick  = 20.f * TICK_PER_CM;
+    const int   straight_tick  = 17.5f * TICK_PER_CM;
     int         target_encoder = 0;
     int         steering       = 0;
     // stop
@@ -62,36 +62,29 @@ void do_overtaking(fnClean_t *fnClean) {
     recog->empty_road.enable = true;
     set_camera_Yservo(1600);
     sleep(2);
-
-    overtaking_direction = 0;
+    direction = 0;
     for (int i = 0; i < 40; i++) {
-        overtaking_direction += recog->empty_road.value;
+        direction += recog->empty_road.value;
         usleep(2000);
     }
 
-    int steer_direc = (overtaking_direction < 0) ? -500 : 500; // left:right
+    direction = (direction < 0) ? -500 : 500; // left:right
 
     set_camera_Yservo(1700);
     recog->empty_road.enable = false;
 
-    // RIGHT | LEFT
+    // overtaking direction:  RIGHT | LEFT
     // turn right | left   => first overtaking
-    set_steering(1500 - steer_direc);
-    // usleep(SLEEP_OVERTAKING);
+    set_steering(1500 - direction);
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
-    // usleep(SLEEP_OVERTAKING);
 
     // progress
     set_steering(1500);
-    // usleep(SLEEP_OVERTAKING);
     move(SPEED_OVERTAKING, straight_tick);
-    // usleep(SLEEP_OVERTAKING);
 
     // turn left | right
-    set_steering(1500 + steer_direc);
-    // usleep(SLEEP_OVERTAKING);
+    set_steering(1500 + direction);
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
-    // usleep(SLEEP_OVERTAKING);
 
     // regress(Yellow & White lane)     => move car to center of road
     recog->ext_data.call_init_lane_info = true;
@@ -117,20 +110,15 @@ void do_overtaking(fnClean_t *fnClean) {
     set_desire_speed(0);
 
     // turn left | right   => second overtaking
-    set_steering(1500 + steer_direc);
-    // usleep(SLEEP_OVERTAKING);
+    set_steering(1500 + direction);
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
-    // usleep(SLEEP_OVERTAKING);
 
     // progress
     set_steering(1500);
-    // usleep(SLEEP_OVERTAKING);
     move(SPEED_OVERTAKING, straight_tick);
-    // usleep(SLEEP_OVERTAKING);
 
     // turn right | left
-    set_steering(1500 - steer_direc);
-    // usleep(SLEEP_OVERTAKING * 2);
+    set_steering(1500 - direction);
     move(SPEED_OVERTAKING, turn_rad * RADIUS * TICK_PER_CM);
 
     // regress (psd) => move car to center of road
@@ -152,5 +140,3 @@ void do_overtaking(fnClean_t *fnClean) {
     }
     set_desire_speed(0);
 }
-
-void clean_overtaking() {}
