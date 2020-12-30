@@ -27,7 +27,8 @@ typedef std::vector<cv::Point> Contour;
 
 // OpenCV HSV Value Range
 // H: 0-179, S: 0-255, V: 0-255
-cv::Mat maskImage(cv::Mat &frame, int hStart, int hEnd, int sMin, int sMax, int vMin, int vMax) {
+cv::Mat maskImage(cv::Mat &frame, int hStart, int hEnd, int sMin, int sMax,
+                  int vMin, int vMax) {
     cv::Mat hsvImage;
     cv::cvtColor(frame, hsvImage, cv::COLOR_BGR2HSV);
 
@@ -35,10 +36,11 @@ cv::Mat maskImage(cv::Mat &frame, int hStart, int hEnd, int sMin, int sMax, int 
     cv::split(hsvImage, channels);
 
     if (hStart < hEnd)
-        cv::bitwise_and(hStart <= channels[0], channels[0] <= hEnd, channels[0]);
+        cv::bitwise_and(hStart <= channels[0], channels[0] <= hEnd,
+                        channels[0]);
     else
         cv::bitwise_or(hStart <= channels[0], channels[0] <= hEnd, channels[0]);
-    
+
     cv::bitwise_and(sMin <= channels[1], channels[1] <= sMax, channels[1]);
     cv::bitwise_and(vMin <= channels[2], channels[2] <= vMax, channels[2]);
 
@@ -141,43 +143,56 @@ void putTextAtCenter(cv::Mat &frame, std::string text, cv::Scalar color) {
                 color, 1);
 }
 
+// < 신호등 원의 크기에 대하여 >
+// 바퀴가 흰색 정지선에 있을 때: 크기 280정도 나옴.
+// 앞바퀴가 흰색 정지선을 완전히 넘었을 때: 300정도 나옴.
+// 앞바퀴가 흰색 정지선의 뒤에 있을 때: 250정도 나옴.
 TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
                            int maxArea) {
-    cv::Mat redMasked    = maskImage(frame, -15, 15, 90, 255, 60, 255);
-    cv::Mat yellowMasked = maskImage(frame, 10, 50, 120, 255, 60, 255);
-    cv::Mat greenMasked  = maskImage(frame, 50, 80, 60, 255, 40, 255);
-    cv::Mat greenInverse = 255 - greenMasked;
+    cv::Mat blackMasked = maskImage(frame, 0, 179, 0, 255, 0, 50);
 
-    const static std::string captions[] = {"Red Light!", "Yellow Light!",
-                                           "Green Light!", "Left Direction!",
-                                           "Right Direction!"};
-    const static cv::Scalar  colors[]   = {
-        cv::Scalar(0, 0, 255), cv::Scalar(131, 232, 252), cv::Scalar(0, 255, 0),
-        cv::Scalar(0, 255, 0), cv::Scalar(0, 255, 0)};
+    std::vector<Contour> circles =
+        findShapes(Circle, blackMasked, minArea, maxArea);
 
-    std::vector<Contour> found[] = {
-        findShapes(Circle, redMasked, minArea, maxArea),
-        findShapes(Circle, yellowMasked, minArea, maxArea),
-        findShapes(Circle, greenMasked, minArea, maxArea),
-        findShapes(Left, greenMasked, minArea, maxArea),
-        findShapes(Right, greenMasked, minArea, maxArea),
-    };
-
-    if (drawBoard) {
-        for (int i = 0; i < 5; ++i) {
-            if (!found[i].empty()) {
-                cv::drawContours(*drawBoard, found[i], -1, colors[i], 2);
-                putTextAtCenter(*drawBoard, captions[i], colors[i]);
-            }
+    if (circles.size() >= 4) {
+        printf("Circles Count: %d\n", (int)circles.size());
+        for (const Contour &c : circles) {
+            cv::Moments m  = cv::moments(c);
+            double      cX = m.m10 / m.m00;
+            double      cY = m.m01 / m.m00;
+            printf("%lf, (%lf, %lf)\n", cv::contourArea(c), cX, cY);
         }
+        printf("\n");
     }
 
+    if (drawBoard) {
+        cv::drawContours(*drawBoard, circles, -1, cv::Scalar(255, 0, 0), 2);
+    }
+
+    // cv::Mat gray;
+    // cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    // cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0);
+
+    // std::vector<cv::Vec3f> circles;
+    // // 감지하려는 원의 최소 반지름이 r일 때, 원의 중심들간 최소
+    // 거리(minDist)는
+    // // 2r이다.
+    // cv::HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1, 2 * minRadius, 50,
+    // 50,
+    //                  minRadius, maxRadius);
+
+    // printf("Circles Count: %d\n", (int)circles.size());
+    // for (const cv::Vec3f &c : circles)
+    //     printf("center: (%f, %f), radius: %f\n", c[0], c[1], c[2]);
+    // printf("\n");
+    // sleep(1);
+
     TrafficLights result;
-    result.red    = !found[0].empty();
-    result.yellow = !found[1].empty();
-    result.green  = !found[2].empty();
-    result.left   = !found[3].empty();
-    result.right  = !found[4].empty();
+    result.red    = false;
+    result.yellow = false;
+    result.green  = false;
+    result.left   = false;
+    result.right  = false;
     return result;
 }
 
@@ -195,19 +210,19 @@ struct TrafficLights detectLights(recog_arg *arg) {
 
     if (outBuf) {
         cv::Mat dstRGB(IMG_H, IMG_W, CV_8UC3, outBuf);
-        result = detectLights(srcRGB, &dstRGB, 40, 100000);
+        result = detectLights(srcRGB, &dstRGB, 1, 100000);
     } else
-        result = detectLights(srcRGB, NULL, 40, 100000);
+        result = detectLights(srcRGB, NULL, 1, 100000);
 
     return result;
 }
 
 struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
                                        int minArea, int maxArea) {
-    cv::Mat              redMasked = maskImage(frame, -15, 15, 90, 255, 60, 255);
+    cv::Mat redMasked = maskImage(frame, -15, 15, 90, 255, 60, 255);
     std::vector<Contour> rectFound =
         findShapes(Rectangle, redMasked, minArea, maxArea);
-        
+
     if (rectFound.size() > 0) {
         if (drawBoard) {
             std::vector<Contour> toDraw;
@@ -270,7 +285,7 @@ extern "C" recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
 }
 extern "C" recog_traffic_light_t get_traffic_light(recog_arg *arg) {
     struct TrafficLights detected = detectLights(arg);
-    int result = TL_NONE;
+    int                  result   = TL_NONE;
 
     if (detected.green) result |= TL_GREEN;
     if (detected.yellow) result |= TL_YELLOW;
