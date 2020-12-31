@@ -1,10 +1,11 @@
 #include "car-header.h"
 #include "process.h"
 
-#define TL_SPEED       90
+#define SPEED_TL       110
 #define GAIN_POSITION  35
-#define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
 #define VELO_STOP_LINE 50 // velocity at stop line
+
+#define REGRESS_ENABLE 0
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
@@ -41,13 +42,16 @@ bool check_trafficLight(fnRun_t *fnRun) {
     if (stop_line_pos > 0.0f) { // 정지선에 가까워질수록 속도가 느려짐
         float temp_velo = (VELO_STOP_LINE - pre_target_velo) * stop_line_pos +
                           pre_target_velo;
+        // VELO_STOP_LINE < 다음 target_velo < 현재 target_velo
         target_velo = CONSTRAIN(temp_velo, VELO_STOP_LINE, target_velo);
     }
     return false;
 }
 
 void do_trafficLight(fnClean_t *fnClean) {
-    recog->lane.enabled          = false;
+    const int straight_tick = (int)(33.f * TICK_PER_CM);
+    const int turn_tick     = (int)(PI * 90.0F / 180.0F * RADIUS * TICK_PER_CM);
+    recog->lane.enabled     = false;
     recog->traffic_light.enabled = true;
 
     // stop
@@ -73,39 +77,38 @@ void do_trafficLight(fnClean_t *fnClean) {
     // tilt down camera
     set_camera_Yservo(1700);
 
-    /*
-        // progress
-        set_steering(1500);
-        set_desire_speed(TL_SPEED);
-        while (recog->psd.value[PSD_FRONT] > 26.f) {
-            // printf("PSD FRONT: %3.1f\n", recog->psd.value[PSD_FRONT]);
-        }
-        set_desire_speed(0);
-        usleep(TL_SLEEP);
-
-        // regress
-        if (tl_direction < 0) { // left
-            move(-TL_SPEED, -10.f * TICK_PER_CM);
-            set_steering(2000);
-        } else { // right
-            move(-TL_SPEED, -5.f * TICK_PER_CM);
-            set_steering(1000);
-        }
-        */
     recog->tl_lane.enable         = true;
     recog->is_on_end_zone.enabled = true;
-    // usleep(TL_SLEEP);
 
+#if REGRESS_ENABLE
     // progress
-    move(TL_SPEED, 35.f * TICK_PER_CM);
+    set_steering(1500);
+    set_desire_speed(SPEED_TL);
+    while (recog->psd.value[PSD_FRONT] > 26.f) {
+        // printf("PSD FRONT: %3.1f\n", recog->psd.value[PSD_FRONT]);
+    }
+    set_desire_speed(0);
+    usleep(TL_SLEEP);
+
+    // regress
+    if (tl_direction < 0) { // left
+        move(-SPEED_TL, -10.f * TICK_PER_CM);
+        set_steering(2000);
+    } else { // right
+        move(-SPEED_TL, -10.f * TICK_PER_CM);
+        set_steering(1000);
+    }
+#else
+    // progress
+    move(SPEED_TL, straight_tick);
     usleep(SLEEP_STOP);
     // turn
     set_steering((tl_direction < 0) ? 2000 : 1000); // left : right
-    move(TL_SPEED, LAST_TURN_TICK);
+    move(SPEED_TL, turn_tick);
+#endif
 
     // progress toward end point
-    set_desire_speed(TL_SPEED);
-
+    set_desire_speed(SPEED_TL);
     while (!recog->is_on_end_zone.value) dive_into_end_zone();
     while (recog->is_on_end_zone.value) dive_into_end_zone();
     set_desire_speed(0);

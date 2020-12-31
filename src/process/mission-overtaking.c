@@ -108,7 +108,7 @@ void do_overtaking(fnClean_t *fnClean) {
     // progress (Yellow & White lane)
     recog->ext_data.call_init_lane_info = true;
     set_steering(1500);
-    target_encoder = read_encoder_counter() + 30.f * TICK_PER_CM;
+    target_encoder = read_encoder_counter() + 20.f * TICK_PER_CM;
     usleep(SLEEP_STEER);
     set_desire_speed(SPEED_OVERTAKING);
     while (read_encoder_counter() < target_encoder) {
