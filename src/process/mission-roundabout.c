@@ -131,7 +131,7 @@ void run_roundabout(fnClean_t *fnClean) {
 
         /* 회전교차로 돌다가 오른쪽 IR센서 4개가 차선 밟으면 왼쪽으로 틀자 */
         if ((ctrld_read(CMD_LINE_SENSOR, &IR_data) == CMDR_SUCCESS) &&
-            (~IR_data & 0x78)) { // 0111 1000 = 0x78
+            (~IR_data & 0x78) && (dist_accu > 20.0f)) { // 0111 1000 = 0x78
             evasion_escape_flag = true;
             ualarm(1000 * 500, 0); // 일정 시간이 지난 후에 다시 정상 주행
         }
