@@ -3,13 +3,15 @@
 #include <numeric>
 #include <opencv2/opencv.hpp>
 
-struct TrafficLights {
-    bool red, yellow, green, left, right;
-};
 struct Point {
     int x;
     int y;
+
+    int operator-(const Point &p) const { return abs(p.x - x) + abs(p.y - y); }
+
+    bool operator<(const Point &p) const { return x < p.x; }
 };
+
 struct StopObstacle {
     bool         exist;
     struct Point center;
@@ -23,7 +25,78 @@ enum Shape : int {
     Right     = 0b1000,
     Undefined = 0b10000
 };
+
 typedef std::vector<cv::Point> Contour;
+
+#define LIGHTS_COUNT 4
+class CenterKeeper {
+  private:
+    Point centers[LIGHTS_COUNT] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
+
+    // centers 집합에 recogPoint를 추가했다면 true
+    bool update(const Point &recogPoint) {
+        for (int i = 0; i < LIGHTS_COUNT; ++i) {
+            if (centers[i].x == -1) {
+                centers[i] = recogPoint;
+                return true;
+            } else if (centers[i] - recogPoint < 10) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+  public:
+    // 주어진 recognized 중 적어도 하나를
+    // centers 집합에 추가했다면 true,
+    // 그렇지 않다면 false.
+    bool update(const std::vector<Point> &recognized) {
+        bool added = false;
+        for (const Point &p : recognized) {
+            if (centers[LIGHTS_COUNT - 1].x ==
+                -1) { // centers가 다 채워지지 않은 상태
+                added |= update(p);
+            }
+        }
+        return added;
+    }
+
+    void clear() {
+        for (int i = 0; i < LIGHTS_COUNT; ++i) centers[i].x = centers[i].y = -1;
+    }
+
+    bool isReady() {
+        // centers 집합에 존재하는 점의 개수가 LIGHTS_COUNT와 같은지 확인
+        for (int i = 0; i < LIGHTS_COUNT; ++i)
+            if (centers[i].x == -1) return false;
+
+        std::sort(centers, centers + LIGHTS_COUNT);
+        int dx = (centers[LIGHTS_COUNT - 1].x - centers[0].x) / 3;
+        int dy = (centers[LIGHTS_COUNT - 1].y - centers[0].y) / 3;
+
+        // 모든 점들이 어떤 일차함수 위에 있으며 서로 이웃한 점들끼리
+        // 일정한 벡터만큼 떨어져 있는지 확인.
+        for (int i = 0; i < LIGHTS_COUNT; ++i) {
+            int  predX = dx * i + centers[0].x;
+            int  predY = dy * i + centers[0].y;
+            bool satisfied =
+                predX - 10 < centers[i].x && centers[i].x < predX + 10 &&
+                predY - 10 < centers[i].y && centers[i].y < predY + 10;
+
+            if (!satisfied) {
+                // 만약 조건을 만족하지 못했다면 애초에 잘못된 점을 받았을 수
+                // 있으므로, clear하여 다시 받도록 함.
+                clear();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    Point &operator[](const int index) { return centers[index]; }
+};
 
 // OpenCV HSV Value Range
 // H: 0-179, S: 0-255, V: 0-255
@@ -143,76 +216,113 @@ void putTextAtCenter(cv::Mat &frame, std::string text, cv::Scalar color) {
                 color, 1);
 }
 
+bool isSimilar(const std::vector<Point> &v1, const std::vector<Point> &v2) {
+    if (v1.size() != v2.size()) return false;
+
+    for (int i = 0; i < (int)v1.size(); ++i) {
+        int dx = abs(v1[i].x - v2[i].x);
+        int dy = abs(v1[i].y - v2[i].y);
+        if (dx > 10 && dy > 10) return false;
+    }
+
+    return true;
+}
+
+bool isBlack(cv::Mat &blackMasked, int x, int y, int error = 1) {
+    int blackCount = 0;
+    for (int i = x - error; i <= x + error; ++i)
+        for (int j = y - error; j <= y + error; ++j)
+            if (blackMasked.at<char>(j, i)) ++blackCount;
+
+    return 2 * blackCount > (2 * error + 1) * (2 * error + 1);
+}
+
 // < 신호등 원의 크기에 대하여 >
 // 바퀴가 흰색 정지선에 있을 때: 크기 280정도 나옴.
 // 앞바퀴가 흰색 정지선을 완전히 넘었을 때: 300정도 나옴.
 // 앞바퀴가 흰색 정지선의 뒤에 있을 때: 250정도 나옴.
-TrafficLights detectLights(cv::Mat &frame, cv::Mat *drawBoard, int minArea,
-                           int maxArea) {
-    cv::Mat blackMasked = maskImage(frame, 0, 179, 0, 255, 0, 50);
+recog_traffic_light_t detectLights(cv::Mat &frame, cv::Mat *drawBoard,
+                                   int minArea, int maxArea) {
+    static std::vector<Point>   prevCenters;
+    static int                  hitCount = 0;
+    static CenterKeeper         keeper;
+    const recog_traffic_light_t ORDER[LIGHTS_COUNT] = {TL_RED, TL_YELLOW,
+                                                       TL_LEFT, TL_GREEN};
 
+    recog_traffic_light_t result = TL_NONE;
+
+    cv::Mat              blackMasked = maskImage(frame, 0, 179, 0, 255, 0, 50);
     std::vector<Contour> circles =
         findShapes(Circle, blackMasked, minArea, maxArea);
 
-    if (circles.size() >= 4) {
-        printf("Circles Count: %d\n", (int)circles.size());
-        for (const Contour &c : circles) {
-            cv::Moments m  = cv::moments(c);
-            double      cX = m.m10 / m.m00;
-            double      cY = m.m01 / m.m00;
-            printf("%lf, (%lf, %lf)\n", cv::contourArea(c), cX, cY);
+    if (circles.size() == 3) {
+        std::vector<Point> centers(3);
+
+        printf("Saw: ");
+        for (int i = 0; i < (int)circles.size(); ++i) {
+            cv::Moments m = cv::moments(circles[i]);
+            centers[i].x  = m.m10 / m.m00;
+            centers[i].y  = m.m01 / m.m00;
+            printf("(%d, %d) ", centers[i].x, centers[i].y);
         }
         printf("\n");
+        std::sort(centers.begin(), centers.end());
+
+        if (isSimilar(prevCenters, centers)) {
+            printf("Similar\n");
+            ++hitCount;
+            if (hitCount > 10) {
+                keeper.update(centers);
+                if (keeper.isReady()) {
+                    for (int i = 0; i < LIGHTS_COUNT; ++i) {
+                        cv::Point c = {keeper[i].x, keeper[i].y};
+
+                        if (!isBlack(blackMasked, c.x, c.y))
+                            result = (recog_traffic_light_t)(result | ORDER[i]);
+                    }
+                    printf("\n");
+                }
+            }
+        } else {
+            printf("Not Similar\n");
+            hitCount = 0;
+        }
+        prevCenters = centers;
+
+    } else {
+        hitCount = 0;
+        prevCenters.clear();
     }
 
-    if (drawBoard) {
-        cv::drawContours(*drawBoard, circles, -1, cv::Scalar(255, 0, 0), 2);
-    }
+    // for debug
+    printf("%s\n", (keeper.isReady() ? "Ready" : "Not Ready"));
+    for (int i = 0; i < LIGHTS_COUNT && keeper.isReady(); ++i)
+        printf("(%d, %d) ", keeper[i].x, keeper[i].y);
+    printf("\n");
+    printf("Result: %d\n", (int)result);
 
-    // cv::Mat gray;
-    // cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-    // cv::GaussianBlur(gray, gray, cv::Size(3, 3), 0);
+    if (drawBoard) { blackMasked.copyTo(*drawBoard); }
 
-    // std::vector<cv::Vec3f> circles;
-    // // 감지하려는 원의 최소 반지름이 r일 때, 원의 중심들간 최소
-    // 거리(minDist)는
-    // // 2r이다.
-    // cv::HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1, 2 * minRadius, 50,
-    // 50,
-    //                  minRadius, maxRadius);
-
-    // printf("Circles Count: %d\n", (int)circles.size());
-    // for (const cv::Vec3f &c : circles)
-    //     printf("center: (%f, %f), radius: %f\n", c[0], c[1], c[2]);
-    // printf("\n");
-    // sleep(1);
-
-    TrafficLights result;
-    result.red    = false;
-    result.yellow = false;
-    result.green  = false;
-    result.left   = false;
-    result.right  = false;
     return result;
 }
 
 #define IMG_H VPE_OUTPUT_H
 #define IMG_W VPE_OUTPUT_W
 
-struct TrafficLights detectLights(recog_arg *arg) {
+recog_traffic_light_t detectLights(recog_arg *arg) {
     unsigned char *srcBuf = arg->camera_output;
     unsigned char *outBuf = arg->display_input;
 
     static unsigned char srcCopied[IMG_H * IMG_W * 3];
     std::copy(srcBuf, srcBuf + IMG_H * IMG_W * 3, srcCopied);
-    cv::Mat       srcRGB(IMG_H, IMG_W, CV_8UC3, srcCopied);
-    TrafficLights result;
+    cv::Mat               srcRGB(IMG_H, IMG_W, CV_8UC3, srcCopied);
+    recog_traffic_light_t result;
 
     if (outBuf) {
         cv::Mat dstRGB(IMG_H, IMG_W, CV_8UC3, outBuf);
-        result = detectLights(srcRGB, &dstRGB, 1, 100000);
+        result = detectLights(srcRGB, &dstRGB, 200, 500);
     } else
-        result = detectLights(srcRGB, NULL, 1, 100000);
+        result = detectLights(srcRGB, NULL, 200, 500);
 
     return result;
 }
@@ -257,9 +367,9 @@ struct StopObstacle detectStopObstacle(recog_arg *arg) {
 
     if (outBuf) {
         cv::Mat dstRGB(IMG_H, IMG_W, CV_8UC3, outBuf);
-        result = detectStopObstacle(srcRGB, &dstRGB, 100, 100000);
+        result = detectStopObstacle(srcRGB, &dstRGB, 1, 100000);
     } else
-        result = detectStopObstacle(srcRGB, NULL, 100, 100000);
+        result = detectStopObstacle(srcRGB, NULL, 1, 100000);
 
     return result;
 }
@@ -284,13 +394,5 @@ extern "C" recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
     return result;
 }
 extern "C" recog_traffic_light_t get_traffic_light(recog_arg *arg) {
-    struct TrafficLights detected = detectLights(arg);
-    int                  result   = TL_NONE;
-
-    if (detected.green) result |= TL_GREEN;
-    if (detected.yellow) result |= TL_YELLOW;
-    if (detected.left) result |= TL_LEFT;
-    if (detected.red) result |= TL_RED;
-
-    return (recog_traffic_light_t)result;
+    return detectLights(arg);
 }
