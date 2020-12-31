@@ -1,7 +1,7 @@
 #include "car-header.h"
 #include "process.h"
 
-#define START_PSD_CNT 1
+#define START_PSD_CNT 3
 
 void start_with_PSD(fnClean_t *fnClean) {
     volatile int cnt = 0, flag = 0;

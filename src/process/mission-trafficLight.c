@@ -4,12 +4,14 @@
 #define TL_SPEED       90
 #define GAIN_POSITION  35
 #define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
-#define VELO_STOP_LINE 30 // velocity at stop line
+#define VELO_STOP_LINE 50 // velocity at stop line
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
 void clean_trafficLight();
 void dive_into_end_zone();
+
+float pre_target_velo;
 
 void init_trafficLight(fnCheck_t *fnCheck) {
     recog->is_on_end_zone.enabled = false;
@@ -18,13 +20,14 @@ void init_trafficLight(fnCheck_t *fnCheck) {
     recog->stop_line_pos.enable   = true;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
-    *fnCheck = check_trafficLight;
+    pre_target_velo = (float)target_velo;
+    *fnCheck        = check_trafficLight;
 }
 
 bool check_trafficLight(fnRun_t *fnRun) {
     static float stop_line_pos      = -1.0f;
     static bool  is_there_stop_line = false;
-    if (is_there_stop_line && get_is_on_stop_line()) {
+    if (get_is_on_stop_line()) {
         MSG("START MISSION => trafficLight & end-zone");
         recog->ext_data.call_init_lane_info = true; // 차선 인식 정보 초기화
         recog->stop_line_pos.enable         = false;
@@ -35,15 +38,10 @@ bool check_trafficLight(fnRun_t *fnRun) {
     }
     // 카메라에 정지선 감지되면 감속(감지되지 않으면 음수)
     stop_line_pos = recog->stop_line_pos.value;
-    if (stop_line_pos > 0.0f) {
-        // 정지선에 가까워질수록 속도가 느려짐
-        // target_velo = target_velo * pow(1.0f - stop_line_pos, 2);
-        target_velo -= 5;
-        if (target_velo < VELO_STOP_LINE) {
-            // 속도 제한 (최소 VELO_STOP_LINE으로)
-            target_velo = VELO_STOP_LINE;
-        }
-        is_there_stop_line = true;
+    if (stop_line_pos > 0.0f) { // 정지선에 가까워질수록 속도가 느려짐
+        float temp_velo = (VELO_STOP_LINE - pre_target_velo) * stop_line_pos +
+                          pre_target_velo;
+        target_velo = CONSTRAIN(temp_velo, VELO_STOP_LINE, target_velo);
     }
     return false;
 }
@@ -99,8 +97,8 @@ void do_trafficLight(fnClean_t *fnClean) {
     // usleep(TL_SLEEP);
 
     // progress
-    move(TL_SPEED, 25.f * TICK_PER_CM);
-
+    move(TL_SPEED, 35.f * TICK_PER_CM);
+    usleep(SLEEP_STOP);
     // turn
     set_steering((tl_direction < 0) ? 2000 : 1000); // left : right
     move(TL_SPEED, LAST_TURN_TICK);
