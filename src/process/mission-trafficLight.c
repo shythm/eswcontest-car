@@ -2,7 +2,6 @@
 #include "process.h"
 
 #define SPEED_TL       110
-#define GAIN_POSITION  35
 #define VELO_STOP_LINE 50 // velocity at stop line
 
 #define REGRESS_ENABLE 0
@@ -130,7 +129,8 @@ void clean_trafficLight() {
 }
 
 void dive_into_end_zone() {
-    short steering = (-recog->tl_lane.value * GAIN_POSITION) + 1500.f;
+    static const float gain     = 35.f;
+    short              steering = (-recog->tl_lane.value * gain) + 1500.f;
     // constrain 1200~1800
     steering = CONSTRAIN(steering, 1200, 1800);
     set_steering(steering);

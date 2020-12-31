@@ -1,19 +1,17 @@
 #include "car-header.h"
 #include "process.h"
 
-#define SPEED_VERTICAL 85 // 50~100
-#define SPEED_PARALLEL 80 // 50
-#define SUPP_SPEED     10
-#define BRAKING_TIME   130
-#define TIME_STEP      1
+#define SPEED_VERTICAL 85
+#define SPEED_PARALLEL 80
+#define SUPP_SPEED     10 // 평행주차 보충속력 turn할 때 속력을 추가해준다
 
-#define OBSTACLE_DISTANCE 29.5F
+#define OBSTACLE_DISTANCE 29.5F //[cm]장애물을 인식하는 기준 PSD거리값
 
 #define LEFT  0
 #define RIGHT 1
 // Location of parking lot to road
-#define LOC_VERT LEFT // parking vertical
-#define LOC_PARA LEFT // parking parallel
+#define LOC_VERT RIGHT // parking vertical
+#define LOC_PARA RIGHT // parking parallel
 
 #if LOC_VERT == RIGHT
 const int psd_XX_1_vert    = PSD_RIGHT_1;
@@ -223,7 +221,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // remember previous steering
     short       previous_steering = read_steering();
-    const float turn_radian       = PI * 55.f / 180.f; // 60-degre
+    const float turn_tick         = PI * 55.f / 180.f * RADIUS * TICK_PER_CM;
     const float straight_tick     = 33.f * TICK_PER_CM;
 
     // set steering at center
@@ -253,7 +251,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
     // Location of parking lot: right | left
     // turn right | left
     set_steering(1500 - steer_direc_para);
-    move(-(SPEED_PARALLEL + SUPP_SPEED), -(RADIUS * turn_radian * TICK_PER_CM));
+    move(-(SPEED_PARALLEL + SUPP_SPEED), -turn_tick);
 
     // REGRESS straight
     set_steering(1500);
@@ -291,8 +289,7 @@ void do_parking_parallel(fnClean_t *fnClean) {
 
     // turn left |right
     set_steering(1500 - steer_direc_para);
-    move((SPEED_PARALLEL + SUPP_SPEED),
-         (RADIUS * turn_radian * TICK_PER_CM) + 9.f * TICK_PER_CM);
+    move((SPEED_PARALLEL + SUPP_SPEED), turn_tick + 9.f * TICK_PER_CM);
 
     // set steering as previous steering before parking
     recog->ext_data.call_init_lane_info = true;
@@ -302,9 +299,11 @@ void do_parking_parallel(fnClean_t *fnClean) {
 }
 
 void stop_slowly() {
+    const int BRAKING_TIME =
+        130; // 제동시간 (현재속력부터 0이 되기까지 감속 명령을 보내는 회수)
     short initial_speed = read_desire_speed();
     float tangent       = -(float)(initial_speed) / (float)(BRAKING_TIME);
-    for (int time = TIME_STEP; time < BRAKING_TIME; time += TIME_STEP) {
+    for (int time = 1; time < BRAKING_TIME; time++) {
         set_desire_speed((tangent * time + initial_speed));
     }
     set_desire_speed(0);
