@@ -125,12 +125,13 @@ recog_slope_t detectSlope(recog_arg *arg) {
                 // y좌표가 크다는 것은 미리 지정된 값(MIN_INTER_Y)를 이용해
                 // 결정한다.
                 if (intersection.y > MIN_INTER_Y) { ret = SLOPE_DOWNHILL; }
+                if (intersection.y < -MIN_INTER_Y) { ret = SLOPE_UPHILL; }
             }
         }
     }
 
     // 검출 정보 화면 출력
-#if 0
+#if 1
     cvtColor(frame, frame, COLOR_GRAY2BGR);
 
     if (intersection.dot(v2i)) { // 교점이 존재할 때 기본 정보 표시
@@ -143,10 +144,14 @@ recog_slope_t detectSlope(recog_arg *arg) {
                 FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
         line(frame, intersection, intersection, Scalar(0, 0, 255), 10);
     }
-    if (ret) {
-        putText(frame, "slope!", Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
-                Scalar(255, 255, 255), 2);
+    string str_res = "";
+    if (ret == SLOPE_UPHILL) {
+        str_res = "UPHILL!";
+    } else if (ret == SLOPE_DOWNHILL) {
+        str_res = "DOWNHILL!";
     }
+    putText(frame, str_res, Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
+            Scalar(255, 255, 255), 2);
     if (line_l.dot(Vec4i(1, 1, 1, 1))) { // 왼쪽 차선 존재하면 그리기
         line(frame, Point(line_l[0], line_l[1]), Point(line_l[2], line_l[3]),
              Scalar(0, 0, 255), 2);
