@@ -14,15 +14,15 @@
 #define VELO_STOP_LINE 80 // velocity at stop line
 
 // 차선 위치 보정 정도(실수 전체, 바깥쪽으로 돌려면 음수여야 함)
-#define POS_COMP_DEGREE -4.0f
+#define POS_COMP_DEGREE -1.0f
 // 곡선 구간을 판단을 위한 상수(양수)
 #define POS_CURVE_CONDITION 4.0f
-// 회전 교차로 탈출 조건: 얼마나 직선 구간을 주행했는가에 대한 상수(단위: cm)
-#define DIST_EXIT_CONDITION 360.0f
+// 회전 교차로 탈출 조건: 회전 교차로 주행 거리(단위: cm)
+#define DIST_EXIT_CONDITION 340.0f
 // 전방 또는 후방 차량 유무 결정(양수)
 #define PSD_STOP_CONDITION 29.0f
 // 측면 차량 유무 결정(양수)
-#define PSD_SIDE_STOP_CONDITION 8.0f
+#define PSD_SIDE_STOP_CONDITION 16.0f
 /************************************/
 
 bool        check_roundabout(fnRun_t *);
@@ -93,7 +93,10 @@ static void steering(float pos, float gain_p) {
 }
 
 static bool evasion_escape_flag = false;
-static void alarm_handler(int signo) { evasion_escape_flag = false; }
+static void alarm_handler(int signo) {
+    evasion_escape_flag = false;
+    MSG("Evasion !!");
+}
 
 void run_roundabout(fnClean_t *fnClean) {
     // 앞에 차량이 지나갈 때까지 기다림
@@ -137,9 +140,9 @@ void run_roundabout(fnClean_t *fnClean) {
 
         /* 회전교차로 돌다가 오른쪽 IR센서 4개가 차선 밟으면 왼쪽으로 틀자 */
         if ((ctrld_read(CMD_LINE_SENSOR, &IR_data) == CMDR_SUCCESS) &&
-            (~IR_data & 0x78)) { // 0111 1000 = 0x78
+            (~IR_data & 0x78) && (dist_accu > 20.0f)) { // 0111 1000 = 0x78
             evasion_escape_flag = true;
-            alarm(2); // 2초 뒤에 다시 정상 주행
+            ualarm(1000 * 500, 0); // 일정 시간이 지난 후에 다시 정상 주행
         }
 
         if (evasion_escape_flag) {
@@ -152,7 +155,6 @@ void run_roundabout(fnClean_t *fnClean) {
         /* 미션 탈출 검사 */
         dist_accu = (read_encoder_counter() - encoder_prev) / TICK_PER_CM;
         if (dist_accu > DIST_EXIT_CONDITION) { // 미션 탈출 조건
-            beep(50);
             break;
         }
     }

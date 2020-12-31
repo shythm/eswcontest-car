@@ -39,6 +39,11 @@ float detectStopLine(recog_arg *arg) {
     static const Scalar u(255, 48, 255); // upper white
     inRange(img, l, u, img);
 
+    // ROI
+    Rect bounds(0, 0, img.cols, img.rows);
+    Rect r(0, img.rows / 2, img.cols, img.rows);
+    img = img(r & bounds);
+
     vector<int> validY;
     getValidY(img, validY);
 
@@ -49,7 +54,7 @@ float detectStopLine(recog_arg *arg) {
         int yPos = 0;
         for (int y : validY) { yPos += y; }
         yPos /= yCnt;
-        ret = (float)yPos / (float)sizeSmall.height;
+        ret = (float)yPos / (float)img.size().height;
     }
 
 #if 0
