@@ -9,6 +9,11 @@
 #define RADIUS      37.00f
 #define PI          3.141592f
 
+#define SLEEP_STOP  100000 // 0.1s
+#define SLEEP_STEER 300000 // 0.3s
+
+#define CONSTRAIN(val, min, max) ((val < min) ? min : ((max < val) ? max : val))
+
 int   read_encoder_counter();
 short read_desire_speed();
 short read_steering();

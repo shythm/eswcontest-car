@@ -32,6 +32,7 @@ short read_steering() {
 }
 
 void set_steering(short steering) {
+    steering = CONSTRAIN(steering, 1000, 2000);
     ctrld_write(CMD_STEERING_SERVO_CONTROL, steering);
 }
 
@@ -42,7 +43,7 @@ void beep(unsigned char time) {
     ctrld_write(CMD_SOUND, time);
 }
 
-void move(short speed, volatile int desire_encoder) {
+void move(short speed, volatile int desire_encoder) { // blocking
     if (desire_encoder > 0) {
         desire_encoder += read_encoder_counter();
         set_desire_speed(speed);
@@ -53,7 +54,6 @@ void move(short speed, volatile int desire_encoder) {
         while (desire_encoder < read_encoder_counter()) usleep(1000);
     }
     set_desire_speed(0);
-    usleep(100000);
 }
 
 void set_camera_Yservo(short y_servo) {
@@ -80,5 +80,20 @@ bool get_is_on_stop_line() {
         }
     } else {
         return false;
+    }
+}
+
+void record_ticks(fnInit_t mission) {
+    static fnInit_t pre_mission = NULL;
+    static int      saved_tick  = 0;
+
+    if (mission == pre_mission) { // same mission
+        saved_tick     = read_encoder_counter() - saved_tick;
+        float saved_cm = ((float)saved_tick) / TICK_PER_CM;
+        MSG("   <<<%s>>> distance: %3.1f[cm]  %d[tick] ",
+            get_mission_name(mission), saved_cm, saved_tick);
+    } else { // different mission
+        pre_mission = mission;
+        saved_tick  = read_encoder_counter();
     }
 }

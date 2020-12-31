@@ -96,8 +96,8 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->tl_lane.enable) { // update lane for traffic light
         result->tl_lane.value = get_tl_lane(arg);
     }
-    if (result->other_cars.enable) {
-        result->other_cars.value = get_empty_road(arg);
+    if (result->empty_road.enable) {
+        result->empty_road.value = get_empty_road(arg);
     }
     if (result->stop_line_pos.enable) { // update stop line position
         result->stop_line_pos.value = get_stop_line(arg);
@@ -334,8 +334,8 @@ void *update_psd_value(void *argv) {
                              19.1f * expf(-0.0004304f * psd_raw[PSD_BACK]);
         psd_dist[PSD_LEFT_2] = 490.1f * expf(-0.004111f * psd_raw[PSD_LEFT_2]) +
                                24.61f * expf(-0.0004845f * psd_raw[PSD_LEFT_2]);
-        psd_dist[PSD_LEFT_1] = 638.6f * expf(-0.004488f * psd_raw[PSD_LEFT_1]) +
-                               26.45f * expf(-0.000508f * psd_raw[PSD_LEFT_1]);
+        psd_dist[PSD_LEFT_1] = 904.3f * expf(-0.004669f * psd_raw[PSD_LEFT_1]) +
+                               23.23f * expf(-0.0004703f * psd_raw[PSD_LEFT_1]);
 
         for (i = 0; i < PSD_COUNT;
              i++) { // limit the psd value (PSD_DISTANCE_MIN <= psd_dist <=
