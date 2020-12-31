@@ -37,7 +37,9 @@ __attribute__((weak)) vector_lane get_lane(recog_arg *arg) {
 __attribute__((weak)) recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
     return ON_LANE_NONE;
 }
-__attribute__((weak)) bool get_is_on_slope(recog_arg *arg) { return false; }
+__attribute__((weak)) recog_slope_t get_slope(recog_arg *arg) {
+    return SLOPE_NONE;
+}
 __attribute__((weak)) bool get_is_in_tunnel(recog_arg *arg) { return false; }
 __attribute__((weak)) recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
     recog_stop_obstacle_t so = {0, 0, 0.0f};
@@ -81,8 +83,8 @@ void update_recog_result(recog_arg *arg, recog_result *result) {
     if (result->is_on_lane.enabled) { // update_is_on_lane
         result->is_on_lane.value = get_is_on_lane(arg);
     }
-    if (result->is_on_slope.enabled) { // update is_on_slope
-        result->is_on_slope.value = get_is_on_slope(arg);
+    if (result->slope.enabled) { // update is_on_slope
+        result->slope.value = get_slope(arg);
     }
     if (result->is_in_tunnel.enabled) { // update is_in_tunnel
         result->is_in_tunnel.value = get_is_in_tunnel(arg);
@@ -365,7 +367,7 @@ void *value_check(void *argv) {
     shm->lane.enabled            = true;
     shm->is_on_lane.enabled      = false;
     shm->stop_obstacle.enabled   = false;
-    shm->is_on_slope.enabled     = false;
+    shm->slope.enabled           = false;
 
     /* Print the values */
     for (;;) {
@@ -379,7 +381,7 @@ void *value_check(void *argv) {
         printf("stop_obstacle: a=%f x=%d y=%d \n",
                shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
                shm->stop_obstacle.value.pos_y);
-        printf("is_on_slope: %d \n", (int)shm->is_on_slope.value);
+        printf("is_on_slope: %d \n", (int)shm->slope.value);
 
         usleep(delay_us);
     }

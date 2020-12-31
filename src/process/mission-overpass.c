@@ -7,7 +7,7 @@ void steering(short pos);
 
 void init_overpass(fnCheck_t *fnCheck) {
     // settings for slope detection
-    recog->is_on_slope.enabled = true;
+    recog->slope.enabled = true;
 
     // Initialize to drive with PSD
     ctrld_write(CMD_POSITION_CONTROL_ON_OFF, 0);
@@ -21,7 +21,7 @@ void init_overpass(fnCheck_t *fnCheck) {
 }
 
 void clean_overpass() {
-    recog->is_on_slope.enabled          = false;
+    recog->slope.enabled                = false;
     recog->ext_data.call_init_lane_info = true;
 }
 
@@ -61,7 +61,7 @@ void run_overpass(fnClean_t *fnClean) {
     ctrld_write(CMD_DESIRE_SPEED, VELO);
 
     for (;;) {
-        if (recog->is_on_slope.value) { break; }
+        if (recog->slope.value == SLOPE_DOWNHILL) { break; }
 
         fL = recog->psd.value[PSD_LEFT_1];
         fR = recog->psd.value[PSD_RIGHT_1];

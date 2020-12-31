@@ -86,10 +86,15 @@ typedef struct {
 } recog_is_on_lane_data;
 
 // for is_on_slope data
+typedef enum {
+    SLOPE_NONE = 0,
+    SLOPE_UPHILL,
+    SLOPE_DOWNHILL,
+} recog_slope_t;
 typedef struct {
-    bool enabled;
-    bool value;
-} recog_is_on_slope_data;
+    bool          enabled;
+    recog_slope_t value;
+} recog_slope_data;
 
 // for is_in_tunnel data
 typedef struct {
@@ -170,7 +175,7 @@ typedef volatile struct {
     recog_traffic_light_data   traffic_light;
     recog_lane_data            lane;
     recog_is_on_lane_data      is_on_lane;
-    recog_is_on_slope_data     is_on_slope;
+    recog_slope_data           slope;
     recog_is_in_tunnel_data    is_in_tunnel;
     recog_stop_obstacle_data   stop_obstacle;
     recog_is_there_car_data    is_there_car;
