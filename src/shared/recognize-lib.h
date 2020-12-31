@@ -53,11 +53,11 @@ typedef struct {
 
 // for traffic_light data
 typedef enum {
-    TL_NONE,
-    TL_RED,
-    TL_YELLOW,
-    TL_GREEN,
-    TL_LEFT,
+    TL_NONE     = 0b0000,
+    TL_RED      = 0b0001,
+    TL_YELLOW   = 0b0010,
+    TL_GREEN    = 0b0100,
+    TL_LEFT     = 0b1000,
 } recog_traffic_light_t;
 typedef struct {
     bool                  enabled;
