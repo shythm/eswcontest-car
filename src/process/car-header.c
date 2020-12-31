@@ -43,7 +43,7 @@ void beep(unsigned char time) {
     ctrld_write(CMD_SOUND, time);
 }
 
-void move(short speed, volatile int desire_encoder) {
+void move(short speed, volatile int desire_encoder) { // blocking
     if (desire_encoder > 0) {
         desire_encoder += read_encoder_counter();
         set_desire_speed(speed);
