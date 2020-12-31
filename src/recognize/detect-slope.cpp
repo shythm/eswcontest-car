@@ -131,7 +131,7 @@ recog_slope_t detectSlope(recog_arg *arg) {
     }
 
     // 검출 정보 화면 출력
-#if 1
+#if 0
     cvtColor(frame, frame, COLOR_GRAY2BGR);
 
     if (intersection.dot(v2i)) { // 교점이 존재할 때 기본 정보 표시
