@@ -53,13 +53,13 @@ float getLineSlope(Point2f p1, Point2f p2) {
 #define MAX_SLOPE_DIST 1.0f
 #define MIN_INTER_Y    IMG_H / 3
 
-bool detectSlope(recog_arg *arg) {
+recog_slope_t detectSlope(recog_arg *arg) {
     static uchar cam_out[IMG_SIZE];
 
     static const Vec4i v4i(1, 1, 1, 1); // vector four i
     static const Vec2i v2i(1, 1);       // vector two i
 
-    bool ret = false;
+    recog_slope_t ret = SLOPE_NONE;
 
     // 카메라 데이터 복사 (원본 데이터 보존)
     copy(arg->camera_output, arg->camera_output + IMG_SIZE, cam_out);
@@ -124,7 +124,8 @@ bool detectSlope(recog_arg *arg) {
                 // 아래에 위치한다는 뜻이므로 경사가 급하다고 볼 수 있다.
                 // y좌표가 크다는 것은 미리 지정된 값(MIN_INTER_Y)를 이용해
                 // 결정한다.
-                if (intersection.y > MIN_INTER_Y) { ret = true; }
+                if (intersection.y > MIN_INTER_Y) { ret = SLOPE_DOWNHILL; }
+                if (intersection.y < -MIN_INTER_Y) { ret = SLOPE_UPHILL; }
             }
         }
     }
@@ -143,10 +144,14 @@ bool detectSlope(recog_arg *arg) {
                 FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 255, 255), 2);
         line(frame, intersection, intersection, Scalar(0, 0, 255), 10);
     }
-    if (ret) {
-        putText(frame, "slope!", Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
-                Scalar(255, 255, 255), 2);
+    string str_res = "";
+    if (ret == SLOPE_UPHILL) {
+        str_res = "UPHILL!";
+    } else if (ret == SLOPE_DOWNHILL) {
+        str_res = "DOWNHILL!";
     }
+    putText(frame, str_res, Point(25, 95), FONT_HERSHEY_SIMPLEX, 1,
+            Scalar(255, 255, 255), 2);
     if (line_l.dot(Vec4i(1, 1, 1, 1))) { // 왼쪽 차선 존재하면 그리기
         line(frame, Point(line_l[0], line_l[1]), Point(line_l[2], line_l[3]),
              Scalar(0, 0, 255), 2);
@@ -166,4 +171,4 @@ bool detectSlope(recog_arg *arg) {
 // *********************************************************
 // THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
 // *********************************************************
-extern "C" bool get_is_on_slope(recog_arg *arg) { return detectSlope(arg); }
+extern "C" recog_slope_t get_slope(recog_arg *arg) { return detectSlope(arg); }
