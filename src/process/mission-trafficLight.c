@@ -11,7 +11,7 @@ void do_trafficLight(fnClean_t *);
 void clean_trafficLight();
 void dive_into_end_zone();
 
-float pre_target_velo;
+float pre_target_velo; // for stop slowly on stop line controlling target_velo
 
 void init_trafficLight(fnCheck_t *fnCheck) {
     recog->is_on_end_zone.enabled = false;
@@ -20,19 +20,18 @@ void init_trafficLight(fnCheck_t *fnCheck) {
     recog->stop_line_pos.enable   = true;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
-    pre_target_velo = (float)target_velo;
+    pre_target_velo = (float)target_velo; // save current velocity
     *fnCheck        = check_trafficLight;
 }
 
 bool check_trafficLight(fnRun_t *fnRun) {
-    static float stop_line_pos      = -1.0f;
-    static bool  is_there_stop_line = false;
+    static float stop_line_pos = -1.0f;
     if (get_is_on_stop_line()) {
         MSG("START MISSION => trafficLight & end-zone");
         recog->ext_data.call_init_lane_info = true; // 차선 인식 정보 초기화
         recog->stop_line_pos.enable         = false;
         set_desire_speed(0);
-        beep(50);
+        beep(50); // beep after stop!
         *fnRun = do_trafficLight;
         return true;
     }
@@ -42,7 +41,8 @@ bool check_trafficLight(fnRun_t *fnRun) {
         float temp_velo = (VELO_STOP_LINE - pre_target_velo) * stop_line_pos +
                           pre_target_velo;
         // VELO_STOP_LINE < 다음 target_velo < 현재 target_velo
-        target_velo = CONSTRAIN(temp_velo, VELO_STOP_LINE, target_velo);
+        // (정지선에 가까워져서 pos=-1이 될 때 속도가 튀는 것을 방지)
+        target_velo = (short)CONSTRAIN(temp_velo, VELO_STOP_LINE, target_velo);
     }
     return false;
 }
@@ -76,6 +76,7 @@ void do_trafficLight(fnClean_t *fnClean) {
     // tilt down camera
     set_camera_Yservo(1700);
 
+    // turn on recog functions in advance of enter the end zone
     recog->tl_lane.enable         = true;
     recog->is_on_end_zone.enabled = true;
 
@@ -106,7 +107,7 @@ void do_trafficLight(fnClean_t *fnClean) {
     move(SPEED_TL, turn_tick);
 #endif
 
-    // progress toward end point
+    // progress toward end zone
     set_desire_speed(SPEED_TL);
     while (!recog->is_on_end_zone.value) dive_into_end_zone();
     while (recog->is_on_end_zone.value) dive_into_end_zone();

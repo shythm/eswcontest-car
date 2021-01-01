@@ -1,4 +1,5 @@
 #include "process.h"
+#include "car-header.h"
 
 recog_result *recog;
 short         target_velo;

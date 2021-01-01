@@ -25,5 +25,6 @@ void  beep(unsigned char time);
 void  move(short speed, int desire_encoder);
 void  set_camera_Yservo(short y_servo);
 bool  get_is_on_stop_line();
+void  record_ticks(fnInit_t mission);
 
 #endif
