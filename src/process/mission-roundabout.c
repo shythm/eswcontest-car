@@ -34,7 +34,7 @@ int pre_max_velo = 0;
 
 void init_roundabout(fnCheck_t *fnCheck) {
     MSG("UPCOMING MISSION => roundabout");
-    recog->stop_line_pos.enable = true;
+    recog->stop_line_pos.enabled = true;
 
     signal(SIGALRM, alarm_handler); // 알람 등록
 
@@ -46,7 +46,7 @@ void init_roundabout(fnCheck_t *fnCheck) {
 }
 
 void clean_roundabout(void) {
-    recog->stop_line_pos.enable         = false;
+    recog->stop_line_pos.enabled        = false;
     recog->ext_data.call_init_lane_info = true;
 
     // edit by jaesun

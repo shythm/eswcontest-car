@@ -1,4 +1,4 @@
-#include "recognize-lib.h"
+#include "recognize.h"
 #include <math.h>
 #include <opencv2/opencv.hpp>
 
@@ -129,6 +129,4 @@ int get_empty_road_t(recog_arg *arg) {
 // *********************************************************
 // THESE FUNCTIONS ARE FOR UPDATE recog_result STRUCTURE.
 // *********************************************************
-extern "C" float get_empty_road(recog_arg *arg) {
-    return get_empty_road_t(arg);
-}
+extern "C" int get_empty_road(recog_arg *arg) { return get_empty_road_t(arg); }

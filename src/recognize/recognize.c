@@ -9,14 +9,13 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/ipc.h>
-#include <sys/msg.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 /* include custom libraries */
-#include "recognize-lib.h"
+#include "recognize.h"
 #include "util.h"
 
 /* include capture libraries */
@@ -24,86 +23,31 @@
 #include "v4l2.h"
 #include "vpe-common.h"
 
-/* weak functions */
-__attribute__((weak)) bool get_is_on_stop_line(recog_arg *arg) { return false; }
-__attribute__((weak)) bool get_is_on_end_zone(recog_arg *arg) { return false; }
-__attribute__((weak)) recog_traffic_light_t get_traffic_light(recog_arg *arg) {
-    return TL_NONE;
-}
-__attribute__((weak)) vector_lane get_lane(recog_arg *arg) {
-    vector_lane vl = {0.0f, 0.0f};
-    return vl;
-}
-__attribute__((weak)) recog_is_on_lane_t get_is_on_lane(recog_arg *arg) {
-    return ON_LANE_NONE;
-}
-__attribute__((weak)) recog_slope_t get_slope(recog_arg *arg) {
-    return SLOPE_NONE;
-}
-__attribute__((weak)) bool get_is_in_tunnel(recog_arg *arg) { return false; }
-__attribute__((weak)) recog_stop_obstacle_t get_stop_obstacle(recog_arg *arg) {
-    recog_stop_obstacle_t so = {0, 0, 0.0f};
-    return so;
-}
-__attribute__((weak)) recog_is_there_car_t get_is_there_car(recog_arg *arg) {
-    return TC_NONE;
-}
-__attribute__((weak)) float get_tl_lane(recog_arg *arg) { return 0.0f; }
-__attribute__((weak)) float get_stop_line(recog_arg *arg) { return -1; }
-__attribute__((weak)) int   get_empty_road(recog_arg *arg) { return 0; }
+/* detection functions */
+vector_lane           get_lane(recog_arg *);
+recog_traffic_light_t get_traffic_light(recog_arg *);
+recog_slope_t         get_slope(recog_arg *);
+recog_stop_obstacle_t get_stop_obstacle(recog_arg *);
+int                   get_empty_road(recog_arg *);
+bool                  get_is_on_end_zone(recog_arg *);
+float                 get_tl_lane(recog_arg *);
+float                 get_stop_line_pos(recog_arg *);
 
 /* update reocg_result function */
 void update_recog_result(recog_arg *arg, recog_result *result) {
-    // < recognize >
-    // - is_on_stop_line    (o)
-    // - is_on_end_zone     (o)
-    // - traffic_light      (o)
-    // - lane               (o)
-    // - is_on_lane         (o)
-    // - is_on_slope        (o)
-    // - is_on_overpass     (o)
-    // - is_in_tunnel       (x)
-    // - curr_velocity      (x)
-    // - stop_obstacle      (o)
-    // - is_there_car       (x)
-    // - psd                (o)
+#define REGIST_DETECTION(name)                                                 \
+    if (result->name.enabled) { result->name.value = get_##name(arg); }
 
-    if (result->is_on_stop_line.enabled) { // update is_on_stop_line
-        result->is_on_stop_line.value = get_is_on_stop_line(arg);
-    }
-    if (result->is_on_end_zone.enabled) { // update is_on_end_zone
-        result->is_on_end_zone.value = get_is_on_end_zone(arg);
-    }
-    if (result->traffic_light.enabled) { // update traffic_light
-        result->traffic_light.value = get_traffic_light(arg);
-    }
-    if (result->lane.enabled) { // update lane
-        result->lane.value = get_lane(arg);
-    }
-    if (result->is_on_lane.enabled) { // update_is_on_lane
-        result->is_on_lane.value = get_is_on_lane(arg);
-    }
-    if (result->slope.enabled) { // update is_on_slope
-        result->slope.value = get_slope(arg);
-    }
-    if (result->is_in_tunnel.enabled) { // update is_in_tunnel
-        result->is_in_tunnel.value = get_is_in_tunnel(arg);
-    }
-    if (result->stop_obstacle.enabled) { // update stop_obstacle
-        result->stop_obstacle.value = get_stop_obstacle(arg);
-    }
-    if (result->is_there_car.enabled) { // update is_there_car
-        result->is_there_car.value = get_is_there_car(arg);
-    }
-    if (result->tl_lane.enable) { // update lane for traffic light
-        result->tl_lane.value = get_tl_lane(arg);
-    }
-    if (result->empty_road.enable) {
-        result->empty_road.value = get_empty_road(arg);
-    }
-    if (result->stop_line_pos.enable) { // update stop line position
-        result->stop_line_pos.value = get_stop_line(arg);
-    }
+    REGIST_DETECTION(is_on_end_zone);
+    REGIST_DETECTION(traffic_light);
+    REGIST_DETECTION(lane);
+    REGIST_DETECTION(slope);
+    REGIST_DETECTION(stop_obstacle);
+    REGIST_DETECTION(tl_lane);
+    REGIST_DETECTION(empty_road);
+    REGIST_DETECTION(stop_line_pos);
+
+#undef REGIST_DETECTION
 }
 
 int capture_recognize(recog_result *result, recog_arg *arg) {
@@ -353,40 +297,6 @@ void *update_psd_value(void *argv) {
     }
 }
 
-// #define TURN_ON_VALUE_CHECK
-void *value_check(void *argv) {
-    /* get the shared memory from the pthread argument */
-    recog_result *shm      = (recog_result *)argv;
-    const int     delay_us = 100 * 1000;
-    char          str_buf[10];
-
-    /* Turn on recognition */
-    shm->is_on_stop_line.enabled = false;
-    shm->is_on_end_zone.enabled  = false;
-    shm->traffic_light.enabled   = false;
-    shm->lane.enabled            = true;
-    shm->is_on_lane.enabled      = false;
-    shm->stop_obstacle.enabled   = false;
-    shm->slope.enabled           = false;
-
-    /* Print the values */
-    for (;;) {
-        printf(" *** VALUE CHECK *** \n");
-        printf("is_on_stop_line: %d \n", (int)(shm->is_on_stop_line.value));
-        printf("is_on_end_zone: %d \n", (int)(shm->is_on_end_zone.value));
-        printf("traffic_light:   %d \n", shm->traffic_light.value);
-        printf("lane: pos=%f pos_with_white=%f \n", shm->lane.value.pos_yl,
-               shm->lane.value.pos_yawl);
-        printf("is_on_lane: %d \n", (int)(shm->is_on_lane.value));
-        printf("stop_obstacle: a=%f x=%d y=%d \n",
-               shm->stop_obstacle.value.area, shm->stop_obstacle.value.pos_x,
-               shm->stop_obstacle.value.pos_y);
-        printf("is_on_slope: %d \n", (int)shm->slope.value);
-
-        usleep(delay_us);
-    }
-}
-
 int main(int argc, char **argv) {
     recog_result *shm_rr;
 
@@ -404,16 +314,6 @@ int main(int argc, char **argv) {
         return -1;
     }
     pthread_detach(thread_update_psd_value);
-
-#ifdef TURN_ON_VALUE_CHECK
-    /* Thread for value check */
-    pthread_t thread_value_check;
-    if (pthread_create(&thread_value_check, NULL, value_check, shm_rr)) {
-        ERROR("An error occurred while creating thread for value_check.");
-        return -1;
-    }
-    pthread_detach(thread_value_check);
-#endif
 
     /* Do capture and recognize */
     recog_arg arg;

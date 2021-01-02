@@ -51,7 +51,7 @@ void do_overtaking(fnClean_t *fnClean) {
     int volatile direction;
     // stop
     set_desire_speed(0);
-    recog->empty_road.enable = true;
+    recog->empty_road.enabled = true;
     set_camera_Yservo(1600);
     set_steering(1500);
     usleep(SLEEP_STOP);
@@ -76,7 +76,7 @@ void do_overtaking(fnClean_t *fnClean) {
     direction = (direction < 0) ? -500 : 500; // left:right
 
     set_camera_Yservo(1700);
-    recog->empty_road.enable = false;
+    recog->empty_road.enabled = false;
 
     // overtaking direction:  RIGHT | LEFT
     // turn right | left   => first overtaking
@@ -144,7 +144,7 @@ void do_overtaking(fnClean_t *fnClean) {
 #endif
 
     // progress (Yellow lane)
-    recog->stop_line_pos.enable         = true;
+    recog->stop_line_pos.enabled        = true;
     recog->ext_data.call_init_lane_info = true;
     target_encoder = read_encoder_counter() + 30.F * TICK_PER_CM;
     set_steering(1500);

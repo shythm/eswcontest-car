@@ -16,8 +16,8 @@ float pre_target_velo; // for stop slowly on stop line controlling target_velo
 void init_trafficLight(fnCheck_t *fnCheck) {
     recog->is_on_end_zone.enabled = false;
     recog->traffic_light.enabled  = false;
-    recog->tl_lane.enable         = false;
-    recog->stop_line_pos.enable   = true;
+    recog->tl_lane.enabled        = false;
+    recog->stop_line_pos.enabled  = true;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
     pre_target_velo = (float)target_velo; // save current velocity
@@ -29,7 +29,7 @@ bool check_trafficLight(fnRun_t *fnRun) {
     if (get_is_on_stop_line()) {
         MSG("START MISSION => trafficLight & end-zone");
         recog->ext_data.call_init_lane_info = true; // 차선 인식 정보 초기화
-        recog->stop_line_pos.enable         = false;
+        recog->stop_line_pos.enabled        = false;
         set_desire_speed(0);
         beep(50); // beep after stop!
         *fnRun = do_trafficLight;
@@ -77,7 +77,7 @@ void do_trafficLight(fnClean_t *fnClean) {
     set_camera_Yservo(1700);
 
     // turn on recog functions in advance of enter the end zone
-    recog->tl_lane.enable         = true;
+    recog->tl_lane.enabled        = true;
     recog->is_on_end_zone.enabled = true;
 
 #if REGRESS_ENABLE
@@ -121,8 +121,8 @@ void do_trafficLight(fnClean_t *fnClean) {
 void clean_trafficLight() {
     recog->is_on_end_zone.enabled       = false;
     recog->traffic_light.enabled        = false;
-    recog->tl_lane.enable               = false;
-    recog->stop_line_pos.enable         = false;
+    recog->tl_lane.enabled              = false;
+    recog->stop_line_pos.enabled        = false;
     recog->ext_data.call_init_lane_info = true;
 
     sleep(2);
