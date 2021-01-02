@@ -53,11 +53,11 @@ typedef struct {
 
 // for traffic_light data
 typedef enum {
-    TL_NONE,
-    TL_RED,
-    TL_YELLOW,
-    TL_GREEN,
-    TL_LEFT,
+    TL_NONE     = 0b0000,
+    TL_RED      = 0b0001,
+    TL_YELLOW   = 0b0010,
+    TL_GREEN    = 0b0100,
+    TL_LEFT     = 0b1000,
 } recog_traffic_light_t;
 typedef struct {
     bool                  enabled;
@@ -141,10 +141,10 @@ typedef struct _recog_tl_lane_data {
     float value;
 } recog_tl_lane_data;
 
-typedef struct _recog_other_cars_data {
+typedef struct _recog_empty_road_data {
     bool enable;
-    int  value;
-} recog_other_cars_data;
+    int  value; // -1: left, 1: right is empty road
+} recog_empty_road_data;
 
 typedef struct {
     bool  enable;
@@ -176,7 +176,7 @@ typedef volatile struct {
     recog_is_there_car_data    is_there_car;
     recog_psd_data             psd;
     recog_tl_lane_data         tl_lane;
-    recog_other_cars_data      other_cars;
+    recog_empty_road_data      empty_road;
     recog_stop_line_data       stop_line_pos;
     external_data              ext_data;
 } recog_result;

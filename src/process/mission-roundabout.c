@@ -29,6 +29,8 @@ bool        check_roundabout(fnRun_t *);
 void        run_roundabout(fnClean_t *);
 void        clean_roundabout(void);
 static void alarm_handler(int);
+// edit by jaesun
+int pre_max_velo = 0;
 
 void init_roundabout(fnCheck_t *fnCheck) {
     MSG("UPCOMING MISSION => roundabout");
@@ -37,11 +39,18 @@ void init_roundabout(fnCheck_t *fnCheck) {
     signal(SIGALRM, alarm_handler); // 알람 등록
 
     *fnCheck = check_roundabout;
+
+    // edit by jaesun
+    pre_max_velo = target_velo;
+    target_velo  = 170;
 }
 
 void clean_roundabout(void) {
     recog->stop_line_pos.enable         = false;
     recog->ext_data.call_init_lane_info = true;
+
+    // edit by jaesun
+    target_velo = pre_max_velo;
 }
 
 bool check_roundabout(fnRun_t *fnRun) {
