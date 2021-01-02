@@ -329,7 +329,7 @@ recog_traffic_light_t detectLights(recog_arg *arg) {
 
 struct StopObstacle detectStopObstacle(cv::Mat &frame, cv::Mat *drawBoard,
                                        int minArea, int maxArea) {
-    cv::Mat redMasked = maskImage(frame, -15, 15, 90, 255, 60, 255);
+    cv::Mat redMasked = maskImage(frame, 165, 180, 90, 255, 60, 255);
     std::vector<Contour> rectFound =
         findShapes(Rectangle, redMasked, minArea, maxArea);
 
@@ -367,9 +367,9 @@ struct StopObstacle detectStopObstacle(recog_arg *arg) {
 
     if (outBuf) {
         cv::Mat dstRGB(IMG_H, IMG_W, CV_8UC3, outBuf);
-        result = detectStopObstacle(srcRGB, &dstRGB, 1, 100000);
+        result = detectStopObstacle(srcRGB, &dstRGB, 100, 100000);
     } else
-        result = detectStopObstacle(srcRGB, NULL, 1, 100000);
+        result = detectStopObstacle(srcRGB, NULL, 100, 100000);
 
     return result;
 }
