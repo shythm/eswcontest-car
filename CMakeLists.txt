@@ -50,6 +50,7 @@ SET(share shared)
 FILE(GLOB src_recog src/${recog}/*.c* src/${share}/*.c*)
 FILE(GLOB src_clean src/${clean}/*.c* src/${share}/*.c*)
 FILE(GLOB src_prcss src/${prcss}/*.c* src/${share}/*.c*)
+FILE(GLOB src_wasd  src/utils/wasd/*.c* src/${share}/*.c*)
 
 # Include header files
 INCLUDE_DIRECTORIES(src/${recog})
@@ -74,3 +75,8 @@ ADD_EXECUTABLE(${prcss}
     ${src_prcss}
 )
 # TARGET_LINK_LIBRARIES(${prcss})
+
+# Build wasd
+ADD_EXECUTABLE(wasd
+    ${src_wasd}
+)
