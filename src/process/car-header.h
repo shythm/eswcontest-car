@@ -9,7 +9,11 @@
 #define RADIUS      37.00f
 #define PI          3.141592f
 
-#define CONSTRAIN(val, min, max) ((val < min) ? min : ((max < val) ? max : val))
+#define SLEEP_STOP  100000 // 0.1s
+#define SLEEP_STEER 300000 // 0.3s
+
+#define CONSTRAIN(val, min, max)                                               \
+    (((val) < (min)) ? (min) : (((max) < (val)) ? (max) : (val)))
 
 int   read_encoder_counter();
 short read_desire_speed();
@@ -21,5 +25,6 @@ void  beep(unsigned char time);
 void  move(short speed, int desire_encoder);
 void  set_camera_Yservo(short y_servo);
 bool  get_is_on_stop_line();
+void  record_ticks(fnInit_t mission);
 
 #endif

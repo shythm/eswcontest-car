@@ -7,7 +7,9 @@
 #define TUNN_GAIN 45
 // 안전거리가 짧을수록 둔감하지만 운전에 영향을 덜 준다.
 #define BACK_PSD_SAFE_DIST 6.f
-// 20 ~ 40 : 속력이 높을 수록 작은 값을 주어야 한다.(원심력때문에)
+
+// 20 ~ 40 : 속력이 높을 수록 작은 값을 주어야 한다.
+// (원심력때문에 out course로 돌기 때문에 잘 안 부딪힌다.)
 #define BACK_PSD_SAFE_STEER 15
 
 bool check_tunnel(fnRun_t *fnRun);
@@ -76,7 +78,7 @@ void do_tunnel(fnClean_t *fnClean) {
         }
     }
 
-    printf("lane init num: %d\n", num);
+    printf("tunnel lane init num: %d\n", num);
 
     ctrld_write(CMD_FRONT_A_REAL_LIGHT_CONTROL, 0);
 }
