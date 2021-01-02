@@ -1,4 +1,4 @@
-#include "recognize-lib.h"
+#include "recognize.h"
 #include <opencv2/opencv.hpp>
 
 #define W VPE_OUTPUT_W
@@ -73,4 +73,6 @@ float detectStopLine(recog_arg *arg) {
 // *********************************************************
 // FOR UPDATE recog_result STRUCTURE.
 // *********************************************************
-extern "C" float get_stop_line(recog_arg *arg) { return detectStopLine(arg); }
+extern "C" float get_stop_line_pos(recog_arg *arg) {
+    return detectStopLine(arg);
+}

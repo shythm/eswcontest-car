@@ -1,42 +1,59 @@
 #include "car-header.h"
 #include "process.h"
 
-#define TL_SPEED       90
-#define TL_SLEEP       100000 // 0.1s
-#define GAIN_POSITION  35
-#define LAST_TURN_TICK (PI * 80.0F / 180.0F * RADIUS * TICK_PER_CM) // 80-degree
+#define SPEED_TL       110
+#define VELO_STOP_LINE 50 // velocity at stop line
+
+#define REGRESS_ENABLE 0
 
 bool check_trafficLight(fnRun_t *);
 void do_trafficLight(fnClean_t *);
 void clean_trafficLight();
-void dive_into_end_point();
+void dive_into_end_zone();
+
+float pre_target_velo; // for stop slowly on stop line controlling target_velo
 
 void init_trafficLight(fnCheck_t *fnCheck) {
     recog->is_on_end_zone.enabled = false;
     recog->traffic_light.enabled  = false;
-    recog->tl_lane.enable         = false;
+    recog->tl_lane.enabled        = false;
+    recog->stop_line_pos.enabled  = true;
 
     MSG("UPCOMING MISSION => trafficLight & end-zone");
-    *fnCheck = check_trafficLight;
+    pre_target_velo = (float)target_velo; // save current velocity
+    *fnCheck        = check_trafficLight;
 }
 
 bool check_trafficLight(fnRun_t *fnRun) {
+    static float stop_line_pos = -1.0f;
     if (get_is_on_stop_line()) {
-        set_desire_speed(0); // stop on the stop line
-        beep(50);
         MSG("START MISSION => trafficLight & end-zone");
+        recog->ext_data.call_init_lane_info = true; // 차선 인식 정보 초기화
+        recog->stop_line_pos.enabled        = false;
+        set_desire_speed(0);
+        beep(50); // beep after stop!
         *fnRun = do_trafficLight;
         return true;
+    }
+    // 카메라에 정지선 감지되면 감속(감지되지 않으면 음수)
+    stop_line_pos = recog->stop_line_pos.value;
+    if (stop_line_pos > 0.0f) { // 정지선에 가까워질수록 속도가 느려짐
+        float temp_velo = (VELO_STOP_LINE - pre_target_velo) * stop_line_pos +
+                          pre_target_velo;
+        // VELO_STOP_LINE < 다음 target_velo < 현재 target_velo
+        // (정지선에 가까워져서 pos=-1이 될 때 속도가 튀는 것을 방지)
+        target_velo = (short)CONSTRAIN(temp_velo, VELO_STOP_LINE, target_velo);
     }
     return false;
 }
 
 void do_trafficLight(fnClean_t *fnClean) {
-    recog->lane.enabled          = false;
+    const int straight_tick = (int)(33.f * TICK_PER_CM);
+    const int turn_tick     = (int)(PI * 90.0F / 180.0F * RADIUS * TICK_PER_CM);
+    recog->lane.enabled     = false;
     recog->traffic_light.enabled = true;
-    // stop on the stop line
-    set_desire_speed(0);
 
+    // stop
     // tilt up camera to see trafficLight
     set_camera_Yservo(1500);
     sleep(1);
@@ -59,9 +76,14 @@ void do_trafficLight(fnClean_t *fnClean) {
     // tilt down camera
     set_camera_Yservo(1700);
 
+    // turn on recog functions in advance of enter the end zone
+    recog->tl_lane.enabled        = true;
+    recog->is_on_end_zone.enabled = true;
+
+#if REGRESS_ENABLE
     // progress
     set_steering(1500);
-    set_desire_speed(TL_SPEED);
+    set_desire_speed(SPEED_TL);
     while (recog->psd.value[PSD_FRONT] > 26.f) {
         // printf("PSD FRONT: %3.1f\n", recog->psd.value[PSD_FRONT]);
     }
@@ -70,24 +92,25 @@ void do_trafficLight(fnClean_t *fnClean) {
 
     // regress
     if (tl_direction < 0) { // left
-        move(-TL_SPEED, -10.f * TICK_PER_CM);
+        move(-SPEED_TL, -10.f * TICK_PER_CM);
         set_steering(2000);
     } else { // right
-        move(-TL_SPEED, -5.f * TICK_PER_CM);
+        move(-SPEED_TL, -10.f * TICK_PER_CM);
         set_steering(1000);
     }
-    recog->tl_lane.enable         = true;
-    recog->is_on_end_zone.enabled = true;
-    usleep(TL_SLEEP);
+#else
+    // progress
+    move(SPEED_TL, straight_tick);
+    usleep(SLEEP_STOP);
+    // turn
+    set_steering((tl_direction < 0) ? 2000 : 1000); // left : right
+    move(SPEED_TL, turn_tick);
+#endif
 
-    // turn xx-degree
-    move(TL_SPEED, LAST_TURN_TICK);
-
-    // progress toward end point
-    set_desire_speed(TL_SPEED);
-
-    while (!recog->is_on_end_zone.value) dive_into_end_point();
-    while (recog->is_on_end_zone.value) dive_into_end_point();
+    // progress toward end zone
+    set_desire_speed(SPEED_TL);
+    while (!recog->is_on_end_zone.value) dive_into_end_zone();
+    while (recog->is_on_end_zone.value) dive_into_end_zone();
     set_desire_speed(0);
 
     // end trafficLight
@@ -96,16 +119,19 @@ void do_trafficLight(fnClean_t *fnClean) {
 }
 
 void clean_trafficLight() {
-    recog->is_on_end_zone.enabled = false;
-    recog->traffic_light.enabled  = false;
-    recog->tl_lane.enable         = false;
+    recog->is_on_end_zone.enabled       = false;
+    recog->traffic_light.enabled        = false;
+    recog->tl_lane.enabled              = false;
+    recog->stop_line_pos.enabled        = false;
+    recog->ext_data.call_init_lane_info = true;
 
     sleep(2);
     // while (1) sleep(1); /* THE END */
 }
 
-void dive_into_end_point() {
-    short steering = (-recog->tl_lane.value * GAIN_POSITION) + 1500.f;
+void dive_into_end_zone() {
+    static const float gain     = 35.f;
+    short              steering = (-recog->tl_lane.value * gain) + 1500.f;
     // constrain 1200~1800
     steering = CONSTRAIN(steering, 1200, 1800);
     set_steering(steering);

@@ -1,4 +1,4 @@
-#include "recognize-lib.h"
+#include "recognize.h"
 #include <math.h>
 #include <opencv2/opencv.hpp>
 #include <stdio.h>

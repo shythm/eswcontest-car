@@ -15,6 +15,7 @@ WEAK_FUNC_INIT_MISSION(roundabout);
 WEAK_FUNC_INIT_MISSION(tunnel);
 WEAK_FUNC_INIT_MISSION(overtaking);
 WEAK_FUNC_INIT_MISSION(trafficLight);
+WEAK_FUNC_INIT_MISSION(hill);
 
 #ifndef MODE_PRACTICE
 
@@ -22,6 +23,7 @@ WEAK_FUNC_INIT_MISSION(trafficLight);
 fnInit_t mission_list[] = {
     init_start,
     init_overpass,
+    init_hill,
     init_obstacle,
     init_parking_parallel,
     init_parking_vertical,
@@ -60,5 +62,6 @@ const char *get_mission_name(fnInit_t func) {
     IF_FUNC_NAME(tunnel);
     IF_FUNC_NAME(overtaking);
     IF_FUNC_NAME(trafficLight);
+    IF_FUNC_NAME(hill);
     else return "";
 }

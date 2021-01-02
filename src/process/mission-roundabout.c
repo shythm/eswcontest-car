@@ -29,19 +29,28 @@ bool        check_roundabout(fnRun_t *);
 void        run_roundabout(fnClean_t *);
 void        clean_roundabout(void);
 static void alarm_handler(int);
+// edit by jaesun
+int pre_max_velo = 0;
 
 void init_roundabout(fnCheck_t *fnCheck) {
     MSG("UPCOMING MISSION => roundabout");
-    recog->stop_line_pos.enable = true;
+    recog->stop_line_pos.enabled = true;
 
     signal(SIGALRM, alarm_handler); // 알람 등록
 
     *fnCheck = check_roundabout;
+
+    // edit by jaesun
+    pre_max_velo = target_velo;
+    target_velo  = 170;
 }
 
 void clean_roundabout(void) {
-    recog->stop_line_pos.enable         = false;
+    recog->stop_line_pos.enabled        = false;
     recog->ext_data.call_init_lane_info = true;
+
+    // edit by jaesun
+    target_velo = pre_max_velo;
 }
 
 bool check_roundabout(fnRun_t *fnRun) {
@@ -131,7 +140,7 @@ void run_roundabout(fnClean_t *fnClean) {
 
         /* 회전교차로 돌다가 오른쪽 IR센서 4개가 차선 밟으면 왼쪽으로 틀자 */
         if ((ctrld_read(CMD_LINE_SENSOR, &IR_data) == CMDR_SUCCESS) &&
-            (~IR_data & 0x78)) { // 0111 1000 = 0x78
+            (~IR_data & 0x78) && (dist_accu > 20.0f)) { // 0111 1000 = 0x78
             evasion_escape_flag = true;
             ualarm(1000 * 500, 0); // 일정 시간이 지난 후에 다시 정상 주행
         }

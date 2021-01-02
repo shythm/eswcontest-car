@@ -2,7 +2,7 @@
 #define _PROCESS_H_
 #include "config-car.h"
 #include "ctrlboard-direct.h"
-#include "recognize-lib.h"
+#include "recognize-shm.h"
 #include "util.h"
 #include <stdbool.h>
 
