@@ -1,4 +1,9 @@
 # Embedded Software Contest
+
+## 완주 영상
+
+[![Watch the video](https://i9.ytimg.com/vi/6rkNeMgAsw8/mq3.jpg?sqp=CMih84QG&rs=AOn4CLBiAMguzEDtueqnvCHXXz4CPBvLqw)](https://www.youtube.com/watch?v=6rkNeMgAsw8)
+
 ## 자율주행 모형자동차 부문
 주어진 자율주행차 개발 KIT를 가지고 개발된 미션과 도로 주행 미션을 수행하는 부문
 
